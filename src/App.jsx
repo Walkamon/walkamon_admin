@@ -1,32 +1,39 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { LoginPage } from "./pages/auth/login/page/LoginPage";
-import { DashboardPage } from "./pages/dashboard/page/DashboardPage"; // 1. Import Thẻ Chào vào đây
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { MainLayout } from "./components/layout/MainLayout";
+import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
+import { authRoutes } from "./routes/authRoutes";
+
+const router = createBrowserRouter([
+  ...authRoutes,
+
+  {
+    path: "/",
+    element: <MainLayout />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: "dashboard",
+        element: <DashboardPage />,
+      },
+    ],
+  },
+
+  {
+    path: "*",
+    element: (
+      <div className="p-8 text-center text-destructive">
+        <h2 className="text-2xl font-bold">404 - Không tìm thấy trang</h2>
+        <p className="text-sm text-muted-foreground mt-2">Đường dẫn này không tồn tại!</p>
+      </div>
+    ),
+  },
+]);
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Tự động nhảy vào trang Login */}
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
-
-        {/* Trang Đăng nhập */}
-        <Route path="/auth/login" element={<LoginPage />} />
-
-        {/* 2. Trang Dashboard ăn theo Thẻ Chào xịn sò vừa tạo */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-
-        {/* Lỗi 404 */}
-        <Route
-          path="*"
-          element={
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>
-              <h2>404 - Không tìm thấy trang</h2>
-            </div>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
