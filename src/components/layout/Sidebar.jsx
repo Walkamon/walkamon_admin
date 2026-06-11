@@ -14,25 +14,25 @@ import {
     Settings2,
 } from 'lucide-react';
 
-// 1. Component Logo Walkamon (Đã xóa Type định nghĩa size)
+// Đã xóa bỏ đoạn `: { size?: number }` của TypeScript để chạy chuẩn trên .jsx
 function WalkLogo({ size = 48 }) {
     return (
         <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-            <div className="absolute bg-[#10b981]/25 blur-xl rounded-full" style={{ width: size * 0.85, height: size * 0.85 }} />
+            <div className="absolute bg-primary/25 blur-xl rounded-full transition-colors" style={{ width: size * 0.85, height: size * 0.85 }} />
             <svg
                 viewBox="0 0 100 100"
                 width={size}
                 height={size}
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="relative z-10 drop-shadow-[0_4px_12px_rgba(16,185,129,0.12)]"
+                className="relative z-10 drop-shadow-md transition-colors"
             >
                 <path d="M50 85 C15 80, 5 45, 20 25 C32 40, 45 62, 50 85 Z" fill="currentColor" className="text-primary" opacity="0.85" />
                 <path d="M50 85 C85 80, 95 45, 80 25 C68 40, 55 62, 50 85 Z" fill="currentColor" className="text-primary" opacity="0.85" />
                 <path d="M22 45 Q 35 32, 50 45" stroke="currentColor" strokeWidth="3" className="text-primary/40" strokeLinecap="round" />
                 <path d="M78 45 Q 65 32, 50 45" stroke="currentColor" strokeWidth="3" className="text-primary/40" strokeLinecap="round" />
                 <circle cx="50" cy="55" r="18" fill="currentColor" className="text-primary/80" />
-                <circle cx="50" cy="55" r="14" fill="currentColor" className="text-white" />
+                <circle cx="50" cy="55" r="14" fill="currentColor" className="text-primary-foreground" />
                 <path d="M50 35 L54 51 L70 55 L54 59 L50 75 L46 59 L30 55 L46 51 Z" fill="currentColor" className="text-primary" />
                 <path d="M50 35 Q44 24 36 27 Q45 33 50 35 Z" fill="currentColor" className="text-primary" />
                 <path d="M50 35 Q56 24 64 27 Q55 33 50 35 Z" fill="currentColor" className="text-primary" />
@@ -46,7 +46,6 @@ function WalkLogo({ size = 48 }) {
     );
 }
 
-// 2. Danh sách Menu khớp 100% với danh mục quản trị trên Figma
 const menuItems = [
     { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard },
     { id: 'users', label: 'Quản Lý Người Dùng', icon: Users },
@@ -63,25 +62,23 @@ const menuItems = [
     { id: 'systemconfig', label: 'Cấu Hình Hệ Thống', icon: Settings2 },
 ];
 
-// 3. Component Sidebar (Đã loại bỏ SidebarProps interface)
+// Đã xóa bỏ `: SidebarProps` của TypeScript ở đây luôn
 export function Sidebar({ activePage, onPageChange }) {
     return (
-        <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 transition-colors duration-200">
-            {/* Khối Header Logo */}
+        <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 transition-colors duration-200 z-20">
             <div className="p-6 border-b border-sidebar-border">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 flex items-center justify-center">
                         <WalkLogo size={48} />
                     </div>
                     <div>
-                        <h1 className="font-bold text-sidebar-foreground text-lg leading-tight">Walkamon</h1>
+                        <h1 className="font-bold text-sidebar-foreground text-lg">Walkamon</h1>
                         <p className="text-xs text-muted-foreground">Admin Dashboard</p>
                     </div>
                 </div>
             </div>
 
-            {/* Danh sách nút bấm chuyển trang */}
-            <nav className="flex-1 overflow-y-auto py-4">
+            <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activePage === item.id;
@@ -89,13 +86,13 @@ export function Sidebar({ activePage, onPageChange }) {
                         <button
                             key={item.id}
                             onClick={() => onPageChange(item.id)}
-                            className={`w-full flex items-center gap-3 px-6 py-3 text-sm transition-colors duration-150 text-left ${isActive
-                                ? 'bg-sidebar-accent text-sidebar-accent-foreground border-r-2 border-sidebar-primary font-semibold'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            className={`w-full flex items-center gap-3 px-6 py-3 text-sm transition-colors cursor-pointer ${isActive
+                                ? 'bg-sidebar-accent text-sidebar-accent-foreground border-r-2 border-sidebar-primary'
+                                : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                                 }`}
                         >
-                            <Icon className="w-5 h-5" />
-                            <span>{item.label}</span>
+                            <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-primary' : ''}`} />
+                            <span className="font-medium">{item.label}</span>
                         </button>
                     );
                 })}
