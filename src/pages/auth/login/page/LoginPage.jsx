@@ -54,7 +54,26 @@ export function LoginPage() {
 
         try {
             const response = await authApi.login({ email, password });
-            const token = response.jwt || response.token;
+
+            // DEBUG: xem server trả về field nào
+            console.log("🔑 Login response:", response);
+
+            // Thử các tên field phổ biến
+            const token =
+                response.jwt ||
+                response.token ||
+                response.accessToken ||
+                response.access_token ||
+                response.data?.jwt ||
+                response.data?.token ||
+                response.data?.accessToken;
+
+            console.log("🎟️ Token lấy được:", token);
+
+            if (!token) {
+                console.error("❌ Không tìm thấy token trong response! Keys có trong response:", Object.keys(response));
+            }
+
             localStorage.setItem("access_token", token);
             navigate("/dashboard");
         } catch (err) {

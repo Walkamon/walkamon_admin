@@ -1,4 +1,5 @@
 
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -15,7 +16,6 @@ import {
     Settings2,
 } from 'lucide-react';
 
-// Đã xóa bỏ đoạn `: { size?: number }` của TypeScript để chạy chuẩn trên .jsx
 function WalkLogo({ size = 48 }) {
     return (
         <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
@@ -47,24 +47,35 @@ function WalkLogo({ size = 48 }) {
     );
 }
 
+// Map từ id menu sang đường dẫn route
 const menuItems = [
-    { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard },
-    { id: 'users', label: 'Quản Lý Người Dùng', icon: Users },
-    { id: 'spirits', label: 'Quản Lý Tinh Linh', icon: Heart },
-    { id: 'missions', label: 'Quản Lý Nhiệm Vụ', icon: Target },
-    { id: 'achievements', label: 'Quản Lý Thành Tựu', icon: Award },
-    { id: 'shop', label: 'Quản Lý Cửa Hàng', icon: ShoppingBag },
-    { id: 'items', label: 'Quản Lý Vật Phẩm', icon: Package },
-    { id: 'challenges', label: 'Quản Lý Thử Thách', icon: Trophy },
-    { id: 'reports', label: 'Quản Lý Báo Cáo', icon: Flag },
-    { id: 'notifications', label: 'Quản Lý Thông Báo', icon: Bell },
-    { id: 'spiritnews', label: 'Tin Tức Tinh Linh', icon: Newspaper },
-    { id: 'pvp', label: 'Quản Lý PvP', icon: Swords },
-    { id: 'systemconfig', label: 'Cấu Hình Hệ Thống', icon: Settings2 },
+    { id: 'dashboard',    label: 'Tổng Quan',             icon: LayoutDashboard, path: '/dashboard' },
+    { id: 'players',        label: 'Quản Lý Người Dùng',    icon: Users,           path: '/players' },
+    { id: 'spirits',      label: 'Quản Lý Tinh Linh',     icon: Heart,           path: '/spirits' },
+    { id: 'missions',     label: 'Quản Lý Nhiệm Vụ',      icon: Target,          path: '/missions' },
+    { id: 'achievements', label: 'Quản Lý Thành Tựu',     icon: Award,           path: '/achievements' },
+    { id: 'shop',         label: 'Quản Lý Cửa Hàng',      icon: ShoppingBag,     path: '/shop' },
+    { id: 'items',        label: 'Quản Lý Vật Phẩm',      icon: Package,         path: '/items' },
+    { id: 'challenges',   label: 'Quản Lý Thử Thách',     icon: Trophy,          path: '/challenges' },
+    { id: 'reports',      label: 'Quản Lý Báo Cáo',       icon: Flag,            path: '/reports' },
+    { id: 'notifications',label: 'Quản Lý Thông Báo',     icon: Bell,            path: '/notifications' },
+    { id: 'spiritnews',   label: 'Tin Tức Tinh Linh',      icon: Newspaper,       path: '/spiritnews' },
+    { id: 'pvp',          label: 'Quản Lý PvP',            icon: Swords,          path: '/pvp' },
+    { id: 'systemconfig', label: 'Cấu Hình Hệ Thống',     icon: Settings2,       path: '/systemconfig' },
 ];
 
-// Đã xóa bỏ `: SidebarProps` của TypeScript ở đây luôn
-export function Sidebar({ activePage, onPageChange }) {
+export function Sidebar() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Xác định menu nào đang active dựa vào URL hiện tại
+    const isActive = (item) => {
+        if (item.path === '/dashboard') {
+            return location.pathname === '/dashboard' || location.pathname === '/';
+        }
+        return location.pathname.startsWith(item.path);
+    };
+
     return (
         <div className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col fixed left-0 top-0 transition-colors duration-200 z-20">
             <div className="p-6 border-b border-sidebar-border">
@@ -82,17 +93,17 @@ export function Sidebar({ activePage, onPageChange }) {
             <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = activePage === item.id;
+                    const active = isActive(item);
                     return (
                         <button
                             key={item.id}
-                            onClick={() => onPageChange(item.id)}
-                            className={`w-full flex items-center gap-3 px-6 py-3 text-sm transition-colors cursor-pointer ${isActive
+                            onClick={() => navigate(item.path)}
+                            className={`w-full flex items-center gap-3 px-6 py-3 text-sm transition-colors cursor-pointer ${active
                                 ? 'bg-sidebar-accent text-sidebar-accent-foreground border-r-2 border-sidebar-primary'
                                 : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                                 }`}
                         >
-                            <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-primary' : ''}`} />
+                            <Icon className={`w-5 h-5 ${active ? 'text-sidebar-primary' : ''}`} />
                             <span className="font-medium">{item.label}</span>
                         </button>
                     );

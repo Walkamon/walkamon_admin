@@ -1,16 +1,13 @@
-import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 
 export function MainLayout() {
-    const [activePage, setActivePage] = useState("dashboard");
-
     return (
         // Nền tổng thể toàn trang dùng bg-background
         <div className="min-h-screen bg-background font-sans text-foreground">
             {/* Sidebar bên trái */}
-            <Sidebar activePage={activePage} onPageChange={setActivePage} />
+            <Sidebar />
 
             {/* Khối nội dung bên phải */}
             <div className="flex flex-col ml-64 min-h-screen">

@@ -1,22 +1,35 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
+import { UsersManagement } from "./pages/players/viewPlayerList.jsx";
 import { authRoutes } from "./routes/authRoutes";
+import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 
 const router = createBrowserRouter([
+  // Các route public (không cần đăng nhập)
   ...authRoutes,
 
+  // Các route cần đăng nhập
   {
     path: "/",
-    element: <MainLayout />,
+    element: <ProtectedRoute />,
     children: [
       {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: "dashboard",
-        element: <DashboardPage />,
+        element: <MainLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
+            path: "dashboard",
+            element: <DashboardPage />,
+          },
+          {
+            path: "players",
+            element: <UsersManagement />,
+          },
+        ],
       },
     ],
   },
