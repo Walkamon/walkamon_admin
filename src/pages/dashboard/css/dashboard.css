@@ -1,0 +1,44 @@
+@reference "tailwindcss";
+
+/* Container tổng */
+.dashboard-container {
+    @apply flex justify-center items-center min-h-screen bg-[#F8FAFC];
+}
+
+/* Thẻ Card chính */
+.dashboard-card {
+    @apply bg-white p-10 rounded-3xl shadow-xl border border-[#E5DCCF] text-center max-w-[420px] w-full transition-all;
+}
+
+/* Khối Icon */
+.dashboard-icon-wrapper {
+    @apply bg-green-50 w-20 h-20 rounded-full flex justify-center items-center mx-auto mb-6;
+}
+
+/* Tiêu đề & Mô tả */
+.dashboard-title {
+    @apply text-2xl font-bold text-slate-900 mb-2;
+}
+
+.dashboard-subtitle {
+    @apply text-slate-600 text-sm leading-relaxed mb-8;
+}
+
+/* Hộp thông tin tài khoản */
+.dashboard-info-box {
+    @apply bg-slate-50 p-4 rounded-2xl text-left mb-8 space-y-3 border border-slate-100;
+}
+
+.dashboard-info-item {
+    @apply flex items-center gap-3 text-slate-700 text-[15px];
+}
+
+.dashboard-info-label {
+    @apply font-semibold text-slate-800;
+}
+
+/* Nút Đăng xuất */
+.dashboard-logout-btn {
+    @apply flex items-center justify-center gap-2 w-full bg-red-500 text-white py-3.5 rounded-2xl font-semibold text-base transition-all shadow-md;
+    @apply hover:bg-red-600 hover:shadow-lg active:scale-[0.985];
+}
