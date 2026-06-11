@@ -4,6 +4,41 @@ import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import authApi from "../../../../api/authApi";
 import "../css/login.css"; // Nhớ import đúng đường dẫn file CSS vừa tạo nhé ông
 
+// --- 1. HÀM TỰ ĐỘNG DỊCH THÔNG BÁO LỖI (TRANSLATOR) ---
+const translateError = (englishMsg) => {
+    if (!englishMsg) return "Lỗi không xác định.";
+    const str = englishMsg.toString();
+
+    // Dịch các lỗi logic từ C#
+    if (str.includes("User not found")) return "Không tìm thấy người dùng với email này.";
+    if (str.includes("Account is not activated")) return "Tài khoản chưa được xác thực email.";
+    if (str.includes("Account has been locked")) return "Tài khoản này đã bị vô hiệu hóa.";
+    if (str.includes("too many failed login attempts")) return "Tài khoản bị khóa 5 phút do nhập sai mật khẩu quá nhiều lần.";
+
+    // Dịch lỗi có chứa biến động (số phút, số lần thử)
+    if (str.includes("Account is locked. Try again after")) {
+        const minutes = str.match(/\d+/)?.[0] || "vài";
+        return `Tài khoản đang bị khóa. Vui lòng thử lại sau ${minutes} phút.`;
+    }
+    if (str.includes("Wrong password. Remaining attempts")) {
+        const attempts = str.match(/\d+/)?.[0] || "";
+        return `Sai mật khẩu. Bạn còn ${attempts} lần thử.`;
+    }
+
+    // Dịch lỗi FluentValidation
+    if (str.includes("Email is required")) return "Vui lòng nhập Email.";
+    if (str.includes("Invalid email format")) return "Định dạng email không hợp lệ.";
+    if (str.includes("Password is required")) return "Vui lòng nhập mật khẩu.";
+    if (str.includes("Password must be at least 6 characters")) return "Mật khẩu phải có ít nhất 6 ký tự.";
+    if (str.includes("Password must contain at least one uppercase letter")) return "Mật khẩu phải chứa ít nhất 1 chữ in hoa.";
+    if (str.includes("Password must contain at least one lowercase letter")) return "Mật khẩu phải chứa ít nhất 1 chữ thường.";
+    if (str.includes("Password must contain at least one number")) return "Mật khẩu phải chứa ít nhất 1 chữ số.";
+    if (str.includes("Password must contain at least one special character")) return "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt.";
+
+    // Nếu gặp lỗi lạ chưa cấu hình, trả về nguyên bản
+    return str;
+};
+
 export function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -19,13 +54,37 @@ export function LoginPage() {
 
         try {
             const response = await authApi.login({ email, password });
-            localStorage.setItem("access_token", response.token);
-
-            // Chuyển hướng sang trang Dashboard khi thành công
+            const token = response.jwt || response.token;
+            localStorage.setItem("access_token", token);
             navigate("/dashboard");
         } catch (err) {
-            setError("Email hoặc mật khẩu không chính xác!");
             console.error("Login error:", err);
+
+            // --- 2. BẮT LỖI VÀ ĐƯA QUA HÀM DỊCH ---
+            if (err.response && err.response.data) {
+                const data = err.response.data;
+                let rawErrorMsg = "Thông tin đăng nhập không hợp lệ.";
+
+                if (data.errors && typeof data.errors === 'object') {
+                    const firstErrorKey = Object.keys(data.errors)[0];
+                    rawErrorMsg = data.errors[firstErrorKey][0];
+                }
+                else if (data.message) {
+                    rawErrorMsg = data.message;
+                }
+                else if (typeof data === 'string') {
+                    rawErrorMsg = data;
+                }
+                else if (data.title) {
+                    rawErrorMsg = data.title;
+                }
+
+                // Chạy qua máy dịch trước khi gán vào State
+                setError(translateError(rawErrorMsg));
+
+            } else {
+                setError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+            }
         } finally {
             setIsLoading(false);
         }
