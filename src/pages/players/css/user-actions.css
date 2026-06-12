@@ -1,0 +1,75 @@
+/* Styles for UserActionButtons component (separate file) */
+.ua-actions {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.ua-actions .ua-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.12s ease-in-out;
+  cursor: pointer;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+/* Prevent button text changes from shifting sibling buttons */
+.ua-actions .ua-btn {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Fixed sizing for lock button so toggling label doesn't move the log button */
+.ua-lock {
+  /* Fix width to the widest label so toggling doesn't change layout */
+  min-width: 140px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  justify-content: center;
+}
+
+/* Keep log button stable but let it size naturally */
+.ua-log {
+  min-width: 84px;
+  justify-content: center;
+}
+
+.ua-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ua-lock.default {
+  background-color: transparent;
+  color: var(--destructive);
+  border: 1px solid rgba(220,38,38,0.15);
+}
+.ua-lock.default:hover {
+  background-color: rgba(220,38,38,0.9);
+  color: white;
+}
+
+.ua-lock.blocked {
+  background-color: rgba(59,130,246,0.08);
+  color: var(--primary);
+  border: 1px solid rgba(59,130,246,0.12);
+}
+.ua-lock.blocked:hover {
+  background-color: rgba(59,130,246,1);
+  color: white;
+}
+
+.ua-log {
+  background-color: rgba(59,130,246,0.08);
+  color: var(--primary);
+  border: 1px solid rgba(59,130,246,0.12);
+}
+.ua-log:hover {
+  background-color: rgba(59,130,246,0.15);
+}
