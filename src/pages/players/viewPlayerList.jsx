@@ -1,7 +1,4 @@
 import {
-    Search,
-    ChevronLeft,
-    ChevronRight,
     ChevronDown,
     Lock,
     Unlock,
@@ -14,6 +11,12 @@ import {
 import { useEffect, useRef, useState, useCallback } from "react";
 import playerApi from "../../api/playerApi";
 import { PlayerDetailModal } from "./viewPlayerDetails.jsx";
+import { Button } from "../../components/common/button.jsx";
+import { SearchFilter } from "../../components/common/search_filtter.jsx";
+import { Pagination } from "../../components/common/pagination.jsx";
+import { Table, TableEmpty } from "../../components/common/table.jsx";
+import "./css/user-actions.css";
+import "./css/user-status.css";
 
 // ─── Hàm tiện ích ───────────────────────────────────────────────────────────
 
@@ -55,19 +58,13 @@ function UserStatusSelect({ value, onChange }) {
     }, [open]);
 
     return (
-        <div ref={rootRef} className="relative min-w-[11rem]">
-            <button
-                type="button"
-                onClick={() => setOpen((v) => !v)}
-                className="w-full rounded-full py-2 px-4 pr-9 bg-muted border border-border text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary"
-            >
+        <div ref={rootRef} className="us-root">
+            <button type="button" onClick={() => setOpen((v) => !v)} className={`us-button`}>
                 {selected.label}
             </button>
-            <ChevronDown
-                className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none transition-transform ${open ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`us-chevron ${open ? "rotate-180" : ""}`} />
             {open && (
-                <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-card border border-border rounded-2xl shadow-lg p-1.5 overflow-hidden">
+                <ul className="us-options">
                     {STATUS_OPTIONS.map((option) => (
                         <li key={option.value}>
                             <button
@@ -76,10 +73,7 @@ function UserStatusSelect({ value, onChange }) {
                                     onChange(option.value);
                                     setOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-colors ${option.value === value
-                                    ? "bg-primary/10 text-primary font-medium"
-                                    : "text-foreground hover:bg-muted"
-                                    }`}
+                                className={`us-option ${option.value === value ? "selected" : ""}`}
                             >
                                 {option.label}
                             </button>
@@ -94,20 +88,14 @@ function UserStatusSelect({ value, onChange }) {
 // ─── Nút hành động ──────────────────────────────────────────────────────────
 
 function UserActionButtons({ isBlocked, onLock, onViewLog, isLocking }) {
-    const lockClass = isBlocked
-        ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white hover:border-primary"
-        : "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white hover:border-destructive";
-    const logClass =
-        "bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 hover:border-primary/35";
-
     return (
-        <div className="inline-flex items-center gap-1.5">
-            <div className="flex shrink-0 w-[5.25rem] justify-start">
+        <div className="ua-actions">
+            <div>
                 <button
                     type="button"
                     onClick={onLock}
                     disabled={isLocking}
-                    className={`py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap disabled:opacity-60 ${lockClass}`}
+                    className={`ua-btn ua-lock ${isBlocked ? "blocked" : "default"}`}
                 >
                     {isLocking ? (
                         <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
@@ -119,12 +107,8 @@ function UserActionButtons({ isBlocked, onLock, onViewLog, isLocking }) {
                     <span>{isBlocked ? "Mở Khóa" : "Khóa"}</span>
                 </button>
             </div>
-            <div className="flex shrink-0 w-[5.25rem] justify-start">
-                <button
-                    type="button"
-                    onClick={onViewLog}
-                    className={`py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap ${logClass}`}
-                >
+            <div>
+                <button type="button" onClick={onViewLog} className={`ua-btn ua-log`}>
                     <ScrollText className="w-3 h-3 shrink-0" />
                     <span>Xem Log</span>
                 </button>
@@ -175,7 +159,11 @@ export function UsersManagement() {
     }, []);
 
     useEffect(() => {
-        fetchUsers();
+        // Defer initial fetch to avoid calling setState synchronously inside an effect
+        const id = setTimeout(() => {
+            fetchUsers();
+        }, 0);
+        return () => clearTimeout(id);
     }, [fetchUsers]);
 
     // ── Lọc & phân trang ──
@@ -269,29 +257,23 @@ export function UsersManagement() {
                     <h1 className="text-2xl font-bold mb-1">Quản lý người dùng</h1>
                     <p className="text-sm text-muted-foreground">Tổng {users.length} người dùng</p>
                 </div>
-                <button
-                    onClick={fetchUsers}
-                    className="flex items-center gap-2 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-muted-foreground hover:bg-muted/70 transition-colors"
-                >
+                <Button type="button" variant="secondary" className="flex items-center gap-2 px-3 py-2" onClick={fetchUsers}>
                     <RefreshCw className="w-4 h-4" />
                     Làm mới
-                </button>
+                </Button>
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6">
                 {/* Thanh tìm kiếm + lọc */}
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="flex-1 relative max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm theo tên, email hoặc ID..."
+                    <div className="flex-1 max-w-md">
+                        <SearchFilter
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="Tìm kiếm theo tên, email hoặc ID..."
                         />
                     </div>
                     <UserStatusSelect
@@ -304,8 +286,7 @@ export function UsersManagement() {
                 </div>
 
                 {/* Bảng người dùng */}
-                <div className="overflow-x-auto">
-                    <table className="w-full table-fixed min-w-[1000px]">
+                <Table className="min-w-[1000px]">
                         <thead>
                             <tr className="bg-muted border-b border-border">
                                 <th className="w-[9%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">ID</th>
@@ -319,11 +300,7 @@ export function UsersManagement() {
                         </thead>
                         <tbody>
                             {paginatedUsers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="py-16 text-center text-sm text-muted-foreground">
-                                        Không tìm thấy người dùng nào.
-                                    </td>
-                                </tr>
+                                <TableEmpty colSpan={7} message="Không tìm thấy người dùng nào." />
                             ) : (
                                 paginatedUsers.map((user) => {
                                     const uid = user.userId || user.id;
@@ -372,8 +349,7 @@ export function UsersManagement() {
                                 })
                             )}
                         </tbody>
-                    </table>
-                </div>
+                </Table>
 
                 {/* Phân trang */}
                 <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
@@ -382,31 +358,11 @@ export function UsersManagement() {
                         {Math.min(startIndex + itemsPerPage, filteredUsers.length)} trong{" "}
                         {filteredUsers.length} kết quả
                     </p>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`px-3 py-1 rounded-lg text-sm ${currentPage === page ? "bg-primary text-white" : "hover:bg-muted"}`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                        <button
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages || totalPages === 0}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onChange={setCurrentPage}
+                    />
                 </div>
             </div>
 
