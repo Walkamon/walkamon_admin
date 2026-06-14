@@ -6,6 +6,11 @@ export const itemApi = {
     return axiosClient.get('/api/items');
   },
 
+  // Lấy chi tiết vật phẩm (GET /api/items/{id})
+  getById: (id) => {
+    return axiosClient.get(`/api/items/${id}`);
+  },
+
   // Lấy danh sách loại vật phẩm (GET /api/item-types)
   getTypes: () => {
     return axiosClient.get('/api/item-types');
