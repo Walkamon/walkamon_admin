@@ -115,7 +115,7 @@
 }
 
 .item-image-container {
-    @apply w-35 h-35 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0;
+    @apply w-15 h-15 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0;
 }
 
 .item-preview-img {
@@ -124,4 +124,96 @@
 
 .item-image-fallback {
     @apply w-full h-full flex items-center justify-center bg-muted;
+}
+
+/* ─── MODAL & FORM ADD ITEM CUSTOM STYLES ─── */
+.modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm;
+}
+
+.modal-content {
+    @apply bg-card border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col overflow-hidden;
+}
+
+.modal-header {
+    @apply flex items-center justify-between px-6 py-4 border-b border-border;
+}
+
+.modal-header h2 {
+    @apply text-lg font-semibold text-primary m-0;
+}
+
+.modal-close-btn {
+    @apply text-muted-foreground hover:text-primary transition-colors bg-transparent border-none cursor-pointer p-0 flex items-center;
+}
+
+.modal-body {
+    @apply overflow-y-auto flex-1 px-6 py-4 text-left;
+}
+
+.item-form-layout {
+    @apply space-y-4;
+}
+
+.form-group {
+    @apply flex flex-col gap-1;
+}
+
+.form-group label {
+    @apply text-sm font-medium text-foreground;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    @apply w-full rounded-lg py-2 px-3 bg-muted border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20;
+}
+
+.form-group textarea {
+    @apply resize-none;
+}
+
+.form-row-grid {
+    @apply grid grid-cols-2 gap-4;
+}
+
+.form-actions {
+    @apply flex gap-3 pt-2;
+}
+
+.btn-cancel {
+    @apply flex-1 border border-border bg-transparent rounded-lg py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer;
+}
+
+.btn-submit {
+    @apply flex-1 bg-primary text-primary-foreground border-none rounded-lg py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer;
+}
+
+/* ─── FILE UPLOAD CUSTOM STYLES ─── */
+.file-upload-container {
+    @apply w-full border border-dashed border-border rounded-lg bg-muted/50 hover:bg-muted transition-colors overflow-hidden;
+}
+
+.hidden-file-input {
+    display: none !important;
+}
+
+.file-upload-trigger {
+    @apply flex flex-col items-center justify-center p-4 min-h-[100px] cursor-pointer w-full text-center;
+}
+
+.file-upload-placeholder {
+    @apply flex flex-col items-center justify-center;
+}
+
+.file-upload-text {
+    @apply text-xs text-muted-foreground font-medium mt-1;
+}
+
+.file-preview-wrapper {
+    @apply flex flex-col items-center justify-center;
+}
+
+.file-preview-img {
+    @apply w-16 h-16 object-cover rounded-lg border border-border bg-card shadow-sm mb-1;
 }

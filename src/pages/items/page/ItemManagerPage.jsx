@@ -10,6 +10,7 @@ import {
   Tag,
   AlertTriangle,
   Image as ImageIcon,
+  X,
 } from "lucide-react";
 
 import { Button } from "../../../components/common/Button";
@@ -22,8 +23,337 @@ import "../css/ItemManagerPage.css";
 
 const ITEMS_PER_PAGE = 5;
 
+// --- HÀM TỰ ĐỘNG DỊCH THÔNG BÁO LỖI ---
+const translateErrorItem = (englishMsg) => {
+  if (!englishMsg) return "Lỗi không xác định.";
+  const str = englishMsg.toString();
+
+  if (str.includes("ItemName is required") || str.includes("'Item Name' must not be empty")) return "Vui lòng nhập tên vật phẩm.";
+  if (str.includes("ItemTypeId is required") || str.includes("'Item Type Id' must not be empty")) return "Vui lòng chọn loại vật phẩm.";
+  if (str.includes("Image is required")) return "Vui lòng chọn hình ảnh cho vật phẩm.";
+  if (str.includes("EffectValue")) return "Giá trị hiệu ứng không hợp lệ.";
+
+  return str;
+};
+
+// ─── COMPONENT MODAL & FORM  ───────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button onClick={onClose} className="modal-close-btn">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ItemForm({ dynamicTypes, onSubmit, onClose }) {
+  const [form, setForm] = useState({
+    itemName: "",
+    itemTypeId: "",
+    effectTypeCode: "",
+    effectValue: "",
+    image: "",
+    description: "",
+  });
+  
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (dynamicTypes && dynamicTypes.length > 0 && !form.itemTypeId) {
+      const firstTypeId = dynamicTypes[0]?.itemTypeId;
+      setForm((prev) => ({ ...prev, itemTypeId: firstTypeId }));
+    }
+  }, [dynamicTypes]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // 1. Validate File Type
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+      if (!validTypes.includes(file.type)) {
+        setErrors({ ...errors, image: "Chỉ chấp nhận ảnh định dạng JPG, PNG, WEBP." });
+        e.target.value = ""; 
+        return;
+      }
+
+      // 2. Validate File Size (Gioi han 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors({ ...errors, image: "Kích thước ảnh quá lớn, tối đa cho phép là 2MB." });
+        e.target.value = ""; 
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm({ ...form, image: reader.result });
+        if (errors.image) setErrors({ ...errors, image: null });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate toan bo form truoc khi gui
+    const newErrors = {};
+    const trimmedName = form.itemName.trim();
+
+    // Kiem tra ten
+    if (!trimmedName) {
+      newErrors.itemName = "Vui lòng nhập tên vật phẩm.";
+    } else if (trimmedName.length < 2) {
+      newErrors.itemName = "Tên vật phẩm phải có ít nhất 2 ký tự.";
+    } else if (trimmedName.length > 50) {
+      newErrors.itemName = "Tên vật phẩm không được vượt quá 50 ký tự.";
+    }
+
+    // Kiem tra loai
+    if (!form.itemTypeId) {
+      newErrors.itemTypeId = "Vui lòng chọn loại vật phẩm.";
+    }
+
+    // Kiem tra anh bat buoc
+    const fileInput = document.getElementById("item-image-file");
+    if (!form.image || !fileInput || !fileInput.files[0]) {
+      newErrors.image = "Vui lòng tải lên hình ảnh cho vật phẩm.";
+    }
+
+    // Kiem tra gia tri hieu ung
+    if (form.effectValue !== "" && form.effectValue !== null) {
+      const val = Number(form.effectValue);
+      if (isNaN(val)) {
+        newErrors.effectValue = "Giá trị hiệu ứng phải là số.";
+      } else if (val < -1000 || val > 1000) {
+        newErrors.effectValue = "Giá trị hiệu ứng chỉ nằm trong khoảng -1000 đến 1000.";
+      }
+    }
+
+    // Kiem tra mo ta
+    if (form.description && form.description.length > 500) {
+      newErrors.description = "Mô tả không được vượt quá 500 ký tự.";
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors({});
+    
+    try {
+      // Truyen vao object da duoc trim de an toan
+      await onSubmit({ ...form, itemName: trimmedName });
+    } catch (error) {
+      if (error && error.isValidationError) {
+        setErrors(error.fields);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="item-form-layout">
+      <div className="form-group">
+        <label>
+          Tên vật phẩm <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="text"
+          maxLength={50}
+          value={form.itemName}
+          onChange={(e) => {
+            setForm({ ...form, itemName: e.target.value });
+            if (errors.itemName) setErrors({ ...errors, itemName: null });
+          }}
+          placeholder="Nhập tên vật phẩm"
+          disabled={isLoading}
+          className={errors.itemName ? "border-destructive focus:ring-destructive/20" : ""}
+        />
+        {errors.itemName && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.itemName}
+          </span>
+        )}
+      </div>
+
+      <div className="form-group">
+        <label>
+          Loại vật phẩm <span className="text-destructive">*</span>
+        </label>
+        {dynamicTypes.length === 0 ? (
+          <div className="w-full rounded-full py-2 px-4 bg-destructive/10 border border-destructive text-sm text-destructive">
+            Không lấy được danh sách loại.
+          </div>
+        ) : (
+          <div>
+            <SelectDropdown
+              options={
+                dynamicTypes.length > 0
+                  ? dynamicTypes.map((type) => ({
+                      value: type.itemTypeId,
+                      label: type.itemTypeName,
+                    }))
+                  : []
+              }
+              value={form.itemTypeId}
+              onChange={(val) => {
+                setForm({ ...form, itemTypeId: val });
+                if (errors.itemTypeId) setErrors({ ...errors, itemTypeId: null });
+              }}
+              className="w-full"
+              disabled={isLoading}
+              hasError={!!errors.itemTypeId}
+            />
+            {errors.itemTypeId && (
+              <span className="text-sm text-destructive mt-1.5 block font-medium">
+                {errors.itemTypeId}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="form-row-grid">
+        <div className="form-group">
+          <label>Mã hiệu ứng</label>
+          <input
+            type="text"
+            maxLength={30}
+            value={form.effectTypeCode}
+            onChange={(e) => {
+              // Tu dong viet hoa va xoa khoang trang
+              const formattedValue = e.target.value.toUpperCase().replace(/\s/g, "");
+              setForm({ ...form, effectTypeCode: formattedValue });
+              if (errors.effectTypeCode) setErrors({ ...errors, effectTypeCode: null });
+            }}
+            placeholder="Ví dụ: HP..."
+            disabled={isLoading}
+            className={errors.effectTypeCode ? "border-destructive focus:ring-destructive/20" : ""}
+          />
+          {errors.effectTypeCode && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.effectTypeCode}
+            </span>
+          )}
+        </div>
+        <div className="form-group">
+          <label>Giá trị hiệu ứng</label>
+          <input
+            type="number"
+            value={form.effectValue}
+            onChange={(e) => {
+              setForm({ ...form, effectValue: e.target.value });
+              if (errors.effectValue) setErrors({ ...errors, effectValue: null });
+            }}
+            placeholder="Ví dụ: 15"
+            disabled={isLoading}
+            className={errors.effectValue ? "border-destructive focus:ring-destructive/20" : ""}
+          />
+          {errors.effectValue && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.effectValue}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label>Hình ảnh vật phẩm <span className="text-destructive">*</span></label>
+        <div className="file-upload-container">
+          <input
+            type="file"
+            id="item-image-file"
+            accept="image/png, image/jpeg, image/jpg, image/webp"
+            onChange={handleFileChange}
+            className="hidden-file-input"
+            style={{ display: "none" }}
+            disabled={isLoading}
+          />
+          <label
+            htmlFor="item-image-file"
+            className={`file-upload-trigger ${errors.image ? "border-destructive bg-destructive/5" : ""}`}
+            style={{ cursor: isLoading ? "not-allowed" : "pointer" }}
+          >
+            {form.image ? (
+              <div className="file-preview-wrapper">
+                <img
+                  src={form.image}
+                  alt="Preview"
+                  className="file-preview-img"
+                  style={{ maxHeight: "150px", objectFit: "contain" }}
+                />
+                <span className="file-upload-text">Thay đổi ảnh khác (Tối đa 2MB)</span>
+              </div>
+            ) : (
+              <div className="file-upload-placeholder">
+                <ImageIcon className={`w-6 h-6 mb-1 ${errors.image ? "text-destructive" : "text-muted-foreground"}`} />
+                <span className={`file-upload-text ${errors.image ? "text-destructive" : ""}`}>
+                  Nhấp để tải ảnh từ máy tính (Tối đa 2MB)
+                </span>
+              </div>
+            )}
+          </label>
+          {errors.image && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.image}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label>Mô tả vật phẩm</label>
+        <textarea
+          rows={3}
+          maxLength={500}
+          value={form.description}
+          onChange={(e) => {
+            setForm({ ...form, description: e.target.value });
+            if (errors.description) setErrors({ ...errors, description: null });
+          }}
+          placeholder="Nhập mô tả chi tiết của vật phẩm (tối đa 500 ký tự)..."
+          disabled={isLoading}
+          className={errors.description ? "border-destructive focus:ring-destructive/20" : ""}
+        />
+        {errors.description && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.description}
+          </span>
+        )}
+      </div>
+
+      <div className="form-actions">
+        <button type="button" onClick={onClose} disabled={isLoading} className="btn-cancel">
+          Hủy
+        </button>
+        <button type="submit" disabled={isLoading} className="btn-submit flex items-center justify-center gap-2">
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Đang xử lý...
+            </>
+          ) : (
+            "Tạo vật phẩm"
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Component Dropdown Chung ───────────────────────────────────────────────
-function SelectDropdown({ options, value, onChange }) {
+function SelectDropdown({ options, value, onChange, className = "", disabled, hasError }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const selected = options.find((o) => o.value === value) ?? options[0];
@@ -40,23 +370,29 @@ function SelectDropdown({ options, value, onChange }) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative min-w-[11rem]">
+    <div ref={rootRef} className={`relative min-w-[11rem] ${className}`}>
       <button
         type="button"
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="w-full rounded-full py-2 px-4 bg-muted border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-left"
-      >
-        {selected.label}
-      </button>
-      <ChevronDown
-        className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none transition-transform ${
-          open ? "rotate-180" : ""
+        className={`w-full rounded-full py-2 px-4 bg-muted border text-sm text-foreground focus:outline-none focus:ring-2 text-left flex justify-between items-center disabled:opacity-50 transition-colors ${
+          hasError 
+            ? "border-destructive focus:ring-destructive/20 bg-destructive/5" 
+            : "border-border focus:ring-primary/20"
         }`}
-      />
-      {open && (
-        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-card border border-border rounded-lg shadow-md p-1">
-          {options.map((option) => (
-            <li key={option.value}>
+      >
+        <span>{selected?.label || "Chọn..."}</span>
+        <ChevronDown
+          className={`w-4 h-4 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && options.length > 0 && (
+        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-card border border-border rounded-lg shadow-md p-1 max-h-60 overflow-y-auto">
+          {options.map((option, index) => (
+            <li key={`${option.value}-${index}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -89,6 +425,16 @@ export function ItemManagerPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [dialog, setDialog] = useState({ show: false, message: "", type: "success" });
+
+  const showDialog = (message, type = "success") => {
+    setDialog({ show: true, message, type });
+  };
+
+  const closeDialog = () => {
+    setDialog({ ...dialog, show: false });
+  };
 
   const fetchItems = async () => {
     try {
@@ -99,12 +445,34 @@ export function ItemManagerPage() {
         : res?.data || res?.items || res?.result || [];
       setItems(actualData);
 
-      const uniqueTypes = [
-        ...new Set(actualData.map((item) => item.itemTypeName).filter(Boolean)),
-      ];
-      setDynamicTypes(uniqueTypes);
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách vật phẩm:", err);
+      try {
+        const typesRes = await itemApi.getTypes();
+        const types = Array.isArray(typesRes) ? typesRes : typesRes?.data || [];
+        setDynamicTypes(types);
+      } catch (typeError) {
+        console.warn("Lỗi khi lấy item-types", typeError.message);
+
+        const typeMap = new Map();
+        actualData.forEach((item) => {
+          const typeId = item.itemTypeId || item.typeId;
+          const typeName =
+            item.itemTypeName || item.typeName || item.type || "Unknown";
+          if (typeId && typeof typeId === "string" && typeId.length > 0) {
+            if (!typeMap.has(typeId)) typeMap.set(typeId, typeName);
+          }
+        });
+
+        if (typeMap.size > 0) {
+          setDynamicTypes(
+            Array.from(typeMap).map(([id, name]) => ({
+              itemTypeId: id,
+              itemTypeName: name,
+            })),
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi gọi API danh sách vật phẩm:", error);
     } finally {
       setIsLoading(false);
     }
@@ -142,8 +510,94 @@ export function ItemManagerPage() {
   const activeCount = items.filter((i) => i.isActive).length;
   const inactiveCount = items.filter((i) => !i.isActive).length;
 
+  const [createItemOpen, setCreateItemOpen] = useState(false);
+
+  const handleCreateItem = async (formData) => {
+    try {
+      const data = new FormData();
+      data.append("itemName", formData.itemName);
+      data.append("itemTypeId", formData.itemTypeId);
+      data.append("effectTypeCode", formData.effectTypeCode || "-");
+      data.append("effectValue", formData.effectValue ? Number(formData.effectValue) : 0);
+      data.append("description", formData.description || "");
+
+      const fileInput = document.getElementById("item-image-file");
+      if (fileInput && fileInput.files[0]) {
+        data.append("image", fileInput.files[0]);
+      }
+
+      await itemApi.create(data);
+      
+      await fetchItems();
+      setCreateItemOpen(false);
+      showDialog("Tạo vật phẩm mới thành công!", "success");
+    } catch (err) {
+      console.error("Lỗi khi tạo vật phẩm:", err);
+
+      if (err.response && err.response.data && err.response.data.errors) {
+        const fieldErrors = {};
+        for (const [key, messages] of Object.entries(err.response.data.errors)) {
+          const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+          fieldErrors[camelKey] = translateErrorItem(messages[0]);
+        }
+        
+        throw { isValidationError: true, fields: fieldErrors };
+      }
+
+      let rawErrorMsg = "Thông tin không hợp lệ. Không thể tạo vật phẩm.";
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        if (data.message) rawErrorMsg = data.message;
+        else if (typeof data === 'string') rawErrorMsg = data;
+        else if (data.title) rawErrorMsg = data.title;
+      }
+
+      showDialog(translateErrorItem(rawErrorMsg), "error");
+      throw err;
+    }
+  };
+
   return (
-    <div className="page-container">
+    <div className="page-container relative">
+      {/* --- DIALOG THÔNG BÁO --- */}
+      {dialog.show && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
+            
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+              dialog.type === 'success' ? 'bg-primary/10 text-primary' :
+              dialog.type === 'error' ? 'bg-destructive/10 text-destructive' :
+              'bg-amber-500/10 text-amber-500'
+            }`}>
+              {dialog.type === 'success' && <CheckCircle size={32} />}
+              {dialog.type === 'error' && <X size={32} />}
+              {dialog.type === 'warning' && <AlertTriangle size={32} />}
+            </div>
+
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              {dialog.type === 'success' ? 'Thành công' : 
+               dialog.type === 'error' ? 'Có lỗi xảy ra' : 
+               'Cảnh báo'}
+            </h3>
+
+            <p className="text-muted-foreground mb-6 text-sm">
+              {dialog.message}
+            </p>
+
+            <button
+              onClick={closeDialog}
+              className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                dialog.type === 'success' ? 'bg-primary hover:bg-primary/90 focus:ring-primary' :
+                dialog.type === 'error' ? 'bg-destructive hover:bg-destructive/90 focus:ring-destructive' :
+                'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500'
+              }`}
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* --- HEADER --- */}
       <div className="header-wrapper">
         <div>
@@ -153,7 +607,7 @@ export function ItemManagerPage() {
           </p>
         </div>
 
-        <Button onClick={() => alert("Thêm mới")} className="btn-create">
+        <Button onClick={() => setCreateItemOpen(true)} className="btn-create">
           <Plus size={16} /> Tạo vật phẩm mới
         </Button>
       </div>
@@ -236,8 +690,8 @@ export function ItemManagerPage() {
                 options={[
                   { value: "all", label: "Tất cả loại" },
                   ...dynamicTypes.map((type) => ({
-                    value: type,
-                    label: type,
+                    value: type.itemTypeName || type.name,
+                    label: type.itemTypeName || type.name,
                   })),
                 ]}
                 value={filterType}
@@ -271,10 +725,8 @@ export function ItemManagerPage() {
                   <th className="px-5 py-3 w-[80px]">Hình ảnh</th>
                   <th className="px-5 py-3">Vật phẩm</th>
                   <th className="px-4 py-3">Loại</th>
-                  <th className="px-4 py-3">Loại hiệu ứng</th>{" "}
-                  {/* <-- ĐÃ TÁCH CỘT 1 */}
-                  <th className="px-4 py-3">Giá trị</th>{" "}
-                  {/* <-- ĐÃ TÁCH CỘT 2 */}
+                  <th className="px-4 py-3">Loại hiệu ứng</th>
+                  <th className="px-4 py-3">Giá trị</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Thao tác</th>
                 </tr>
@@ -282,7 +734,6 @@ export function ItemManagerPage() {
               <tbody className="divide-y divide-border">
                 {isLoading ? (
                   <tr>
-                    {/* Tăng colSpan lên 7 vì đã thêm 1 cột */}
                     <td
                       colSpan={7}
                       className="py-12 text-center text-muted-foreground"
@@ -293,7 +744,6 @@ export function ItemManagerPage() {
                   </tr>
                 ) : pagedItems.length === 0 ? (
                   <tr>
-                    {/* Tăng colSpan lên 7 */}
                     <td
                       colSpan={7}
                       className="py-12 text-center text-muted-foreground"
@@ -322,9 +772,7 @@ export function ItemManagerPage() {
                           ) : null}
                           <div
                             className="item-image-fallback"
-                            style={{
-                              display: item.image ? "none" : "flex",
-                            }}
+                            style={{ display: item.image ? "none" : "flex" }}
                           >
                             <ImageIcon className="w-5 h-5 text-muted-foreground" />
                           </div>
@@ -347,14 +795,12 @@ export function ItemManagerPage() {
                         {item.itemTypeName}
                       </td>
 
-                      {/* --- 2 CỘT HIỆU ỨNG ĐƯỢC TÁCH --- */}
                       <td className="px-4 py-3 text-muted-foreground font-medium">
                         {item.effectTypeCode || "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground font-medium text-primary">
-                        {item.effectValue ? `+${item.effectValue}` : "0"}
+                        {item.effectValue ? `${item.effectValue}` : "0"}
                       </td>
-                      {/* ------------------------------- */}
 
                       <td className="px-4 py-3">
                         <span
@@ -373,7 +819,7 @@ export function ItemManagerPage() {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => alert("Sửa...")}
+                            onClick={() => showDialog("Chức năng sửa đang phát triển", "warning")}
                             className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
                           >
                             <Pencil className="w-3 h-3" />
@@ -381,12 +827,8 @@ export function ItemManagerPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => alert("Đổi trạng thái...")}
-                            className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${
-                              item.isActive
-                                ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
-                                : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"
-                            }`}
+                            onClick={() => showDialog("Chức năng đổi trạng thái đang phát triển", "warning")}
+                            className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
                           >
                             {item.isActive ? (
                               <Trash2 className="w-3 h-3" />
@@ -422,28 +864,45 @@ export function ItemManagerPage() {
 
       {activeTab === "types" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {dynamicTypes.map((type) => (
-            <div
-              key={type}
-              className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                  <Tag size={24} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">
-                    {type}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {items.filter((i) => i.itemTypeName === type).length} vật
-                    phẩm
-                  </p>
+          {dynamicTypes.map((type, idx) => {
+            const typeId = type.itemTypeId || type.id || idx;
+            const typeName = type.itemTypeName || type.name || "Chưa phân loại";
+            return (
+              <div
+                key={typeId}
+                className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                    <Tag size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-foreground truncate">
+                      {typeName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {items.filter((i) => i.itemTypeName === typeName).length}{" "}
+                      vật phẩm
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {createItemOpen && (
+        <Modal
+          title="Tạo vật phẩm mới"
+          onClose={() => setCreateItemOpen(false)}
+        >
+          <ItemForm
+            dynamicTypes={dynamicTypes}
+            onSubmit={handleCreateItem}
+            onClose={() => setCreateItemOpen(false)}
+          />
+        </Modal>
       )}
     </div>
   );
