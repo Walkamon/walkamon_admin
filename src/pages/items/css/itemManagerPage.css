@@ -1,0 +1,127 @@
+@reference "tailwindcss";
+@reference "../../../index.css";
+/* Khuyên dùng: Thêm dòng này để nạp biến @theme từ index gốc */
+
+/* --- Layout Tổng --- */
+.page-container {
+    @apply w-full space-y-6;
+}
+
+/* --- Header --- */
+.header-wrapper {
+    @apply flex flex-col md:flex-row justify-between items-start md:items-center;
+}
+
+.header-title {
+    @apply text-2xl font-bold text-foreground;
+}
+
+.header-subtitle {
+    @apply text-sm text-muted-foreground mt-1;
+}
+
+.btn-create {
+    @apply flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm;
+}
+
+/* --- Thống kê (Stats Grid) --- */
+.stats-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-4;
+}
+
+.stat-card {
+    @apply bg-card border border-border rounded-xl p-4 flex items-center gap-4;
+}
+
+.stat-icon-wrapper {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+}
+
+.stat-value {
+    @apply text-2xl font-bold text-foreground;
+}
+
+.stat-label {
+    @apply text-xs text-muted-foreground;
+}
+
+/* --- Thẻ điều hướng Tabs --- */
+.tab-container {
+    @apply flex gap-1 bg-muted border border-border rounded-lg p-1 w-fit;
+}
+
+.tab-btn {
+    @apply flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-muted-foreground hover:text-foreground;
+}
+
+.tab-btn-active {
+    @apply bg-card text-foreground shadow-sm;
+}
+
+/* --- Khung Lọc & Tìm kiếm --- */
+.filter-container {
+    @apply flex flex-wrap items-center gap-3 px-5 py-4 border border-border rounded-xl bg-card;
+}
+
+.search-wrapper {
+    @apply flex-1 min-w-[200px];
+}
+
+.select-wrapper {
+    @apply relative min-w-[11rem];
+}
+
+.select-input {
+    @apply appearance-none w-full rounded-full py-2 px-4 pr-9 bg-muted border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer;
+}
+
+/* --- Bảng dữ liệu mẫu Figma --- */
+.custom-table {
+    @apply w-full text-sm border-collapse;
+}
+
+.custom-table th {
+    @apply px-5 py-3 font-medium text-muted-foreground text-left border-b border-border whitespace-nowrap;
+}
+
+.custom-table td {
+    @apply px-5 py-3 border-b border-border/60 text-muted-foreground transition-colors align-middle;
+}
+
+.custom-table tr:hover td {
+    @apply bg-muted/30;
+}
+
+.item-id-text {
+    @apply text-muted-foreground font-mono text-xs;
+}
+
+.item-name-text {
+    @apply font-medium text-foreground;
+}
+
+/* --- Badge Trạng thái viên thuốc --- */
+.badge-active {
+    @apply px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary;
+}
+
+.badge-inactive {
+    @apply px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground;
+}
+
+/* --- Footer khối phân trang --- */
+.footer-container {
+    @apply flex items-center justify-between px-5 py-4 border border-border rounded-xl bg-card text-xs text-muted-foreground;
+}
+
+.item-image-container {
+    @apply w-35 h-35 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0;
+}
+
+.item-preview-img {
+    @apply w-full h-full object-cover;
+}
+
+.item-image-fallback {
+    @apply w-full h-full flex items-center justify-center bg-muted;
+}
