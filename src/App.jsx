@@ -1,9 +1,10 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
-import { UsersManagement } from "./pages/players/viewPlayerList.jsx";
-import { authRoutes } from "./routes/authRoutes";
+import { UsersManagement } from "./pages/players/ViewPlayerList.jsx";
+import { authRoutes } from "./routes/AuthRoutes";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
+import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
           {
             path: "players",
             element: <UsersManagement />,
+          },
+          {
+            path: "items",
+            element: <ItemManagerPage />,
           },
         ],
       },

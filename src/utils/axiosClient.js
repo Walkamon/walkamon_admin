@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+// Dùng cùng tên biến môi trường với các file khác trong dự án
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://walkamon.azurewebsites.net';
+
 const axiosClient = axios.create({
-    // Lấy URL từ file .env cấu hình ở Bước 1
-    baseURL: import.meta.env.VITE_API_URL,
+    baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
