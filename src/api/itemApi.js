@@ -19,4 +19,18 @@ export const itemApi = {
       },
     });
   },
+
+  // Cập nhật vật phẩm (PUT /api/items/{id})
+  update: (id, data) => {
+    return axiosClient.put(`/api/items/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Đổi trạng thái vật phẩm (PATCH /api/items/{id}/toggle-status)
+  toggleStatus: (id) => {
+    return axiosClient.patch(`/api/items/${id}/toggle-status`);
+  },
 };
