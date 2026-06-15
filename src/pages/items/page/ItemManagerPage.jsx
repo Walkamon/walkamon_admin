@@ -19,7 +19,7 @@ import { SearchFilter } from "../../../components/common/SearchFilter";
 import { Table } from "../../../components/common/Table";
 
 import { itemApi } from "../../../api/itemApi";
-import "../css/ItemManagerPage.css";
+import "../css/itemManagerPage.css";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -28,13 +28,91 @@ const translateErrorItem = (englishMsg) => {
   if (!englishMsg) return "Lỗi không xác định.";
   const str = englishMsg.toString();
 
-  if (str.includes("ItemName is required") || str.includes("'Item Name' must not be empty")) return "Vui lòng nhập tên vật phẩm.";
-  if (str.includes("ItemTypeId is required") || str.includes("'Item Type Id' must not be empty")) return "Vui lòng chọn loại vật phẩm.";
-  if (str.includes("Image is required")) return "Vui lòng chọn hình ảnh cho vật phẩm.";
+  if (
+    str.includes("ItemName is required") ||
+    str.includes("'Item Name' must not be empty")
+  )
+    return "Vui lòng nhập tên vật phẩm.";
+  if (
+    str.includes("ItemTypeId is required") ||
+    str.includes("'Item Type Id' must not be empty")
+  )
+    return "Vui lòng chọn loại vật phẩm.";
+  if (str.includes("Image is required"))
+    return "Vui lòng chọn hình ảnh cho vật phẩm.";
   if (str.includes("EffectValue")) return "Giá trị hiệu ứng không hợp lệ.";
 
   return str;
 };
+
+function ItemDetailView({ item, onClose }) {
+  if (!item) return null;
+
+  return (
+    <div className="item-form-layout">
+      <div className="detail-image-wrapper">
+        {item.image ? (
+          <img src={item.image} alt={item.itemName} className="detail-img" />
+        ) : (
+          <div className="detail-fallback-img">
+            <ImageIcon size={48} className="text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <div className="detail-info-list">
+        <div className="detail-info-row">
+          <span className="detail-label">Mã hệ thống:</span>
+          <span className="detail-value-code">{item.itemId}</span>
+        </div>
+        <div className="detail-info-row">
+          <span className="detail-label">Tên vật phẩm:</span>
+          <span className="detail-value-name">{item.itemName}</span>
+        </div>
+        <div className="detail-info-row">
+          <span className="detail-label">Loại vật phẩm:</span>
+          <span className="text-foreground font-medium">
+            {item.itemTypeName}
+          </span>
+        </div>
+        <div className="detail-info-row">
+          <span className="detail-label">Mã hiệu ứng:</span>
+          <span className="detail-value-effect-code">
+            {item.effectTypeCode || "-"}
+          </span>
+        </div>
+        <div className="detail-info-row">
+          <span className="detail-label">Giá trị hiệu ứng:</span>
+          <span className="text-primary font-bold">
+            {item.effectValue ?? 0}
+          </span>
+        </div>
+        <div className="detail-info-row">
+          <span className="detail-label">Trạng thái:</span>
+          <div>
+            <span className={item.isActive ? "badge-active" : "badge-inactive"}>
+              {item.isActive ? "Hoạt động" : "Tạm dừng"}
+            </span>
+          </div>
+        </div>
+        <div className="detail-desc-section">
+          <span className="detail-label">Mô tả chi tiết:</span>
+          <p className="detail-desc-box">
+           {item.description || item.desc || "Vật phẩm này chưa được thiết lập nội dung mô tả chi tiết."}
+          </p>
+        </div>
+      </div>
+      <div className="form-actions detail-actions">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-cancel btn-detail-close"
+        >
+          Đóng cửa sổ
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── COMPONENT MODAL & FORM  ───────────────────────────────────
 function Modal({ title, onClose, children }) {
@@ -62,7 +140,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
     image: "",
     description: "",
   });
-  
+
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,17 +155,23 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
     const file = e.target.files[0];
     if (file) {
       // 1. Validate File Type
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
       if (!validTypes.includes(file.type)) {
-        setErrors({ ...errors, image: "Chỉ chấp nhận ảnh định dạng JPG, PNG, WEBP." });
-        e.target.value = ""; 
+        setErrors({
+          ...errors,
+          image: "Chỉ chấp nhận ảnh định dạng JPG, PNG, WEBP.",
+        });
+        e.target.value = "";
         return;
       }
 
       // 2. Validate File Size (Gioi han 2MB)
       if (file.size > 2 * 1024 * 1024) {
-        setErrors({ ...errors, image: "Kích thước ảnh quá lớn, tối đa cho phép là 2MB." });
-        e.target.value = ""; 
+        setErrors({
+          ...errors,
+          image: "Kích thước ảnh quá lớn, tối đa cho phép là 2MB.",
+        });
+        e.target.value = "";
         return;
       }
 
@@ -102,7 +186,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate toan bo form truoc khi gui
     const newErrors = {};
     const trimmedName = form.itemName.trim();
@@ -133,7 +217,8 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       if (isNaN(val)) {
         newErrors.effectValue = "Giá trị hiệu ứng phải là số.";
       } else if (val < -1000 || val > 1000) {
-        newErrors.effectValue = "Giá trị hiệu ứng chỉ nằm trong khoảng -1000 đến 1000.";
+        newErrors.effectValue =
+          "Giá trị hiệu ứng chỉ nằm trong khoảng -1000 đến 1000.";
       }
     }
 
@@ -141,7 +226,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
     if (form.description && form.description.length > 500) {
       newErrors.description = "Mô tả không được vượt quá 500 ký tự.";
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -149,7 +234,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
 
     setIsLoading(true);
     setErrors({});
-    
+
     try {
       // Truyen vao object da duoc trim de an toan
       await onSubmit({ ...form, itemName: trimmedName });
@@ -178,7 +263,11 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
           }}
           placeholder="Nhập tên vật phẩm"
           disabled={isLoading}
-          className={errors.itemName ? "border-destructive focus:ring-destructive/20" : ""}
+          className={
+            errors.itemName
+              ? "border-destructive focus:ring-destructive/20"
+              : ""
+          }
         />
         {errors.itemName && (
           <span className="text-sm text-destructive mt-1.5 block font-medium">
@@ -209,7 +298,8 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
               value={form.itemTypeId}
               onChange={(val) => {
                 setForm({ ...form, itemTypeId: val });
-                if (errors.itemTypeId) setErrors({ ...errors, itemTypeId: null });
+                if (errors.itemTypeId)
+                  setErrors({ ...errors, itemTypeId: null });
               }}
               className="w-full"
               disabled={isLoading}
@@ -233,13 +323,20 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
             value={form.effectTypeCode}
             onChange={(e) => {
               // Tu dong viet hoa va xoa khoang trang
-              const formattedValue = e.target.value.toUpperCase().replace(/\s/g, "");
+              const formattedValue = e.target.value
+                .toUpperCase()
+                .replace(/\s/g, "");
               setForm({ ...form, effectTypeCode: formattedValue });
-              if (errors.effectTypeCode) setErrors({ ...errors, effectTypeCode: null });
+              if (errors.effectTypeCode)
+                setErrors({ ...errors, effectTypeCode: null });
             }}
             placeholder="Ví dụ: HP..."
             disabled={isLoading}
-            className={errors.effectTypeCode ? "border-destructive focus:ring-destructive/20" : ""}
+            className={
+              errors.effectTypeCode
+                ? "border-destructive focus:ring-destructive/20"
+                : ""
+            }
           />
           {errors.effectTypeCode && (
             <span className="text-sm text-destructive mt-1.5 block font-medium">
@@ -254,11 +351,16 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
             value={form.effectValue}
             onChange={(e) => {
               setForm({ ...form, effectValue: e.target.value });
-              if (errors.effectValue) setErrors({ ...errors, effectValue: null });
+              if (errors.effectValue)
+                setErrors({ ...errors, effectValue: null });
             }}
             placeholder="Ví dụ: 15"
             disabled={isLoading}
-            className={errors.effectValue ? "border-destructive focus:ring-destructive/20" : ""}
+            className={
+              errors.effectValue
+                ? "border-destructive focus:ring-destructive/20"
+                : ""
+            }
           />
           {errors.effectValue && (
             <span className="text-sm text-destructive mt-1.5 block font-medium">
@@ -269,7 +371,9 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       </div>
 
       <div className="form-group">
-        <label>Hình ảnh vật phẩm <span className="text-destructive">*</span></label>
+        <label>
+          Hình ảnh vật phẩm <span className="text-destructive">*</span>
+        </label>
         <div className="file-upload-container">
           <input
             type="file"
@@ -293,12 +397,18 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
                   className="file-preview-img"
                   style={{ maxHeight: "150px", objectFit: "contain" }}
                 />
-                <span className="file-upload-text">Thay đổi ảnh khác (Tối đa 2MB)</span>
+                <span className="file-upload-text">
+                  Thay đổi ảnh khác (Tối đa 2MB)
+                </span>
               </div>
             ) : (
               <div className="file-upload-placeholder">
-                <ImageIcon className={`w-6 h-6 mb-1 ${errors.image ? "text-destructive" : "text-muted-foreground"}`} />
-                <span className={`file-upload-text ${errors.image ? "text-destructive" : ""}`}>
+                <ImageIcon
+                  className={`w-6 h-6 mb-1 ${errors.image ? "text-destructive" : "text-muted-foreground"}`}
+                />
+                <span
+                  className={`file-upload-text ${errors.image ? "text-destructive" : ""}`}
+                >
                   Nhấp để tải ảnh từ máy tính (Tối đa 2MB)
                 </span>
               </div>
@@ -324,7 +434,11 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
           }}
           placeholder="Nhập mô tả chi tiết của vật phẩm (tối đa 500 ký tự)..."
           disabled={isLoading}
-          className={errors.description ? "border-destructive focus:ring-destructive/20" : ""}
+          className={
+            errors.description
+              ? "border-destructive focus:ring-destructive/20"
+              : ""
+          }
         />
         {errors.description && (
           <span className="text-sm text-destructive mt-1.5 block font-medium">
@@ -334,10 +448,19 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       </div>
 
       <div className="form-actions">
-        <button type="button" onClick={onClose} disabled={isLoading} className="btn-cancel">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="btn-cancel"
+        >
           Hủy
         </button>
-        <button type="submit" disabled={isLoading} className="btn-submit flex items-center justify-center gap-2">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="btn-submit flex items-center justify-center gap-2"
+        >
           {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
@@ -359,8 +482,8 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
     itemTypeId: item?.itemTypeId || (dynamicTypes[0]?.itemTypeId ?? ""),
     effectTypeCode: item?.effectTypeCode || "",
     effectValue: item?.effectValue ?? "",
-    description: item?.description || "",
-    image: item?.image || "",   // URL ảnh hiện tại (string)
+    description: item?.description || item?.desc || "",
+    image: item?.image || "", // URL ảnh hiện tại (string)
   });
   const [newImageFile, setNewImageFile] = useState(null); // File mới nếu user thay ảnh
   const [errors, setErrors] = useState({});
@@ -369,14 +492,20 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
     if (!validTypes.includes(file.type)) {
-      setErrors({ ...errors, image: "Chỉ chấp nhận ảnh định dạng JPG, PNG, WEBP." });
+      setErrors({
+        ...errors,
+        image: "Chỉ chấp nhận ảnh định dạng JPG, PNG, WEBP.",
+      });
       e.target.value = "";
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setErrors({ ...errors, image: "Kích thước ảnh quá lớn, tối đa cho phép là 2MB." });
+      setErrors({
+        ...errors,
+        image: "Kích thước ảnh quá lớn, tối đa cho phép là 2MB.",
+      });
       e.target.value = "";
       return;
     }
@@ -394,16 +523,24 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
     const newErrors = {};
     const trimmedName = form.itemName.trim();
     if (!trimmedName) newErrors.itemName = "Vui lòng nhập tên vật phẩm.";
-    else if (trimmedName.length < 2) newErrors.itemName = "Tên vật phẩm phải có ít nhất 2 ký tự.";
-    else if (trimmedName.length > 50) newErrors.itemName = "Tên vật phẩm không được vượt quá 50 ký tự.";
+    else if (trimmedName.length < 2)
+      newErrors.itemName = "Tên vật phẩm phải có ít nhất 2 ký tự.";
+    else if (trimmedName.length > 50)
+      newErrors.itemName = "Tên vật phẩm không được vượt quá 50 ký tự.";
     if (!form.itemTypeId) newErrors.itemTypeId = "Vui lòng chọn loại vật phẩm.";
     if (form.effectValue !== "" && form.effectValue !== null) {
       const val = Number(form.effectValue);
       if (isNaN(val)) newErrors.effectValue = "Giá trị hiệu ứng phải là số.";
-      else if (val < -1000 || val > 1000) newErrors.effectValue = "Giá trị hiệu ứng chỉ nằm trong khoảng -1000 đến 1000.";
+      else if (val < -1000 || val > 1000)
+        newErrors.effectValue =
+          "Giá trị hiệu ứng chỉ nằm trong khoảng -1000 đến 1000.";
     }
-    if (form.description && form.description.length > 500) newErrors.description = "Mô tả không được vượt quá 500 ký tự.";
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    if (form.description && form.description.length > 500)
+      newErrors.description = "Mô tả không được vượt quá 500 ký tự.";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
     setIsLoading(true);
     setErrors({});
@@ -420,35 +557,63 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
     <form onSubmit={handleSubmit} className="item-form-layout">
       {/* Tên vật phẩm */}
       <div className="form-group">
-        <label>Tên vật phẩm <span className="text-destructive">*</span></label>
+        <label>
+          Tên vật phẩm <span className="text-destructive">*</span>
+        </label>
         <input
           type="text"
           maxLength={50}
           value={form.itemName}
-          onChange={(e) => { setForm({ ...form, itemName: e.target.value }); if (errors.itemName) setErrors({ ...errors, itemName: null }); }}
+          onChange={(e) => {
+            setForm({ ...form, itemName: e.target.value });
+            if (errors.itemName) setErrors({ ...errors, itemName: null });
+          }}
           placeholder="Nhập tên vật phẩm"
           disabled={isLoading}
-          className={errors.itemName ? "border-destructive focus:ring-destructive/20" : ""}
+          className={
+            errors.itemName
+              ? "border-destructive focus:ring-destructive/20"
+              : ""
+          }
         />
-        {errors.itemName && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.itemName}</span>}
+        {errors.itemName && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.itemName}
+          </span>
+        )}
       </div>
 
       {/* Loại vật phẩm */}
       <div className="form-group">
-        <label>Loại vật phẩm <span className="text-destructive">*</span></label>
+        <label>
+          Loại vật phẩm <span className="text-destructive">*</span>
+        </label>
         {dynamicTypes.length === 0 ? (
-          <div className="w-full rounded-full py-2 px-4 bg-destructive/10 border border-destructive text-sm text-destructive">Không lấy được danh sách loại.</div>
+          <div className="w-full rounded-full py-2 px-4 bg-destructive/10 border border-destructive text-sm text-destructive">
+            Không lấy được danh sách loại.
+          </div>
         ) : (
           <div>
             <SelectDropdown
-              options={dynamicTypes.map((type) => ({ value: type.itemTypeId, label: type.itemTypeName }))}
+              options={dynamicTypes.map((type) => ({
+                value: type.itemTypeId,
+                label: type.itemTypeName,
+              }))}
               value={form.itemTypeId}
-              onChange={(val) => { setForm({ ...form, itemTypeId: val }); if (errors.itemTypeId) setErrors({ ...errors, itemTypeId: null }); }}
+              onChange={(val) => {
+                setForm({ ...form, itemTypeId: val });
+                if (errors.itemTypeId)
+                  setErrors({ ...errors, itemTypeId: null });
+              }}
               className="w-full"
               disabled={isLoading}
               hasError={!!errors.itemTypeId}
             />
-            {errors.itemTypeId && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.itemTypeId}</span>}
+            {errors.itemTypeId && (
+              <span className="text-sm text-destructive mt-1.5 block font-medium">
+                {errors.itemTypeId}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -461,24 +626,51 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
             type="text"
             maxLength={30}
             value={form.effectTypeCode}
-            onChange={(e) => { setForm({ ...form, effectTypeCode: e.target.value.toUpperCase().replace(/\s/g, "") }); if (errors.effectTypeCode) setErrors({ ...errors, effectTypeCode: null }); }}
+            onChange={(e) => {
+              setForm({
+                ...form,
+                effectTypeCode: e.target.value.toUpperCase().replace(/\s/g, ""),
+              });
+              if (errors.effectTypeCode)
+                setErrors({ ...errors, effectTypeCode: null });
+            }}
             placeholder="Ví dụ: HP..."
             disabled={isLoading}
-            className={errors.effectTypeCode ? "border-destructive focus:ring-destructive/20" : ""}
+            className={
+              errors.effectTypeCode
+                ? "border-destructive focus:ring-destructive/20"
+                : ""
+            }
           />
-          {errors.effectTypeCode && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.effectTypeCode}</span>}
+          {errors.effectTypeCode && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.effectTypeCode}
+            </span>
+          )}
         </div>
         <div className="form-group">
           <label>Giá trị hiệu ứng</label>
           <input
             type="number"
             value={form.effectValue}
-            onChange={(e) => { setForm({ ...form, effectValue: e.target.value }); if (errors.effectValue) setErrors({ ...errors, effectValue: null }); }}
+            onChange={(e) => {
+              setForm({ ...form, effectValue: e.target.value });
+              if (errors.effectValue)
+                setErrors({ ...errors, effectValue: null });
+            }}
             placeholder="Ví dụ: 15"
             disabled={isLoading}
-            className={errors.effectValue ? "border-destructive focus:ring-destructive/20" : ""}
+            className={
+              errors.effectValue
+                ? "border-destructive focus:ring-destructive/20"
+                : ""
+            }
           />
-          {errors.effectValue && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.effectValue}</span>}
+          {errors.effectValue && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.effectValue}
+            </span>
+          )}
         </div>
       </div>
 
@@ -501,17 +693,30 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
           >
             {form.image ? (
               <div className="file-preview-wrapper">
-                <img src={form.image} alt="Preview" className="file-preview-img" style={{ maxHeight: "150px", objectFit: "contain" }} />
-                <span className="file-upload-text">Nhấp để thay đổi ảnh (Tối đa 2MB)</span>
+                <img
+                  src={form.image}
+                  alt="Preview"
+                  className="file-preview-img"
+                  style={{ maxHeight: "150px", objectFit: "contain" }}
+                />
+                <span className="file-upload-text">
+                  Nhấp để thay đổi ảnh (Tối đa 2MB)
+                </span>
               </div>
             ) : (
               <div className="file-upload-placeholder">
                 <ImageIcon className="w-6 h-6 mb-1 text-muted-foreground" />
-                <span className="file-upload-text">Nhấp để tải ảnh từ máy tính (Tối đa 2MB)</span>
+                <span className="file-upload-text">
+                  Nhấp để tải ảnh từ máy tính (Tối đa 2MB)
+                </span>
               </div>
             )}
           </label>
-          {errors.image && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.image}</span>}
+          {errors.image && (
+            <span className="text-sm text-destructive mt-1.5 block font-medium">
+              {errors.image}
+            </span>
+          )}
         </div>
       </div>
 
@@ -522,18 +727,47 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
           rows={3}
           maxLength={500}
           value={form.description}
-          onChange={(e) => { setForm({ ...form, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: null }); }}
+          onChange={(e) => {
+            setForm({ ...form, description: e.target.value });
+            if (errors.description) setErrors({ ...errors, description: null });
+          }}
           placeholder="Nhập mô tả chi tiết của vật phẩm (tối đa 500 ký tự)..."
           disabled={isLoading}
-          className={errors.description ? "border-destructive focus:ring-destructive/20" : ""}
+          className={
+            errors.description
+              ? "border-destructive focus:ring-destructive/20"
+              : ""
+          }
         />
-        {errors.description && <span className="text-sm text-destructive mt-1.5 block font-medium">{errors.description}</span>}
+        {errors.description && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.description}
+          </span>
+        )}
       </div>
 
       <div className="form-actions">
-        <button type="button" onClick={onClose} disabled={isLoading} className="btn-cancel">Hủy</button>
-        <button type="submit" disabled={isLoading} className="btn-submit flex items-center justify-center gap-2">
-          {isLoading ? (<><Loader2 size={18} className="animate-spin" />Đang lưu...</>) : "Lưu thay đổi"}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="btn-cancel"
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="btn-submit flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Đang lưu...
+            </>
+          ) : (
+            "Lưu thay đổi"
+          )}
         </button>
       </div>
     </form>
@@ -541,7 +775,14 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
 }
 
 // ─── Component Dropdown Chung ───────────────────────────────────────────────
-function SelectDropdown({ options, value, onChange, className = "", disabled, hasError }) {
+function SelectDropdown({
+  options,
+  value,
+  onChange,
+  className = "",
+  disabled,
+  hasError,
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const selected = options.find((o) => o.value === value) ?? options[0];
@@ -564,8 +805,8 @@ function SelectDropdown({ options, value, onChange, className = "", disabled, ha
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={`w-full rounded-full py-2 px-4 bg-muted border text-sm text-foreground focus:outline-none focus:ring-2 text-left flex justify-between items-center disabled:opacity-50 transition-colors ${
-          hasError 
-            ? "border-destructive focus:ring-destructive/20 bg-destructive/5" 
+          hasError
+            ? "border-destructive focus:ring-destructive/20 bg-destructive/5"
             : "border-border focus:ring-primary/20"
         }`}
       >
@@ -613,8 +854,12 @@ export function ItemManagerPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  
-  const [dialog, setDialog] = useState({ show: false, message: "", type: "success" });
+
+  const [dialog, setDialog] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   const showDialog = (message, type = "success") => {
     setDialog({ show: true, message, type });
@@ -699,7 +944,8 @@ export function ItemManagerPage() {
   const inactiveCount = items.filter((i) => !i.isActive).length;
 
   const [createItemOpen, setCreateItemOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null); // item đang được sửa
+  const [editItem, setEditItem] = useState(null);
+  const [detailItem, setDetailItem] = useState(null);
 
   const handleCreateItem = async (formData) => {
     try {
@@ -707,7 +953,10 @@ export function ItemManagerPage() {
       data.append("itemName", formData.itemName);
       data.append("itemTypeId", formData.itemTypeId);
       data.append("effectTypeCode", formData.effectTypeCode || "-");
-      data.append("effectValue", formData.effectValue ? Number(formData.effectValue) : 0);
+      data.append(
+        "effectValue",
+        formData.effectValue ? Number(formData.effectValue) : 0,
+      );
       data.append("description", formData.description || "");
 
       const fileInput = document.getElementById("item-image-file");
@@ -716,7 +965,7 @@ export function ItemManagerPage() {
       }
 
       await itemApi.create(data);
-      
+
       await fetchItems();
       setCreateItemOpen(false);
       showDialog("Tạo vật phẩm mới thành công!", "success");
@@ -725,11 +974,13 @@ export function ItemManagerPage() {
 
       if (err.response && err.response.data && err.response.data.errors) {
         const fieldErrors = {};
-        for (const [key, messages] of Object.entries(err.response.data.errors)) {
+        for (const [key, messages] of Object.entries(
+          err.response.data.errors,
+        )) {
           const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
           fieldErrors[camelKey] = translateErrorItem(messages[0]);
         }
-        
+
         throw { isValidationError: true, fields: fieldErrors };
       }
 
@@ -737,7 +988,7 @@ export function ItemManagerPage() {
       if (err.response && err.response.data) {
         const data = err.response.data;
         if (data.message) rawErrorMsg = data.message;
-        else if (typeof data === 'string') rawErrorMsg = data;
+        else if (typeof data === "string") rawErrorMsg = data;
         else if (data.title) rawErrorMsg = data.title;
       }
 
@@ -753,12 +1004,18 @@ export function ItemManagerPage() {
       data.append("itemName", formData.itemName);
       data.append("itemTypeId", formData.itemTypeId);
       data.append("effectTypeCode", formData.effectTypeCode || "-");
-      data.append("effectValue", formData.effectValue ? Number(formData.effectValue) : 0);
+      data.append(
+        "effectValue",
+        formData.effectValue ? Number(formData.effectValue) : 0,
+      );
       data.append("description", formData.description || "");
+      data.append("isActive", editItem.isActive);
       // Chỉ gửi ảnh mới nếu user có chọn file mới
       if (newImageFile) {
         data.append("image", newImageFile);
-      }
+      } else {
+      data.append("image", formData.image);
+    }
 
       await itemApi.update(editItem.itemId, data);
       await fetchItems();
@@ -769,7 +1026,9 @@ export function ItemManagerPage() {
 
       if (err.response && err.response.data && err.response.data.errors) {
         const fieldErrors = {};
-        for (const [key, messages] of Object.entries(err.response.data.errors)) {
+        for (const [key, messages] of Object.entries(
+          err.response.data.errors,
+        )) {
           const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
           fieldErrors[camelKey] = translateErrorItem(messages[0]);
         }
@@ -780,7 +1039,7 @@ export function ItemManagerPage() {
       if (err.response && err.response.data) {
         const d = err.response.data;
         if (d.message) rawErrorMsg = d.message;
-        else if (typeof d === 'string') rawErrorMsg = d;
+        else if (typeof d === "string") rawErrorMsg = d;
         else if (d.title) rawErrorMsg = d.title;
       }
       showDialog(translateErrorItem(rawErrorMsg), "error");
@@ -794,21 +1053,26 @@ export function ItemManagerPage() {
       {dialog.show && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
           <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
-            
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-              dialog.type === 'success' ? 'bg-primary/10 text-primary' :
-              dialog.type === 'error' ? 'bg-destructive/10 text-destructive' :
-              'bg-amber-500/10 text-amber-500'
-            }`}>
-              {dialog.type === 'success' && <CheckCircle size={32} />}
-              {dialog.type === 'error' && <X size={32} />}
-              {dialog.type === 'warning' && <AlertTriangle size={32} />}
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                dialog.type === "success"
+                  ? "bg-primary/10 text-primary"
+                  : dialog.type === "error"
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-amber-500/10 text-amber-500"
+              }`}
+            >
+              {dialog.type === "success" && <CheckCircle size={32} />}
+              {dialog.type === "error" && <X size={32} />}
+              {dialog.type === "warning" && <AlertTriangle size={32} />}
             </div>
 
             <h3 className="text-xl font-bold text-foreground mb-2">
-              {dialog.type === 'success' ? 'Thành công' : 
-               dialog.type === 'error' ? 'Có lỗi xảy ra' : 
-               'Cảnh báo'}
+              {dialog.type === "success"
+                ? "Thành công"
+                : dialog.type === "error"
+                  ? "Có lỗi xảy ra"
+                  : "Cảnh báo"}
             </h3>
 
             <p className="text-muted-foreground mb-6 text-sm">
@@ -818,9 +1082,11 @@ export function ItemManagerPage() {
             <button
               onClick={closeDialog}
               className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                dialog.type === 'success' ? 'bg-primary hover:bg-primary/90 focus:ring-primary' :
-                dialog.type === 'error' ? 'bg-destructive hover:bg-destructive/90 focus:ring-destructive' :
-                'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500'
+                dialog.type === "success"
+                  ? "bg-primary hover:bg-primary/90 focus:ring-primary"
+                  : dialog.type === "error"
+                    ? "bg-destructive hover:bg-destructive/90 focus:ring-destructive"
+                    : "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500"
               }`}
             >
               Xác nhận
@@ -987,6 +1253,24 @@ export function ItemManagerPage() {
                     <tr
                       key={item.itemId}
                       className="hover:bg-muted/30 transition-colors"
+                    onClick={async () => {
+                        try {
+                          const res = await itemApi.getById(item.itemId);
+                          const fullItemData = res?.data || res?.result || res || item;
+                          
+                          // Hợp nhất dữ liệu tránh mất image và itemTypeName từ danh sách gốc
+                          const mergedData = {
+                            ...fullItemData,
+                            image: fullItemData.image || fullItemData.imageUrl || item.image,
+                            itemTypeName: fullItemData.itemTypeName || item.itemTypeName
+                          };
+                          setDetailItem(mergedData);
+                        } catch (error) {
+                          console.error("Không lấy được chi tiết, dùng fallback:", error);
+                          setDetailItem(item);
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
                     >
                       <td className="px-5 py-3">
                         <div className="item-image-container">
@@ -1050,7 +1334,19 @@ export function ItemManagerPage() {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setEditItem(item)}
+                            onClick={async () => {
+                              try {
+                                const res = await itemApi.getById(item.itemId);
+                                const fullItemData = res?.data || res?.result || res || item;
+                                setEditItem({
+                                  ...fullItemData,
+                                  image: fullItemData.image || fullItemData.imageUrl || item.image,
+                                  itemTypeName: fullItemData.itemTypeName || item.itemTypeName
+                                });
+                              } catch (err) {
+                                setEditItem(item);
+                              }
+                            }}
                             className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
                           >
                             <Pencil className="w-3 h-3" />
@@ -1058,7 +1354,12 @@ export function ItemManagerPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => showDialog("Chức năng đổi trạng thái đang phát triển", "warning")}
+                            onClick={() =>
+                              showDialog(
+                                "Chức năng đổi trạng thái đang phát triển",
+                                "warning",
+                              )
+                            }
                             className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
                           >
                             {item.isActive ? (
@@ -1146,6 +1447,15 @@ export function ItemManagerPage() {
             dynamicTypes={dynamicTypes}
             onSubmit={handleUpdateItem}
             onClose={() => setEditItem(null)}
+          />
+        </Modal>
+      )}
+
+      {detailItem && (
+        <Modal title="Chi tiết vật phẩm" onClose={() => setDetailItem(null)}>
+          <ItemDetailView
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
           />
         </Modal>
       )}

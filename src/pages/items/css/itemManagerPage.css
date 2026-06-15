@@ -217,3 +217,179 @@
 .file-preview-img {
     @apply w-16 h-16 object-cover rounded-lg border border-border bg-card shadow-sm mb-1;
 }
+
+/* 1. Container tổng: Giữ cấu trúc Grid 2 cột lớn (Trái: Ảnh | Phải: Nội dung) */
+div.item-form-layout:has(.btn-detail-close) {
+    display: grid !important;
+    grid-template-columns: 180px 1fr !important;
+    gap: 1.5rem !important;
+    align-items: start !important;
+    text-align: left !important;
+    width: 100% !important;
+}
+
+/* 2. CỘT TRÁI: Khung ảnh đứng độc lập 180px */
+.detail-image-wrapper {
+    grid-column: 1;
+    width: 180px !important;
+    height: 180px !important;
+    border: 1px dashed var(--border) !important;
+    border-radius: 0.75rem !important;
+    background-color: var(--muted) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.detail-img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    border-radius: 0.375rem !important;
+}
+
+.detail-fallback-img {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--muted-foreground) !important;
+}
+
+/* 3. CỘT PHẢI: Chứa toàn bộ thông tin văn bản */
+.detail-info-list {
+    grid-column: 2;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+}
+
+/* --- MÃ HỆ THỐNG: ĐƯA RA KHỎI GRID - TRẢI NGANG QUA LUÔN --- */
+.detail-info-list>.detail-info-row:nth-child(1) {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    border-bottom: 1px dashed var(--border) !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+/* --- BỘ LƯỚI GRID 2 CỘT: Bắt đầu gom từ Tên vật phẩm trở đi --- */
+/* Tạo một sub-grid nội bộ tự động áp dụng cho các trường còn lại bên dưới mã hệ thống */
+.detail-info-list {
+    display: grid !important;
+    grid-template-cols: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1.25rem 1.5rem !important;
+}
+
+/* Cho trường Mã hệ thống (thằng con đầu tiên) chiếm trọn hàng ngang trên cùng */
+.detail-info-list>.detail-info-row:nth-child(1) {
+    grid-column: span 2 !important;
+}
+
+/* Định dạng cấu trúc nhãn - giá trị dữ liệu */
+.detail-info-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.375rem !important;
+}
+
+/* Nhãn trường dữ liệu (Label) */
+.detail-label {
+    font-size: 0.725rem !important;
+    font-weight: 500 !important;
+    color: var(--muted-foreground) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+/* MÀU CHỮ & CỠ CHỮ DỮ LIỆU: Đồng bộ phẳng, bằng kích cỡ nhau, không lạm dụng bold */
+.detail-value-code,
+.detail-value-name,
+.detail-info-row .text-foreground.font-medium,
+.detail-value-effect-code,
+.detail-info-row .text-primary.font-bold {
+    font-size: 0.95rem !important;
+    /* ĐỒNG BỘ ĐỒNG ĐỀU CỠ CHỮ 0.95rem */
+    color: var(--foreground) !important;
+    font-weight: 400 !important;
+    /* Không bold vô tổ chức, để font mảnh phẳng tinh tế */
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-block !important;
+    width: auto !important;
+}
+
+/* Đồng bộ Tên vật phẩm giống các trường khác (Bỏ cỡ to, bỏ bold đậm) */
+.detail-value-name {
+    font-size: 0.95rem !important;
+    font-weight: 400 !important;
+}
+
+/* Định dạng riêng font Monospace cho Mã hệ thống (ID) */
+.detail-value-code {
+    font-family: monospace !important;
+    font-size: 0.85rem !important;
+    color: var(--muted-foreground) !important;
+}
+
+/* 4. VÙNG DƯỚI CÙNG: Khung mô tả chi tiết chiếm trọn toàn bộ chiều ngang */
+.detail-desc-section {
+    grid-column: span 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    border-top: 1px dashed var(--border) !important;
+    padding-top: 1.25rem !important;
+    margin-top: 0.5rem !important;
+}
+
+.detail-desc-box {
+    font-size: 0.875rem !important;
+    color: var(--foreground) !important;
+    line-height: 1.6 !important;
+    white-space: pre-line !important;
+    background-color: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 80px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    font-weight: 400 !important;
+}
+
+/* 5. NÚT HÀNH ĐỘNG đưa về góc phải bên dưới */
+.detail-actions {
+    grid-column: span 2 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    padding-top: 1rem !important;
+    margin-top: 0.5rem !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+.btn-detail-close {
+    min-width: 6.5rem !important;
+    background-color: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1.5rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--foreground) !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+    text-align: center !important;
+}
+
+.btn-detail-close:hover {
+    background-color: var(--border) !important;
+}
