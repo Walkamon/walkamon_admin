@@ -29,9 +29,9 @@ export const itemApi = {
     });
   },
 
-  // Đổi trạng thái vật phẩm (PATCH /api/items/{id}/toggle-status)
+  // Đổi trạng thái vật phẩm (DELETE /api/items/{id})
   toggleStatus: (id) => {
-    return axiosClient.patch(`/api/items/${id}/toggle-status`);
+    return axiosClient.delete(`/api/items/${id}`);
   },
 
   getById: (id) => {
