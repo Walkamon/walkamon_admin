@@ -97,7 +97,9 @@ function ItemDetailView({ item, onClose }) {
         <div className="detail-desc-section">
           <span className="detail-label">Mô tả chi tiết:</span>
           <p className="detail-desc-box">
-           {item.description || item.desc || "Vật phẩm này chưa được thiết lập nội dung mô tả chi tiết."}
+            {item.description ||
+              item.desc ||
+              "Vật phẩm này chưa được thiết lập nội dung mô tả chi tiết."}
           </p>
         </div>
       </div>
@@ -946,6 +948,7 @@ export function ItemManagerPage() {
   const [createItemOpen, setCreateItemOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
+  const [togglingItemId, setTogglingItemId] = useState(null);
 
   const handleCreateItem = async (formData) => {
     try {
@@ -1014,8 +1017,8 @@ export function ItemManagerPage() {
       if (newImageFile) {
         data.append("image", newImageFile);
       } else {
-      data.append("image", formData.image);
-    }
+        data.append("image", formData.image);
+      }
 
       await itemApi.update(editItem.itemId, data);
       await fetchItems();
@@ -1046,6 +1049,26 @@ export function ItemManagerPage() {
       throw err;
     }
   };
+
+ const handleToggleStatus = async (item) => {
+  // 1. Nếu không có ID hoặc đang có item khác/chính nó đang toggle thì CHẶN LUÔN (chống spam)
+  if (!item?.itemId || togglingItemId) return; 
+
+  try {
+    setTogglingItemId(item.itemId); // 2. Bật trạng thái khóa item này lại
+    
+    await itemApi.toggleStatus(item.itemId);
+    showDialog("Cập nhật trạng thái vật phẩm thành công!", "success");
+    
+    // 3. Thêm chữ await ở đây để nó lấy xong dữ liệu mới rồi mới đi tiếp
+    await fetchItems(); 
+  } catch (error) {
+    console.error("Lỗi khi đổi trạng thái vật phẩm:", error);
+    showDialog("Không thể thay đổi trạng thái. Vui lòng thử lại!", "error");
+  } finally {
+    setTogglingItemId(null); // 4. Hoàn thành xong (dù thành công hay lỗi) thì MỞ KHÓA
+  }
+};
 
   return (
     <div className="page-container relative">
@@ -1253,20 +1276,28 @@ export function ItemManagerPage() {
                     <tr
                       key={item.itemId}
                       className="hover:bg-muted/30 transition-colors"
-                    onClick={async () => {
+                      onClick={async () => {
                         try {
                           const res = await itemApi.getById(item.itemId);
-                          const fullItemData = res?.data || res?.result || res || item;
-                          
+                          const fullItemData =
+                            res?.data || res?.result || res || item;
+
                           // Hợp nhất dữ liệu tránh mất image và itemTypeName từ danh sách gốc
                           const mergedData = {
                             ...fullItemData,
-                            image: fullItemData.image || fullItemData.imageUrl || item.image,
-                            itemTypeName: fullItemData.itemTypeName || item.itemTypeName
+                            image:
+                              fullItemData.image ||
+                              fullItemData.imageUrl ||
+                              item.image,
+                            itemTypeName:
+                              fullItemData.itemTypeName || item.itemTypeName,
                           };
                           setDetailItem(mergedData);
                         } catch (error) {
-                          console.error("Không lấy được chi tiết, dùng fallback:", error);
+                          console.error(
+                            "Không lấy được chi tiết, dùng fallback:",
+                            error,
+                          );
                           setDetailItem(item);
                         }
                       }}
@@ -1337,11 +1368,17 @@ export function ItemManagerPage() {
                             onClick={async () => {
                               try {
                                 const res = await itemApi.getById(item.itemId);
-                                const fullItemData = res?.data || res?.result || res || item;
+                                const fullItemData =
+                                  res?.data || res?.result || res || item;
                                 setEditItem({
                                   ...fullItemData,
-                                  image: fullItemData.image || fullItemData.imageUrl || item.image,
-                                  itemTypeName: fullItemData.itemTypeName || item.itemTypeName
+                                  image:
+                                    fullItemData.image ||
+                                    fullItemData.imageUrl ||
+                                    item.image,
+                                  itemTypeName:
+                                    fullItemData.itemTypeName ||
+                                    item.itemTypeName,
                                 });
                               } catch (err) {
                                 setEditItem(item);
@@ -1354,15 +1391,13 @@ export function ItemManagerPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() =>
-                              showDialog(
-                                "Chức năng đổi trạng thái đang phát triển",
-                                "warning",
-                              )
-                            }
+                            onClick={() => handleToggleStatus(item)}
+                            disabled={togglingItemId === item.itemId}
                             className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
                           >
-                            {item.isActive ? (
+                            {togglingItemId === item.itemId ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : item.isActive ? (
                               <Trash2 className="w-3 h-3" />
                             ) : (
                               <CheckCircle className="w-3 h-3" />
