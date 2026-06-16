@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Plus,
   Pencil,
@@ -7,7 +7,6 @@ import {
   Loader2,
   ChevronDown,
   Package,
-  Tag,
   AlertTriangle,
   Image as ImageIcon,
   X,
@@ -19,6 +18,7 @@ import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
 import { Table } from "../../../components/common/table.jsx";
 
 import { itemApi } from "../../../api/itemApi";
+import { itemTypeApi } from "../../../api/itemTypeApi";
 import "../css/itemManagerPage.css";
 
 const ITEMS_PER_PAGE = 5;
@@ -146,13 +146,6 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (dynamicTypes && dynamicTypes.length > 0 && !form.itemTypeId) {
-      const firstTypeId = dynamicTypes[0]?.itemTypeId;
-      setForm((prev) => ({ ...prev, itemTypeId: firstTypeId }));
-    }
-  }, [dynamicTypes]);
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -202,8 +195,11 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       newErrors.itemName = "Tên vật phẩm không được vượt quá 50 ký tự.";
     }
 
+    const selectedTypeId =
+      form.itemTypeId || dynamicTypes[0]?.itemTypeId || "";
+
     // Kiem tra loai
-    if (!form.itemTypeId) {
+    if (!selectedTypeId) {
       newErrors.itemTypeId = "Vui lòng chọn loại vật phẩm.";
     }
 
@@ -239,7 +235,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
 
     try {
       // Truyen vao object da duoc trim de an toan
-      await onSubmit({ ...form, itemName: trimmedName });
+      await onSubmit({ ...form, itemTypeId: selectedTypeId, itemName: trimmedName });
     } catch (error) {
       if (error && error.isValidationError) {
         setErrors(error.fields);
@@ -297,7 +293,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
                     }))
                   : []
               }
-              value={form.itemTypeId}
+              value={form.itemTypeId || dynamicTypes[0]?.itemTypeId || ""}
               onChange={(val) => {
                 setForm({ ...form, itemTypeId: val });
                 if (errors.itemTypeId)
@@ -851,7 +847,6 @@ export function ItemManagerPage() {
   const [dynamicTypes, setDynamicTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState("items");
   const [filterType, setFilterType] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -871,7 +866,7 @@ export function ItemManagerPage() {
     setDialog({ ...dialog, show: false });
   };
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await itemApi.getAll();
@@ -881,7 +876,7 @@ export function ItemManagerPage() {
       setItems(actualData);
 
       try {
-        const typesRes = await itemApi.getTypes();
+        const typesRes = await itemTypeApi.getTypes();
         const types = Array.isArray(typesRes) ? typesRes : typesRes?.data || [];
         setDynamicTypes(types);
       } catch (typeError) {
@@ -911,11 +906,14 @@ export function ItemManagerPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchItems();
-  }, []);
+    const timer = setTimeout(() => {
+      void fetchItems();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchItems]);
 
   const filteredItems = items.filter((item) => {
     const matchesKeyword = item.itemName
@@ -1144,15 +1142,6 @@ export function ItemManagerPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon-wrapper bg-accent/10 text-accent">
-            <Tag size={20} />
-          </div>
-          <div>
-            <p className="stat-value">{dynamicTypes.length}</p>
-            <p className="stat-label">Loại vật phẩm</p>
-          </div>
-        </div>
-        <div className="stat-card">
           <div className="stat-icon-wrapper bg-primary/10 text-primary">
             <CheckCircle size={20} />
           </div>
@@ -1172,25 +1161,8 @@ export function ItemManagerPage() {
         </div>
       </div>
 
-      {/* --- TABS CONTROL --- */}
-      <div className="tab-container">
-        <button
-          onClick={() => setActiveTab("items")}
-          className={`tab-btn ${activeTab === "items" ? "tab-btn-active" : ""}`}
-        >
-          <Package size={15} /> Vật phẩm
-        </button>
-        <button
-          onClick={() => setActiveTab("types")}
-          className={`tab-btn ${activeTab === "types" ? "tab-btn-active" : ""}`}
-        >
-          <Tag size={15} /> Loại vật phẩm
-        </button>
-      </div>
-
       {/* --- MAIN CONTENT --- */}
-      {activeTab === "items" && (
-        <>
+      <>
           <div className="filter-container">
             <div className="search-wrapper">
               <SearchFilter
@@ -1380,7 +1352,7 @@ export function ItemManagerPage() {
                                     fullItemData.itemTypeName ||
                                     item.itemTypeName,
                                 });
-                              } catch (err) {
+                              } catch {
                                 setEditItem(item);
                               }
                             }}
@@ -1427,37 +1399,6 @@ export function ItemManagerPage() {
             />
           </div>
         </>
-      )}
-
-      {activeTab === "types" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {dynamicTypes.map((type, idx) => {
-            const typeId = type.itemTypeId || type.id || idx;
-            const typeName = type.itemTypeName || type.name || "Chưa phân loại";
-            return (
-              <div
-                key={typeId}
-                className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                    <Tag size={24} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">
-                      {typeName}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {items.filter((i) => i.itemTypeName === typeName).length}{" "}
-                      vật phẩm
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {createItemOpen && (
         <Modal
