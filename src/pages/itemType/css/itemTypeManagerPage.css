@@ -188,3 +188,23 @@
 .form-group textarea {
     @apply w-full rounded-lg py-2 px-3 bg-muted border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20;
 }
+
+.form-actions {
+    @apply flex gap-3 pt-2;
+}
+
+.btn-cancel {
+    @apply flex-1 border border-border bg-transparent rounded-lg py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer;
+}
+
+.alert-toast {
+    @apply fixed bottom-6 right-6 z-50 max-w-xs rounded-2xl border px-4 py-3 text-sm font-medium shadow-2xl backdrop-blur-sm;
+}
+
+.alert-toast-success {
+    @apply bg-primary/10 border-primary/30 text-primary;
+}
+
+.alert-toast-error {
+    @apply bg-destructive/10 border-destructive/30 text-destructive;
+}
