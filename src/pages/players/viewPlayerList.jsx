@@ -10,11 +10,11 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import playerApi from "../../api/playerApi";
-import { PlayerDetailModal } from "./ViewPlayerDetails.jsx";
-import { Button } from "../../components/common/Button";
+import { PlayerDetailModal } from "./viewPlayerDetails.jsx";
+import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter.jsx";
-import { Pagination } from "../../components/common/Pagination.jsx";
-import { Table, TableEmpty } from "../../components/common/Table.jsx";
+import { Pagination } from "../../components/common/pagination.jsx";
+import { Table, TableEmpty } from "../../components/common/table.jsx";
 import "./css/user-actions.css";
 import "./css/user-status.css";
 
@@ -286,21 +286,20 @@ export function UsersManagement() {
                 </div>
 
                 {/* Bảng người dùng */}
-                <Table className="min-w-[1000px]">
+                 <Table className="min-w-[1000px]">
                         <thead>
                             <tr className="bg-muted border-b border-border">
                                 <th className="w-[9%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">ID</th>
                                 <th className="w-[16%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Người dùng</th>
                                 <th className="w-[26%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Email</th>
-                                <th className="w-[12%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Ngày tạo</th>
-                                <th className="w-[12%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Đăng nhập cuối</th>
+                                <th className="w-[16%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Ngày tạo</th>
                                 <th className="w-[11%] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Trạng thái</th>
                                 <th className="w-[12rem] text-left py-3 px-4 text-sm font-medium text-muted-foreground">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {paginatedUsers.length === 0 ? (
-                                <TableEmpty colSpan={7} message="Không tìm thấy người dùng nào." />
+                                <TableEmpty colSpan={6} message="Không tìm thấy người dùng nào." />
                             ) : (
                                 paginatedUsers.map((user) => {
                                     const uid = user.userId || user.id;
@@ -323,9 +322,6 @@ export function UsersManagement() {
                                             </td>
                                             <td className="py-4 px-4 text-sm text-muted-foreground whitespace-nowrap">
                                                 {formatDate(user.createdAt)}
-                                            </td>
-                                            <td className="py-4 px-4 text-sm text-muted-foreground whitespace-nowrap">
-                                                {user.lastLoginAt ? formatDate(user.lastLoginAt) : "Chưa từng"}
                                             </td>
                                             <td className="py-4 px-4">
                                                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusClass(user)}`}>

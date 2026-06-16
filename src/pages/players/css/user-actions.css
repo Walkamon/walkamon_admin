@@ -27,10 +27,9 @@
 
 /* Fixed sizing for lock button so toggling label doesn't move the log button */
 .ua-lock {
-  /* Fix width to the widest label so toggling doesn't change layout */
-  min-width: 140px;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  /* Giảm kích thước để không chiếm nhiều chỗ trong hàng bảng */
+  min-width: 100px;
+  padding: 0.25rem 0.5rem;
   justify-content: center;
 }
 
