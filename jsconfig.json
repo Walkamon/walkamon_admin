@@ -1,18 +1,12 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "jsx": "react-jsx",
-        "baseUrl": ".",
-        "ignoreDeprecations": "6.0",
-        "paths": {
-            "@/*": [
-                "src/*"
-            ]
-        }
-    },
-    "include": [
-        "src"
-    ]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
 }

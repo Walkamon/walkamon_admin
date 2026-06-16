@@ -195,8 +195,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       newErrors.itemName = "Tên vật phẩm không được vượt quá 50 ký tự.";
     }
 
-    const selectedTypeId =
-      form.itemTypeId || dynamicTypes[0]?.itemTypeId || "";
+    const selectedTypeId = form.itemTypeId || dynamicTypes[0]?.itemTypeId || "";
 
     // Kiem tra loai
     if (!selectedTypeId) {
@@ -235,7 +234,11 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
 
     try {
       // Truyen vao object da duoc trim de an toan
-      await onSubmit({ ...form, itemTypeId: selectedTypeId, itemName: trimmedName });
+      await onSubmit({
+        ...form,
+        itemTypeId: selectedTypeId,
+        itemName: trimmedName,
+      });
     } catch (error) {
       if (error && error.isValidationError) {
         setErrors(error.fields);
@@ -1048,25 +1051,25 @@ export function ItemManagerPage() {
     }
   };
 
- const handleToggleStatus = async (item) => {
-  // 1. Nếu không có ID hoặc đang có item khác/chính nó đang toggle thì CHẶN LUÔN (chống spam)
-  if (!item?.itemId || togglingItemId) return; 
+  const handleToggleStatus = async (item) => {
+    if (!item?.itemId || togglingItemId) return;
 
-  try {
-    setTogglingItemId(item.itemId); // 2. Bật trạng thái khóa item này lại
-    
-    await itemApi.toggleStatus(item.itemId);
-    showDialog("Cập nhật trạng thái vật phẩm thành công!", "success");
-    
-    // 3. Thêm chữ await ở đây để nó lấy xong dữ liệu mới rồi mới đi tiếp
-    await fetchItems(); 
-  } catch (error) {
-    console.error("Lỗi khi đổi trạng thái vật phẩm:", error);
-    showDialog("Không thể thay đổi trạng thái. Vui lòng thử lại!", "error");
-  } finally {
-    setTogglingItemId(null); // 4. Hoàn thành xong (dù thành công hay lỗi) thì MỞ KHÓA
-  }
-};
+    try {
+      setTogglingItemId(item.itemId);
+
+      // Gọi API với trạng thái đảo ngược: nếu đang true thì thành false và ngược lại
+      await itemApi.toggleStatus(item.itemId, !item.isActive);
+
+      // Cập nhật lại giao diện ngay sau khi gọi API thành công
+      await fetchItems();
+      showDialog("Cập nhật trạng thái vật phẩm thành công!", "success");
+    } catch (error) {
+      console.error("Lỗi khi đổi trạng thái vật phẩm:", error);
+      showDialog("Không thể thay đổi trạng thái. Vui lòng thử lại!", "error");
+    } finally {
+      setTogglingItemId(null);
+    }
+  };
 
   return (
     <div className="page-container relative">
@@ -1163,242 +1166,238 @@ export function ItemManagerPage() {
 
       {/* --- MAIN CONTENT --- */}
       <>
-          <div className="filter-container">
-            <div className="search-wrapper">
-              <SearchFilter
-                value={searchKeyword}
-                onChange={(e) => {
-                  setSearchKeyword(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Tìm kiếm vật phẩm..."
-                className="w-full border-none"
-                inputClassName="bg-muted border-none"
-              />
-            </div>
-
-            <div className="select-wrapper">
-              <SelectDropdown
-                options={[
-                  { value: "all", label: "Tất cả loại" },
-                  ...dynamicTypes.map((type) => ({
-                    value: type.itemTypeName || type.name,
-                    label: type.itemTypeName || type.name,
-                  })),
-                ]}
-                value={filterType}
-                onChange={(val) => {
-                  setFilterType(val);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-
-            <div className="select-wrapper">
-              <SelectDropdown
-                options={[
-                  { value: "all", label: "Tất cả trạng thái" },
-                  { value: "active", label: "Hoạt động" },
-                  { value: "inactive", label: "Tạm dừng" },
-                ]}
-                value={statusFilter}
-                onChange={(val) => {
-                  setStatusFilter(val);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <Table className="custom-table">
-              <thead>
-                <tr className="bg-muted/50 text-muted-foreground">
-                  <th className="px-5 py-3 w-[80px]">Hình ảnh</th>
-                  <th className="px-5 py-3">Vật phẩm</th>
-                  <th className="px-4 py-3">Loại</th>
-                  <th className="px-4 py-3">Loại hiệu ứng</th>
-                  <th className="px-4 py-3">Giá trị</th>
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {isLoading ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                      Đang tải danh sách...
-                    </td>
-                  </tr>
-                ) : pagedItems.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      Không có vật phẩm nào.
-                    </td>
-                  </tr>
-                ) : (
-                  pagedItems.map((item) => (
-                    <tr
-                      key={item.itemId}
-                      className="hover:bg-muted/30 transition-colors"
-                      onClick={async () => {
-                        try {
-                          const res = await itemApi.getById(item.itemId);
-                          const fullItemData =
-                            res?.data || res?.result || res || item;
-
-                          // Hợp nhất dữ liệu tránh mất image và itemTypeName từ danh sách gốc
-                          const mergedData = {
-                            ...fullItemData,
-                            image:
-                              fullItemData.image ||
-                              fullItemData.imageUrl ||
-                              item.image,
-                            itemTypeName:
-                              fullItemData.itemTypeName || item.itemTypeName,
-                          };
-                          setDetailItem(mergedData);
-                        } catch (error) {
-                          console.error(
-                            "Không lấy được chi tiết, dùng fallback:",
-                            error,
-                          );
-                          setDetailItem(item);
-                        }
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <td className="px-5 py-3">
-                        <div className="item-image-container">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={item.itemName}
-                              className="item-preview-img"
-                              onError={(e) => {
-                                e.target.style.display = "none";
-                                e.target.nextSibling.style.display = "flex";
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className="item-image-fallback"
-                            style={{ display: item.image ? "none" : "flex" }}
-                          >
-                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-3">
-                        <div className="flex flex-col">
-                          <span className="item-name-text">
-                            {item.itemName}
-                          </span>
-                          <span className="item-id-text">
-                            #
-                            {item.itemId ? item.itemId.substring(0, 5) : "ITEM"}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {item.itemTypeName}
-                      </td>
-
-                      <td className="px-4 py-3 text-muted-foreground font-medium">
-                        {item.effectTypeCode || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground font-medium text-primary">
-                        {item.effectValue ? `${item.effectValue}` : "0"}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={
-                            item.isActive ? "badge-active" : "badge-inactive"
-                          }
-                        >
-                          {item.isActive ? "Hoạt động" : "Tạm dừng"}
-                        </span>
-                      </td>
-
-                      <td
-                        className="px-4 py-3"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const res = await itemApi.getById(item.itemId);
-                                const fullItemData =
-                                  res?.data || res?.result || res || item;
-                                setEditItem({
-                                  ...fullItemData,
-                                  image:
-                                    fullItemData.image ||
-                                    fullItemData.imageUrl ||
-                                    item.image,
-                                  itemTypeName:
-                                    fullItemData.itemTypeName ||
-                                    item.itemTypeName,
-                                });
-                              } catch {
-                                setEditItem(item);
-                              }
-                            }}
-                            className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Sửa</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(item)}
-                            disabled={togglingItemId === item.itemId}
-                            className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
-                          >
-                            {togglingItemId === item.itemId ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : item.isActive ? (
-                              <Trash2 className="w-3 h-3" />
-                            ) : (
-                              <CheckCircle className="w-3 h-3" />
-                            )}
-                            <span>
-                              {item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                            </span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          </div>
-
-          <div className="footer-container">
-            <p>
-              Hiển thị {startItem}–{endItem} trong {filteredItems.length} kết
-              quả
-            </p>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onChange={(page) => setCurrentPage(page)}
+        <div className="filter-container">
+          <div className="search-wrapper">
+            <SearchFilter
+              value={searchKeyword}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm kiếm vật phẩm..."
+              className="w-full border-none"
+              inputClassName="bg-muted border-none"
             />
           </div>
-        </>
+
+          <div className="select-wrapper">
+            <SelectDropdown
+              options={[
+                { value: "all", label: "Tất cả loại" },
+                ...dynamicTypes.map((type) => ({
+                  value: type.itemTypeName || type.name,
+                  label: type.itemTypeName || type.name,
+                })),
+              ]}
+              value={filterType}
+              onChange={(val) => {
+                setFilterType(val);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+
+          <div className="select-wrapper">
+            <SelectDropdown
+              options={[
+                { value: "all", label: "Tất cả trạng thái" },
+                { value: "active", label: "Hoạt động" },
+                { value: "inactive", label: "Tạm dừng" },
+              ]}
+              value={statusFilter}
+              onChange={(val) => {
+                setStatusFilter(val);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <Table className="custom-table">
+            <thead>
+              <tr className="bg-muted/50 text-muted-foreground">
+                <th className="px-5 py-3 w-[80px]">Hình ảnh</th>
+                <th className="px-5 py-3">Vật phẩm</th>
+                <th className="px-4 py-3">Loại</th>
+                <th className="px-4 py-3">Loại hiệu ứng</th>
+                <th className="px-4 py-3">Giá trị</th>
+                <th className="px-4 py-3">Trạng thái</th>
+                <th className="px-4 py-3">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                    Đang tải danh sách...
+                  </td>
+                </tr>
+              ) : pagedItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    Không có vật phẩm nào.
+                  </td>
+                </tr>
+              ) : (
+                pagedItems.map((item) => (
+                  <tr
+                    key={item.itemId}
+                    className="hover:bg-muted/30 transition-colors"
+                    onClick={async () => {
+                      try {
+                        const res = await itemApi.getById(item.itemId);
+                        const fullItemData =
+                          res?.data || res?.result || res || item;
+
+                        // Hợp nhất dữ liệu tránh mất image và itemTypeName từ danh sách gốc
+                        const mergedData = {
+                          ...fullItemData,
+                          image:
+                            fullItemData.image ||
+                            fullItemData.imageUrl ||
+                            item.image,
+                          itemTypeName:
+                            fullItemData.itemTypeName || item.itemTypeName,
+                        };
+                        setDetailItem(mergedData);
+                      } catch (error) {
+                        console.error(
+                          "Không lấy được chi tiết, dùng fallback:",
+                          error,
+                        );
+                        setDetailItem(item);
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td className="px-5 py-3">
+                      <div className="item-image-container">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.itemName}
+                            className="item-preview-img"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="item-image-fallback"
+                          style={{ display: item.image ? "none" : "flex" }}
+                        >
+                          <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-3">
+                      <div className="flex flex-col">
+                        <span className="item-name-text">{item.itemName}</span>
+                        <span className="item-id-text">
+                          #{item.itemId ? item.itemId.substring(0, 5) : "ITEM"}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {item.itemTypeName}
+                    </td>
+
+                    <td className="px-4 py-3 text-muted-foreground font-medium">
+                      {item.effectTypeCode || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground font-medium text-primary">
+                      {item.effectValue ? `${item.effectValue}` : "0"}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          item.isActive ? "badge-active" : "badge-inactive"
+                        }
+                      >
+                        {item.isActive ? "Hoạt động" : "Tạm dừng"}
+                      </span>
+                    </td>
+
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await itemApi.getById(item.itemId);
+                              const fullItemData =
+                                res?.data || res?.result || res || item;
+                              setEditItem({
+                                ...fullItemData,
+                                image:
+                                  fullItemData.image ||
+                                  fullItemData.imageUrl ||
+                                  item.image,
+                                itemTypeName:
+                                  fullItemData.itemTypeName ||
+                                  item.itemTypeName,
+                              });
+                            } catch {
+                              setEditItem(item);
+                            }
+                          }}
+                          className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Sửa</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(item)}
+                          disabled={togglingItemId === item.itemId}
+                          className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
+                        >
+                          {togglingItemId === item.itemId ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : item.isActive ? (
+                            <Trash2 className="w-3 h-3" />
+                          ) : (
+                            <CheckCircle className="w-3 h-3" />
+                          )}
+                          <span>
+                            {item.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </Table>
+        </div>
+
+        <div className="footer-container">
+          <p>
+            Hiển thị {startItem}–{endItem} trong {filteredItems.length} kết quả
+          </p>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onChange={(page) => setCurrentPage(page)}
+          />
+        </div>
+      </>
 
       {createItemOpen && (
         <Modal

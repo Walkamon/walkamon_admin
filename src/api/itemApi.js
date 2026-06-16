@@ -24,11 +24,10 @@ export const itemApi = {
     });
   },
 
-  // Đổi trạng thái vật phẩm (DELETE /api/items/{id})
-  toggleStatus: (id) => {
-    return axiosClient.delete(`/api/items/${id}`);
+  // Đổi trạng thái vật phẩm (PATCH /api/items/{id})
+  toggleStatus: (id, isActive) => {
+    return axiosClient.patch(`/api/items/${id}`, { isActive: isActive });
   },
-
   getById: (id) => {
     return axiosClient.get(`/api/items/${id}`);
   },
