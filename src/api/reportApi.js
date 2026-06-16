@@ -11,8 +11,11 @@ const reportApi = {
   },
 
   resolveReport(id, payload = {}) {
-    // try to call resolve endpoint; fallback to patch
     return axiosClient.post(`/api/user-report/${id}/resolve`, payload);
+  },
+
+  getReportById(id) {
+    return axiosClient.get(`/api/user-report/${id}`);
   },
 };
 

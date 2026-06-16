@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-	AlertTriangle,
-	Check,
-	Clock,
+	ChevronDown,
 	MessageSquare,
 	Trash2,
 	X,
@@ -10,7 +8,6 @@ import {
 } from "lucide-react";
 
 import reportApi from "../../api/reportApi";
-import { SearchFilter } from "../../components/common/SearchFilter.jsx";
 import { Pagination } from "../../components/common/pagination.jsx";
 import { Button } from "../../components/common/button.jsx";
 
@@ -72,11 +69,24 @@ export default function ReportListPage() {
 	const [replyReport, setReplyReport] = useState(null);
 	const [deleteReport, setDeleteReport] = useState(null);
 	const [replyText, setReplyText] = useState("");
+	const [statusOpen, setStatusOpen] = useState(false);
+	const statusRef = useRef(null);
 
 	useEffect(() => {
 		fetchReports();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [page, statusFilter]);
+
+	useEffect(() => {
+		if (!statusOpen) return;
+		function handleClickOutside(e) {
+			if (statusRef.current && !statusRef.current.contains(e.target)) {
+				setStatusOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [statusOpen]);
 
 	async function fetchReports() {
 		setLoading(true);
@@ -96,12 +106,12 @@ export default function ReportListPage() {
 
 	function statusLabel(code) {
 		if (!code) return 'Chưa rõ';
-		return code === 'resolved' || code === 'Đã giải quyết' ? 'Đã giải quyết' : code === 'investigating' || code === 'Đang xử lý' ? 'Đang xử lý' : 'Chờ xử lý';
+		return code === 'resolved' || code === 'Đã giải quyết' ? 'Đã giải quyết' : 'Đang chờ';
 	}
 
 	function statusColor(code) {
 		if (!code) return 'bg-accent/10 text-accent';
-		return code === 'resolved' ? 'bg-secondary/10 text-secondary' : code === 'investigating' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent';
+		return code === 'resolved' ? 'bg-secondary/10 text-secondary' : 'bg-accent/10 text-accent';
 	}
 
 	async function handleReplySubmit() {
@@ -125,11 +135,6 @@ export default function ReportListPage() {
 		setDeleteReport(null);
 	}
 
-	const counts = {
-		pending: reports.filter((r) => (r.statusCode || r.status || '').toLowerCase() === 'pending' || (r.statusCode || r.status || '').toLowerCase() === 'chờ xử lý').length,
-		investigating: reports.filter((r) => (r.statusCode || r.status || '').toLowerCase() === 'investigating' || (r.statusCode || r.status || '').toLowerCase() === 'đang xử lý').length,
-		resolved: reports.filter((r) => (r.statusCode || r.status || '').toLowerCase() === 'resolved' || (r.statusCode || r.status || '').toLowerCase() === 'đã giải quyết').length,
-	};
 
 	return (
 		<div className="report-management p-6 space-y-6">
@@ -138,50 +143,28 @@ export default function ReportListPage() {
 				<p className="text-sm text-muted-foreground">Xử lý các báo cáo từ người dùng</p>
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<div className="bg-card border border-border rounded-xl p-6">
-					<div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mb-3">
-						<Clock className="w-5 h-5 text-white" />
-					</div>
-					<p className="text-sm text-muted-foreground mb-1">Đang chờ</p>
-					<p className="text-2xl font-bold text-accent">{counts.pending}</p>
-				</div>
-				<div className="bg-card border border-border rounded-xl p-6">
-					<div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mb-3">
-						<AlertTriangle className="w-5 h-5 text-white" />
-					</div>
-					<p className="text-sm text-muted-foreground mb-1">Đang xử lý</p>
-					<p className="text-2xl font-bold text-primary">{counts.investigating}</p>
-				</div>
-				<div className="bg-card border border-border rounded-xl p-6">
-					<div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-3">
-						<Check className="w-5 h-5 text-white" />
-					</div>
-					<p className="text-sm text-muted-foreground mb-1">Đã giải quyết</p>
-					<p className="text-2xl font-bold text-secondary">{counts.resolved}</p>
-				</div>
-			</div>
 
 			<div className="bg-card border border-border rounded-xl p-6">
 				<div className="flex items-center justify-between mb-4">
 					<h2 className="font-medium">Danh sách báo cáo</h2>
 					<div className="flex items-center gap-3">
-						<div className="w-48">
-							<select className="w-full bg-muted border border-border rounded-full px-4 py-2 text-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-								<option value="all">Tất cả trạng thái</option>
-								<option value="pending">Đang chờ</option>
-								<option value="investigating">Đang xử lý</option>
-								<option value="resolved">Đã giải quyết</option>
-							</select>
+						<div ref={statusRef} className="relative min-w-[11rem]">
+							<button type="button" onClick={() => setStatusOpen((v) => !v)} className="w-full rounded-full border border-border bg-muted px-4 py-2 text-sm text-left transition hover:border-primary">
+								{statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "pending" ? "Đang chờ" : "Đã giải quyết"}
+							</button>
+							<ChevronDown className={`absolute right-4 top-1/2 -translate-y-1/2 transition-transform ${statusOpen ? "rotate-180" : ""}`} />
+							{statusOpen && (
+								<div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-2xl border border-border bg-card shadow-lg">
+									<button type="button" onClick={() => { setStatusFilter("all"); setPage(1); setStatusOpen(false); }} className={`w-full text-left px-4 py-3 text-sm ${statusFilter === "all" ? "bg-muted/80 font-semibold" : "hover:bg-muted/50"}`}>Tất cả trạng thái</button>
+									<button type="button" onClick={() => { setStatusFilter("pending"); setPage(1); setStatusOpen(false); }} className={`w-full text-left px-4 py-3 text-sm ${statusFilter === "pending" ? "bg-muted/80 font-semibold" : "hover:bg-muted/50"}`}>Đang chờ</button>
+									<button type="button" onClick={() => { setStatusFilter("resolved"); setPage(1); setStatusOpen(false); }} className={`w-full text-left px-4 py-3 text-sm ${statusFilter === "resolved" ? "bg-muted/80 font-semibold" : "hover:bg-muted/50"}`}>Đã giải quyết</button>
+								</div>
+							)}
 						</div>
 						<Button variant="secondary" onClick={() => { setQuery(""); setPage(1); fetchReports(); }}>
 							<RefreshCw className="w-4 h-4 mr-2" /> Làm mới
 						</Button>
 					</div>
-				</div>
-
-				<div className="mb-4 max-w-md">
-					<SearchFilter value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm kiếm theo người báo, lý do..." />
 				</div>
 
 				{loading ? (
@@ -209,7 +192,7 @@ export default function ReportListPage() {
 						</thead>
 						<tbody>
 							{(reports || []).filter((r) => statusFilter === 'all' ? true : ((r.statusCode || r.status || '').toLowerCase().includes(statusFilter))).map((report) => (
-								<tr key={report.feedbackId || report.feedbackId || report.id} onClick={() => setDetailReport(report)} className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer">
+								<tr key={report.feedbackId || report.id} onClick={() => setDetailReport(report)} className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer">
 									<td className="py-4 px-4 text-sm">#{(report.feedbackId || report.id || '').toString().slice(0,6)}</td>
 									<td className="py-4 px-4"><p className="font-medium">{report.userId || report.reporterId || report.reporterName || 'Người dùng'}</p></td>
 									<td className="py-4 px-4 text-sm">{report.feedbackTypeCode || report.reason || report.content}</td>
@@ -234,30 +217,39 @@ export default function ReportListPage() {
 
 			<Modal open={!!detailReport} onClose={() => setDetailReport(null)} title={`Chi tiết báo cáo #${detailReport?.feedbackId || detailReport?.id}`}>
 				{detailReport && (
-					<div className="space-y-4">
-						<div className="grid grid-cols-2 gap-4">
+					<div className="space-y-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="p-4 bg-muted/50 rounded-lg">
 								<p className="text-xs text-muted-foreground mb-1">Người báo cáo</p>
-								<p className="font-medium">{detailReport.userId || detailReport.reporterId || detailReport.reporterName}</p>
-								<p className="text-xs text-muted-foreground">ID: {detailReport.userId || detailReport.reporterId}</p>
+								<p className="font-medium text-foreground">{detailReport.userId || detailReport.reporterId || detailReport.reporterName || 'Người dùng'}</p>
+							</div>
+							<div className="p-4 bg-muted/50 rounded-lg">
+								<p className="text-xs text-muted-foreground mb-1">Trạng thái</p>
+								<span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusColor(detailReport.statusCode || detailReport.status)}`}>{statusLabel(detailReport.statusCode || detailReport.status)}</span>
 							</div>
 						</div>
-						<div>
-							<p className="text-sm font-medium mb-1">Lý do báo cáo</p>
-							<p className="text-sm">{detailReport.feedbackTypeCode || detailReport.reason || detailReport.content}</p>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="p-4 bg-card border border-border rounded-xl">
+								<p className="text-sm font-semibold mb-2">Lý do báo cáo</p>
+								<p className="text-sm text-foreground">{detailReport.feedbackTypeCode || detailReport.reason || 'Không có thông tin'}</p>
+							</div>
+							<div className="p-4 bg-card border border-border rounded-xl">
+								<p className="text-sm font-semibold mb-2">ID báo cáo</p>
+								<p className="text-sm text-foreground">{detailReport.feedbackId || detailReport.id || '-'}</p>
+							</div>
 						</div>
-						<div>
-							<p className="text-sm font-medium mb-1">Mô tả chi tiết</p>
-							<p className="text-sm text-muted-foreground">{detailReport.content || detailReport.description || ''}</p>
+						<div className="p-4 bg-card border border-border rounded-xl">
+							<p className="text-sm font-semibold mb-2">Mô tả chi tiết</p>
+							<p className="text-sm leading-7 text-muted-foreground">{detailReport.content || detailReport.description || 'Không có mô tả'}</p>
 						</div>
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<p className="text-xs text-muted-foreground mb-1">Thời gian</p>
-								<p className="text-sm">{detailReport.createdAt}</p>
+								<p className="text-sm">{(detailReport.createdAt || detailReport.date || '').replace ? (detailReport.createdAt || detailReport.date || '').replace('T',' ').substring(0,16) : (detailReport.createdAt || detailReport.date || '') || '-'}</p>
 							</div>
 							<div>
-								<p className="text-xs text-muted-foreground mb-1">Trạng thái</p>
-								<span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(detailReport.statusCode || detailReport.status)}`}>{statusLabel(detailReport.statusCode || detailReport.status)}</span>
+								<p className="text-xs text-muted-foreground mb-1">Người xử lý</p>
+								<p className="text-sm text-foreground">{detailReport.adminNote ? 'Đã phản hồi' : 'Chưa xử lý'}</p>
 							</div>
 						</div>
 						{detailReport.adminNote && (
