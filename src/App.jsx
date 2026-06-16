@@ -5,6 +5,7 @@ import { UsersManagement } from "./pages/players/ViewPlayerList.jsx";
 import { authRoutes } from "./routes/AuthRoutes";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
+import { ItemTypeManager } from "./pages/itemType/itemTypeManager.jsx";
 import ReportListPage from "./pages/reports/viewReportList.jsx";
 
 const router = createBrowserRouter([
@@ -30,6 +31,10 @@ const router = createBrowserRouter([
           {
             path: "players",
             element: <UsersManagement />,
+          },
+          {
+            path: "item-types",
+            element: <ItemTypeManager />,
           },
           {
             path: "reports",
