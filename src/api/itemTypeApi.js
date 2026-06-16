@@ -15,4 +15,9 @@ export const itemTypeApi = {
   createType: (payload) => {
     return axiosClient.post(`/api/item-types`, payload);
   },
+
+  // Cập nhật loại vật phẩm (PUT /api/item-types/{id})
+  updateType: (id, payload) => {
+    return axiosClient.put(`/api/item-types/${id}`, payload);
+  },
 };

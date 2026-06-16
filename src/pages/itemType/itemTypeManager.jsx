@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, Pencil, X } from "lucide-react";
 
 import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter.jsx";
@@ -172,6 +172,90 @@ function CreateItemTypeForm({ onSubmit, onClose, errorMessage }) {
   );
 }
 
+function EditItemTypeForm({ itemType, onSubmit, onClose, errorMessage }) {
+  const [name, setName] = useState(itemType.itemTypeName || "");
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setErrors({ itemTypeName: "Vui lòng nhập tên loại vật phẩm." });
+      return;
+    }
+
+    setErrors({});
+    setIsLoading(true);
+    try {
+      await onSubmit(itemType.itemTypeId, trimmedName);
+    } catch (err) {
+      const serverError =
+        err?.response?.data?.ItemTypeName?.[0] ||
+        err?.response?.data?.errors?.ItemTypeName?.[0] ||
+        errorMessage ||
+        "Không thể cập nhật loại vật phẩm.";
+      setErrors({ itemTypeName: serverError });
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="item-form-layout">
+      <div className="form-group">
+        <label>
+          Tên loại vật phẩm <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="text"
+          maxLength={80}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (errors.itemTypeName) setErrors({ ...errors, itemTypeName: null });
+          }}
+          placeholder="Cập nhật tên loại"
+          className={
+            errors.itemTypeName ? "border-destructive focus:ring-destructive/20" : ""
+          }
+        />
+        {errors.itemTypeName && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.itemTypeName}
+          </span>
+        )}
+      </div>
+
+      <div className="form-actions">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="btn-cancel"
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="btn-submit flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Đang cập nhật...
+            </>
+          ) : (
+            "Cập nhật"
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function ItemTypeManager() {
   const [types, setTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,6 +265,8 @@ export function ItemTypeManager() {
   const [detailType, setDetailType] = useState(null);
   const [createTypeOpen, setCreateTypeOpen] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [editType, setEditType] = useState(null);
+  const [editError, setEditError] = useState("");
 
   const fetchItemTypes = async () => {
     setIsLoading(true);
@@ -230,6 +316,29 @@ export function ItemTypeManager() {
         payload?.ItemTypeName ||
         payload?.message;
       setCreateError(translateTypeError(serverMessage || err?.message || "Không thể tạo loại vật phẩm."));
+      throw err;
+    }
+  };
+
+  const handleEditType = async (id, name) => {
+    setEditError("");
+    try {
+      const res = await itemTypeApi.updateType(id, { ItemTypeName: name });
+      const updatedType = res?.data || res?.result || res;
+      setTypes((prev) =>
+        prev.map((type) =>
+          type.itemTypeId === id ? { ...type, ...updatedType } : type,
+        ),
+      );
+      setEditType(null);
+      setCurrentPage(1);
+    } catch (err) {
+      const payload = err?.response?.data || err?.response?.data?.errors || {};
+      const serverMessage =
+        payload?.ItemTypeName?.[0] || payload?.errors?.ItemTypeName?.[0] ||
+        payload?.ItemTypeName ||
+        payload?.message;
+      setEditError(translateTypeError(serverMessage || err?.message || "Không thể cập nhật loại vật phẩm."));
       throw err;
     }
   };
@@ -295,6 +404,7 @@ export function ItemTypeManager() {
               <th className="px-5 py-3">Mã loại</th>
               <th className="px-4 py-3">Tên loại</th>
               <th className="px-4 py-3">Số lượng item có trong loại vật phẩm này</th>
+              <th className="px-4 py-3">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -336,6 +446,26 @@ export function ItemTypeManager() {
                   <td className="px-4 py-3 text-primary font-semibold">
                     {type.count ?? 0}
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const res = await itemTypeApi.getById(type.itemTypeId);
+                          const fullTypeData = res?.data || res?.result || res || type;
+                          setEditType(fullTypeData);
+                        } catch (error) {
+                          console.error("Không lấy được chi tiết, dùng fallback:", error);
+                          setEditType(type);
+                        }
+                      }}
+                      className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span>Sửa</span>
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -369,6 +499,20 @@ export function ItemTypeManager() {
             onSubmit={handleCreateType}
             onClose={() => setCreateTypeOpen(false)}
             errorMessage={createError}
+          />
+        </Modal>
+      )}
+
+      {editType && (
+        <Modal
+          title={`Sửa loại vật phẩm: ${editType.itemTypeName}`}
+          onClose={() => setEditType(null)}
+        >
+          <EditItemTypeForm
+            itemType={editType}
+            onSubmit={handleEditType}
+            onClose={() => setEditType(null)}
+            errorMessage={editError}
           />
         </Modal>
       )}
