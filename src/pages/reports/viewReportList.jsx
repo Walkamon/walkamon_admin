@@ -116,15 +116,18 @@ export default function ReportListPage() {
 
 	async function handleReplySubmit() {
 		if (!replyReport || !replyText.trim()) return;
+		const id = replyReport.feedbackId || replyReport.id;
 		try {
-			// send resolve/update to API if available
-			await reportApi.resolveReport(replyReport.feedbackId || replyReport.id);
+			await reportApi.updateReportStatus(id, {
+				statusCode: 'resolved',
+				adminNote: replyText.trim(),
+			});
+			setReports((prev) => prev.map((r) => (r.feedbackId === id || r.id === id ? { ...r, statusCode: 'resolved', adminNote: replyText.trim() } : r)));
+			setReplyReport(null);
+			setReplyText("");
 		} catch (err) {
 			console.error(err);
 		}
-		setReports((prev) => prev.map((r) => (r.feedbackId === replyReport.feedbackId ? { ...r, statusCode: 'resolved', adminNote: replyText.trim() } : r)));
-		setReplyReport(null);
-		setReplyText("");
 	}
 
 	function handleDeleteConfirm() {
