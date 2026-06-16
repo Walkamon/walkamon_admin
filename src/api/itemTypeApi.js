@@ -10,4 +10,9 @@ export const itemTypeApi = {
   getById: (id) => {
     return axiosClient.get(`/api/item-types/${id}`);
   },
+
+  // Tạo loại vật phẩm mới (POST /api/item-types)
+  createType: (payload) => {
+    return axiosClient.post(`/api/item-types`, payload);
+  },
 };
