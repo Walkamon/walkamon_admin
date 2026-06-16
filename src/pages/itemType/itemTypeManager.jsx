@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 
+import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter.jsx";
 import { Table } from "../../components/common/table.jsx";
 import { Pagination } from "../../components/common/pagination.jsx";
@@ -87,6 +88,90 @@ function ItemTypeDetailView({ itemType, onClose }) {
   );
 }
 
+function CreateItemTypeForm({ onSubmit, onClose, errorMessage }) {
+  const [name, setName] = useState("");
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setErrors({ itemTypeName: "Vui lòng nhập tên loại vật phẩm." });
+      return;
+    }
+
+    setErrors({});
+    setIsLoading(true);
+    try {
+      await onSubmit(trimmedName);
+    } catch (err) {
+      const serverError =
+        err?.response?.data?.ItemTypeName?.[0] ||
+        err?.response?.data?.errors?.ItemTypeName?.[0] ||
+        errorMessage ||
+        "Không thể tạo loại vật phẩm.";
+      setErrors({ itemTypeName: serverError });
+      return;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="item-form-layout">
+      <div className="form-group">
+        <label>
+          Tên loại vật phẩm <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="text"
+          maxLength={80}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (errors.itemTypeName) setErrors({ ...errors, itemTypeName: null });
+          }}
+          placeholder="Nhập tên loại mới"
+          className={
+            errors.itemTypeName ? "border-destructive focus:ring-destructive/20" : ""
+          }
+        />
+        {errors.itemTypeName && (
+          <span className="text-sm text-destructive mt-1.5 block font-medium">
+            {errors.itemTypeName}
+          </span>
+        )}
+      </div>
+
+      <div className="form-actions">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="btn-cancel"
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="btn-submit flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Đang tạo...
+            </>
+          ) : (
+            "Tạo loại mới"
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function ItemTypeManager() {
   const [types, setTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,6 +179,8 @@ export function ItemTypeManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState("");
   const [detailType, setDetailType] = useState(null);
+  const [createTypeOpen, setCreateTypeOpen] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   const fetchItemTypes = async () => {
     setIsLoading(true);
@@ -118,6 +205,34 @@ export function ItemTypeManager() {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  const translateTypeError = (message) => {
+    if (!message) return "Lỗi không xác định.";
+    if (message.includes("Item type name is required"))
+      return "Vui lòng nhập tên loại vật phẩm.";
+    if (message.includes("already exists"))
+      return "Loại vật phẩm này đã tồn tại.";
+    return message;
+  };
+
+  const handleCreateType = async (name) => {
+    setCreateError("");
+    try {
+      const res = await itemTypeApi.createType({ ItemTypeName: name });
+      const createdType = res?.data || res?.result || res;
+      setTypes((prev) => [createdType, ...prev]);
+      setCurrentPage(1);
+      setCreateTypeOpen(false);
+    } catch (err) {
+      const payload = err?.response?.data || err?.response?.data?.errors || {};
+      const serverMessage =
+        payload?.ItemTypeName?.[0] || payload?.errors?.ItemTypeName?.[0] ||
+        payload?.ItemTypeName ||
+        payload?.message;
+      setCreateError(translateTypeError(serverMessage || err?.message || "Không thể tạo loại vật phẩm."));
+      throw err;
+    }
+  };
 
   const filteredTypes = types.filter((type) =>
     type.itemTypeName
@@ -144,6 +259,7 @@ export function ItemTypeManager() {
             Danh sách loại vật phẩm và số lượng item theo từng loại
           </p>
         </div>
+
       </div>
 
       <div className="filter-container">
@@ -158,6 +274,17 @@ export function ItemTypeManager() {
             className="w-full border-none"
             inputClassName="bg-muted border-none"
           />
+        </div>
+                <div className="mt-4 md:mt-0">
+          <Button
+            variant="primary"
+            size="md"
+            className="inline-flex items-center gap-2"
+            onClick={() => setCreateTypeOpen(true)}
+          >
+            <Plus size={16} />
+            Tạo loại mới
+          </Button>
         </div>
       </div>
 
@@ -231,6 +358,19 @@ export function ItemTypeManager() {
         <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
+      )}
+
+      {createTypeOpen && (
+        <Modal
+          title="Tạo loại vật phẩm mới"
+          onClose={() => setCreateTypeOpen(false)}
+        >
+          <CreateItemTypeForm
+            onSubmit={handleCreateType}
+            onClose={() => setCreateTypeOpen(false)}
+            errorMessage={createError}
+          />
+        </Modal>
       )}
 
       {detailType && (
