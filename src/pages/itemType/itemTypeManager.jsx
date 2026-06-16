@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Pencil, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
 
 import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter.jsx";
@@ -267,6 +267,10 @@ export function ItemTypeManager() {
   const [createError, setCreateError] = useState("");
   const [editType, setEditType] = useState(null);
   const [editError, setEditError] = useState("");
+  const [deletingTypeId, setDeletingTypeId] = useState(null);
+  const [confirmDeleteType, setConfirmDeleteType] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertVariant, setAlertVariant] = useState("success");
 
   const fetchItemTypes = async () => {
     setIsLoading(true);
@@ -291,6 +295,14 @@ export function ItemTypeManager() {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!alertMessage) return;
+    const timer = setTimeout(() => {
+      setAlertMessage("");
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [alertMessage]);
 
   const translateTypeError = (message) => {
     if (!message) return "Lỗi không xác định.";
@@ -332,6 +344,8 @@ export function ItemTypeManager() {
       );
       setEditType(null);
       setCurrentPage(1);
+      setAlertMessage("Cập nhật loại vật phẩm thành công!");
+      setAlertVariant("success");
     } catch (err) {
       const payload = err?.response?.data || err?.response?.data?.errors || {};
       const serverMessage =
@@ -341,6 +355,36 @@ export function ItemTypeManager() {
       setEditError(translateTypeError(serverMessage || err?.message || "Không thể cập nhật loại vật phẩm."));
       throw err;
     }
+  };
+
+  const handleDeleteType = async (id) => {
+    setConfirmDeleteType(id);
+  };
+
+  const handleConfirmDeleteType = async () => {
+    if (!confirmDeleteType) return;
+    const id = confirmDeleteType;
+    setConfirmDeleteType(null);
+    setAlertMessage("");
+    setDeletingTypeId(id);
+
+    try {
+      await itemTypeApi.deleteType(id);
+      setTypes((prev) => prev.filter((type) => type.itemTypeId !== id));
+      setCurrentPage(1);
+      setAlertMessage("Xóa loại vật phẩm thành công!");
+      setAlertVariant("success");
+    } catch (err) {
+      console.error("Lỗi khi xóa loại vật phẩm:", err);
+      setAlertMessage("Không thể xóa loại vật phẩm. Vui lòng thử lại.");
+      setAlertVariant("error");
+    } finally {
+      setDeletingTypeId(null);
+    }
+  };
+
+  const handleCancelDeleteType = () => {
+    setConfirmDeleteType(null);
   };
 
   const filteredTypes = types.filter((type) =>
@@ -384,7 +428,7 @@ export function ItemTypeManager() {
             inputClassName="bg-muted border-none"
           />
         </div>
-                <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0">
           <Button
             variant="primary"
             size="md"
@@ -396,6 +440,18 @@ export function ItemTypeManager() {
           </Button>
         </div>
       </div>
+
+      {alertMessage && (
+        <div
+          className={`alert-toast ${
+            alertVariant === "success"
+              ? "alert-toast-success"
+              : "alert-toast-error"
+          }`}
+        >
+          {alertMessage}
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <Table className="custom-table">
@@ -447,24 +503,46 @@ export function ItemTypeManager() {
                     {type.count ?? 0}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          const res = await itemTypeApi.getById(type.itemTypeId);
-                          const fullTypeData = res?.data || res?.result || res || type;
-                          setEditType(fullTypeData);
-                        } catch (error) {
-                          console.error("Không lấy được chi tiết, dùng fallback:", error);
-                          setEditType(type);
-                        }
-                      }}
-                      className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      <span>Sửa</span>
-                    </button>
+                    <div className="inline-flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const res = await itemTypeApi.getById(type.itemTypeId);
+                            const fullTypeData = res?.data || res?.result || res || type;
+                            setEditType(fullTypeData);
+                          } catch (error) {
+                            console.error("Không lấy được chi tiết, dùng fallback:", error);
+                            setEditType(type);
+                          }
+                        }}
+                        className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Sửa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await handleDeleteType(type.itemTypeId);
+                        }}
+                        disabled={deletingTypeId === type.itemTypeId}
+                        className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${
+                          deletingTypeId === type.itemTypeId
+                            ? "bg-destructive/10 text-destructive border border-destructive/25 opacity-70 cursor-not-allowed"
+                            : "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
+                        }`}
+                      >
+                        {deletingTypeId === type.itemTypeId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                        <span>Xóa</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -526,6 +604,53 @@ export function ItemTypeManager() {
             itemType={detailType}
             onClose={() => setDetailType(null)}
           />
+        </Modal>
+      )}
+
+      {confirmDeleteType && (
+        <Modal
+          title="Xác nhận xóa loại vật phẩm"
+          onClose={handleCancelDeleteType}
+        >
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              Bạn có chắc chắn muốn xóa loại vật phẩm này không? Hành động này không thể hoàn tác.
+            </p>
+            <div className="rounded-2xl border border-border bg-muted/60 p-4">
+              <div className="text-sm text-muted-foreground">Mã loại</div>
+              <div className="mt-1 text-base font-semibold text-foreground">
+                {confirmDeleteType}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={handleCancelDeleteType}
+                className="btn-cancel w-full sm:w-auto"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteType}
+                disabled={deletingTypeId === confirmDeleteType}
+                className={`w-full sm:w-auto py-2 px-4 rounded-xl text-sm font-semibold transition-colors ${
+                  deletingTypeId === confirmDeleteType
+                    ? "bg-destructive/20 text-destructive cursor-not-allowed"
+                    : "bg-destructive text-white hover:bg-destructive/90"
+                }`}
+              >
+                {deletingTypeId === confirmDeleteType ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Đang xóa...
+                  </span>
+                ) : (
+                  "Xóa"
+                )}
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

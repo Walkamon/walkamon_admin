@@ -20,4 +20,9 @@ export const itemTypeApi = {
   updateType: (id, payload) => {
     return axiosClient.put(`/api/item-types/${id}`, payload);
   },
+
+  // Xóa loại vật phẩm (DELETE /api/item-types/{id})
+  deleteType: (id) => {
+    return axiosClient.delete(`/api/item-types/${id}`);
+  },
 };
