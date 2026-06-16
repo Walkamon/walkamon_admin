@@ -1,13 +1,91 @@
 import { useEffect, useState } from "react";
-import {  Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { SearchFilter } from "../../components/common/SearchFilter.jsx";
 import { Table } from "../../components/common/table.jsx";
 import { Pagination } from "../../components/common/pagination.jsx";
 import { itemTypeApi } from "../../api/itemTypeApi";
-import "../items/css/itemManagerPage.css";
+import "./css/itemTypeManagerPage.css";
 
 const ITEMS_PER_PAGE = 5;
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button onClick={onClose} className="modal-close-btn">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ItemTypeDetailView({ itemType, onClose }) {
+  if (!itemType) return null;
+
+  // Hàm helper để format tách giờ và ngày đẹp như design
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return { time: "00:00:00", date: "N/A" };
+    const d = new Date(dateStr);
+    const time = d.toLocaleTimeString("vi-VN", { hour12: false });
+    const date = d.toLocaleDateString("vi-VN");
+    return { time, date };
+  };
+
+  const createdTime = formatDateTime(itemType.createdAt);
+  const updatedTime = formatDateTime(itemType.updatedAt);
+
+  return (
+    <div className="item-detail-layout">
+      {/* Hàng trên cùng: Mã loại & Tên loại chia theo tỉ lệ Grid */}
+      <div className="detail-main-grid">
+        <div className="detail-info-group">
+          <span className="detail-label">Mã loại</span>
+          <span className="detail-value-code">{itemType.itemTypeId}</span>
+        </div>
+        <div className="detail-info-group">
+          <span className="detail-label">Tên loại</span>
+          <span className="detail-value-name">{itemType.itemTypeName || "Chưa đặt tên"}</span>
+        </div>
+      </div>
+
+      {/* Hàng thứ hai: Khối thời gian xếp ngang song song dạng Pills */}
+      <div className="detail-time-row">
+        <div className="time-pill-block">
+          <span className="detail-label">Ngày tạo</span>
+          <div className="time-pill-value">
+            <span className="time-part">{createdTime.time}</span>
+            <span className="date-part">{createdTime.date}</span>
+          </div>
+        </div>
+
+        <div className="time-pill-block">
+          <span className="detail-label">Lần cập nhật gần nhất</span>
+          <div className="time-pill-value">
+            <span className="time-part">{updatedTime.time}</span>
+            <span className="date-part">{updatedTime.date}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Hàng cuối cùng: Khu vực nút hành động đóng cửa sổ full-width */}
+      <div className="detail-footer-actions">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-modal-close"
+        >
+          Đóng cửa sổ
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function ItemTypeManager() {
   const [types, setTypes] = useState([]);
@@ -15,6 +93,7 @@ export function ItemTypeManager() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState("");
+  const [detailType, setDetailType] = useState(null);
 
   const fetchItemTypes = async () => {
     setIsLoading(true);
@@ -46,7 +125,6 @@ export function ItemTypeManager() {
       .includes(searchKeyword.toLowerCase()),
   );
 
-
   const totalPages = Math.max(1, Math.ceil(filteredTypes.length / ITEMS_PER_PAGE));
   const pagedTypes = filteredTypes.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -58,8 +136,8 @@ export function ItemTypeManager() {
   const endItem = Math.min(currentPage * ITEMS_PER_PAGE, filteredTypes.length);
 
   return (
-    <div className="page-container relative">
-      <div className="header-wrapper">
+    <div className="page-container relative px-4 py-6">
+      <div className="header-wrapper bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div>
           <h1 className="header-title">Quản lý loại vật phẩm</h1>
           <p className="header-subtitle">
@@ -67,7 +145,6 @@ export function ItemTypeManager() {
           </p>
         </div>
       </div>
-
 
       <div className="filter-container">
         <div className="search-wrapper">
@@ -84,7 +161,7 @@ export function ItemTypeManager() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         <Table className="custom-table">
           <thead>
             <tr className="bg-muted/50 text-muted-foreground">
@@ -109,7 +186,20 @@ export function ItemTypeManager() {
               </tr>
             ) : (
               pagedTypes.map((type) => (
-                <tr key={type.itemTypeId} className="hover:bg-muted/30 transition-colors">
+                <tr
+                  key={type.itemTypeId}
+                  className="hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={async () => {
+                    try {
+                      const res = await itemTypeApi.getById(type.itemTypeId);
+                      const fullTypeData = res?.data || res?.result || res || type;
+                      setDetailType(fullTypeData);
+                    } catch (error) {
+                      console.error("Không lấy được chi tiết, dùng fallback:", error);
+                      setDetailType(type);
+                    }
+                  }}
+                >
                   <td className="px-5 py-3 text-muted-foreground break-all">
                     {type.itemTypeId}
                   </td>
@@ -127,7 +217,7 @@ export function ItemTypeManager() {
       </div>
 
       <div className="footer-container">
-        <p>
+        <p className="text-sm text-muted-foreground">
           Hiển thị {startItem}–{endItem} trong {filteredTypes.length} kết quả
         </p>
         <Pagination
@@ -141,6 +231,18 @@ export function ItemTypeManager() {
         <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
+      )}
+
+      {detailType && (
+        <Modal
+          title={`Chi tiết loại: ${detailType.itemTypeName}`}
+          onClose={() => setDetailType(null)}
+        >
+          <ItemTypeDetailView
+            itemType={detailType}
+            onClose={() => setDetailType(null)}
+          />
+        </Modal>
       )}
     </div>
   );
