@@ -5,6 +5,7 @@ import { UsersManagement } from "./pages/players/ViewPlayerList.jsx";
 import { authRoutes } from "./routes/AuthRoutes";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
+import ReportListPage from "./pages/reports/viewReportList.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
           {
             path: "players",
             element: <UsersManagement />,
+          },
+          {
+            path: "reports",
+            element: <ReportListPage />,
           },
           {
             path: "items",

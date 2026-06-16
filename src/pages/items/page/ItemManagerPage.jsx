@@ -13,10 +13,10 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "../../../components/common/Button";
-import { Pagination } from "../../../components/common/Pagination";
-import { SearchFilter } from "../../../components/common/SearchFilter";
-import { Table } from "../../../components/common/Table";
+import { Button } from "../../../components/common/button.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
+import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
+import { Table } from "../../../components/common/table.jsx";
 
 import { itemApi } from "../../../api/itemApi";
 import "../css/itemManagerPage.css";
