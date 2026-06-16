@@ -10,12 +10,8 @@ const reportApi = {
     return axiosClient.delete(`/api/user-report/${id}`);
   },
 
-  resolveReport(id, payload = {}) {
-    return axiosClient.post(`/api/user-report/${id}/resolve`, payload);
-  },
-
-  getReportById(id) {
-    return axiosClient.get(`/api/user-report/${id}`);
+  updateReportStatus(id, payload = {}) {
+    return axiosClient.put(`/api/user-report/${id}/status`, payload);
   },
 };
 
