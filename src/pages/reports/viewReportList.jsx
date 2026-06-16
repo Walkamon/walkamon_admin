@@ -285,9 +285,18 @@ export default function ReportListPage() {
 				{deleteReport && (
 					<div className="space-y-4">
 						<p className="text-sm text-muted-foreground">Bạn có chắc muốn xóa báo cáo <span className="font-semibold text-foreground">#{deleteReport.feedbackId || deleteReport.id}</span> từ <span className="font-semibold text-foreground">{deleteReport.userId || deleteReport.reporterName}</span>? Hành động này không thể hoàn tác.</p>
-						<div className="p-4 bg-muted rounded-lg text-sm">
-							<p className="font-medium mb-1">Bị báo cáo: {deleteReport.reportedName || deleteReport.reportedId}</p>
-							<p className="text-muted-foreground">{deleteReport.feedbackTypeCode || deleteReport.reason}</p>
+						<div className="p-4 bg-muted rounded-lg text-sm w-full space-y-4">
+							<div className="space-y-1">
+								<p className="font-medium">Bị báo cáo:</p>
+								<p className="text-muted-foreground">{deleteReport.reportedName || deleteReport.reportedId}</p>
+								<p className="text-sm text-muted-foreground">{deleteReport.feedbackTypeCode || deleteReport.reason}</p>
+							</div>
+							{(deleteReport.content || deleteReport.description) && (
+								<div className="rounded-2xl bg-muted/80 p-3 text-sm text-foreground">
+									<p className="font-medium mb-1">Nội dung thông báo</p>
+									<p className="text-muted-foreground">{deleteReport.content || deleteReport.description}</p>
+								</div>
+							)}
 						</div>
 						<div className="flex gap-3">
 							<button onClick={handleDeleteConfirm} className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors">Xóa báo cáo</button>
