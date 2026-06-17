@@ -249,6 +249,148 @@ button:disabled {
   @apply appearance-none;
 }
 
+.challenge-detail-overlay {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4;
+}
+
+.challenge-detail-container {
+  background-color: var(--card, #FFFFFF) !important;
+  border: 1px solid var(--border, #E5DCCF) !important;
+  border-radius: 0.75rem !important;
+  /* Bo góc nhẹ nhàng theo form mẫu */
+  width: 100% !important;
+  max-width: 34rem !important;
+  /* Độ rộng vừa vặn, thanh thoát */
+  max-height: 85vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Header Modal */
+.challenge-detail-header {
+  @apply px-5 py-4 border-b flex items-center justify-between sticky top-0 z-10;
+  border-color: var(--border, #E5DCCF) !important;
+  background-color: var(--card, #FFFFFF) !important;
+}
+
+.challenge-detail-title {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  /* Giữ đậm duy nhất ở tiêu đề */
+  color: var(--foreground, #4A5D23) !important;
+}
+
+/* Body Modal */
+.challenge-detail-body {
+  @apply p-5 space-y-4 overflow-y-auto text-left;
+}
+
+/* Đề mục nhỏ (Label): Chữ in hoa, bôi đậm nhẹ nhàng */
+.info-field-label {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: var(--foreground, #4A5D23) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  display: block;
+  margin-bottom: 0.375rem;
+  opacity: 0.9;
+}
+
+/* Ô chứa nội dung: NỀN KEM MỊN, CHỮ THƯỜNG MẢNH TUYỆT ĐỐI KHÔNG BOLD */
+.info-field-box {
+  font-size: 0.875rem !important;
+  color: var(--foreground, #4A5D23) !important;
+  /* Chữ xanh rêu đất */
+  background-color: var(--muted, #FAF8F4) !important;
+  /* Nền kem ấm tinh tế */
+  border: 1px solid var(--border, #E5DCCF) !important;
+  /* Viền mộc mảnh */
+  border-radius: 0.5rem !important;
+  padding: 0.55rem 0.75rem !important;
+  font-weight: 400 !important;
+  /* Ép về font nét thường nhã nhặn */
+  line-height: 1.5 !important;
+}
+
+/* Ô mô tả chi tiết dòng thoáng rộng */
+.info-field-box-desc {
+  @apply whitespace-pre-line;
+  min-height: 65px;
+}
+
+/* CẤU TRÚC PHẦN THƯỞNG ĐỒNG BỘ LAYOUT THEO FILE TSX */
+.reward-row-container {
+  @apply flex items-start gap-3 pt-1;
+}
+
+.reward-label-left {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  /* Đề mục bên trái chữ đậm */
+  color: var(--foreground, #4A5D23) !important;
+  min-width: 84px !important;
+  padding-top: 3px !important;
+}
+
+.reward-list-right {
+  @apply flex flex-wrap gap-2 flex-1;
+}
+
+/* Badge Giọt sương / Ví xu */
+.reward-badge-drops {
+  color: var(--primary, #76A084) !important;
+  background-color: rgba(118, 160, 132, 0.1) !important;
+  /* Đậm nền lên một chút để nổi trên nền trắng */
+  border: 1px solid rgba(118, 160, 132, 0.25) !important;
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs;
+  font-weight: 500 !important;
+}
+
+/* Badge Vật phẩm */
+.reward-badge-item {
+  color: var(--accent, #E59A73) !important;
+  /* Chữ màu cam accent */
+  background-color: rgba(229, 154, 115, 0.12) !important;
+  /* Nền cam mờ (12%) */
+  border: 1px solid rgba(229, 154, 115, 0.25) !important;
+  /* Viền cam mỏng */
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs;
+  font-weight: 500 !important;
+}
+
+/* Footer chứa nút đóng nằm sát góc phải bên dưới */
+.challenge-detail-footer {
+  @apply px-5 py-4 border-t flex justify-center;
+  border-color: var(--border, #E5DCCF) !important;
+  background-color: var(--card, #FFFFFF) !important;
+}
+
+/* Nút đóng viền mỏng thanh lịch */
+.btn-detail-close-custom {
+  background-color: transparent !important;
+  color: var(--foreground, #4A5D23) !important;
+  border: 1px solid var(--border, #E5DCCF) !important;
+  padding: 0.5rem 0px !important;
+  /* Tăng độ dày một chút cho cân đối */
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  /* Tuyệt đối không bold chữ Đóng */
+  border-radius: 0.5rem !important;
+  width: 100% !important;
+  /* Kéo dài full chiều rộng container padding */
+  text-align: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-detail-close-custom:hover {
+  background-color: var(--muted, #FAF8F4) !important;
+  border-color: var(--muted-foreground, #9A8F82) !important;
+}
+
 .sticky.top-0 h2 {
   color: var(--foreground) !important;
   /* Dùng màu xanh đậm chủ đạo hệ thống */

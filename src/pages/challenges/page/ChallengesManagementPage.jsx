@@ -11,8 +11,8 @@ import {
   Loader2,
   X,
   AlertTriangle,
-  Lock,
-  Unlock,
+  Package,
+  Droplets,
 } from "lucide-react";
 
 import { Button } from "../../../components/common/button.jsx";
@@ -60,6 +60,9 @@ export default function ChallengesManagementPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ ...emptyForm });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [detailChallenge, setDetailChallenge] = useState(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   // State quản lý lỗi validation của từng ô nhập liệu giống mẫu vật phẩm
   const [formErrors, setFormErrors] = useState({});
@@ -179,6 +182,22 @@ export default function ChallengesManagementPage() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  const handleViewDetail = async (id) => {
+    if (!id) return;
+    try {
+      setIsLoadingDetail(true);
+      const res = await challengeApi.getChallengeById(id);
+      // Áp dụng bóc tách data linh hoạt theo chuẩn axiosClient của ông
+      const detailData = res?.data?.data || res?.data || res;
+      setDetailChallenge(detailData);
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết thử thách:", error);
+      showDialog("Không thể tải thông tin chi tiết thử thách này!", "error");
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -408,86 +427,294 @@ export default function ChallengesManagementPage() {
                   </td>
                 </tr>
               ) : (
-                filteredChallenges.map((challenge) => (
-                  <tr key={challenge.challengeId || challenge.id}>
-                    <td className="challenge-id-text">
-                      #
-                      {challenge.challengeId
-                        ? challenge.challengeId.substring(0, 8)
-                        : "N/A"}
-                    </td>
-                    <td>
-                      <div className="challenge-name">{challenge.title}</div>
-                      <div className="challenge-desc">
-                        {challenge.description}
-                      </div>
-                    </td>
-                    <td>
-                      {challenge.targetText ||
-                        `${challenge.targetValue} (Chỉ số)`}
-                    </td>
-                    <td>
-                      <div className="text-primary font-medium">
-                        {challenge.timeText || "Cố định"}
-                      </div>
-                    </td>
-                    <td>{challenge.participants?.toLocaleString() ?? 0}</td>
-                    <td>
-                      <span
-                        className={
-                          challenge.isActive
-                            ? "badge-status-active"
-                            : "badge-status-ended"
-                        }
-                      >
-                        {challenge.isActive ? "Đang diễn ra" : "Đã kết thúc"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-left align-middle">
-                      <div className="action-buttons-wrapper">
-                        {/* Nút Sửa */}
-                        <Button
-                          onClick={() => handleEditClick(challenge)}
-                          title="Sửa thử thách"
-                          className="btn-edit-custom"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          <span>Sửa</span>
-                        </Button>
-
-                        {/* Nút Kích hoạt / Vô hiệu hóa */}
-                        <Button
-                          onClick={() => handleToggleStatus(challenge)}
-                          title={
-                            challenge.isActive ? "Vô hiệu hoá" : "Kích hoạt"
-                          }
+                filteredChallenges.map((challenge) => {
+                  const currentId = challenge.challengeId || challenge.id;
+                  return (
+                    <tr
+                      key={currentId}
+                      className="hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => handleViewDetail(currentId)}
+                    >
+                      <td className="challenge-id-text">
+                        #{currentId ? currentId.substring(0, 8) : "N/A"}
+                      </td>
+                      <td>
+                        <div className="challenge-name">{challenge.title}</div>
+                        <div className="challenge-desc text-xs line-clamp-1">
+                          {challenge.description}
+                        </div>
+                      </td>
+                      <td>
+                        {challenge.targetText ||
+                          `${challenge.targetValue} (Chỉ số)`}
+                      </td>
+                      <td>
+                        <div className="text-primary font-medium">
+                          {challenge.timeText || "Cố định"}
+                        </div>
+                      </td>
+                      <td>{challenge.participants?.toLocaleString() ?? 0}</td>
+                      <td>
+                        <span
                           className={
                             challenge.isActive
-                              ? "btn-toggle-disable"
-                              : "btn-toggle-enable"
+                              ? "badge-status-active"
+                              : "badge-status-ended"
                           }
                         >
-                          {challenge.isActive ? (
-                            <>
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Vô hiệu hóa</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span>Kích hoạt</span>
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {challenge.isActive ? "Đang diễn ra" : "Đã kết thúc"}
+                        </span>
+                      </td>
+
+                      {/* Cột thao tác: Chặn bọt sự kiện (stopPropagation) để khi bấm nút không bị nhảy vào View Detail */}
+                      <td
+                        className="px-4 py-3 whitespace-nowrap text-left align-middle"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="action-buttons-wrapper">
+                          {/* Nút Sửa */}
+                          <Button
+                            onClick={() => handleEditClick(challenge)}
+                            className="btn-edit-custom"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Sửa</span>
+                          </Button>
+
+                          {/* Nút Trạng thái */}
+                          <Button
+                            onClick={() => handleToggleStatus(challenge)}
+                            className={
+                              challenge.isActive
+                                ? "btn-toggle-disable"
+                                : "btn-toggle-enable"
+                            }
+                          >
+                            {challenge.isActive ? (
+                              <>
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Vô hiệu hóa</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>Kích hoạt</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ====== MODAL POPUP: CHI TIẾT THỬ THÁCH (BẢN CẬP NHẬT NÚT ĐÓNG RỘNG & VIỆT HÓA DATA) ====== */}
+      {detailChallenge && (
+        <div
+          className="challenge-detail-overlay"
+          onClick={() => setDetailChallenge(null)}
+        >
+          <div
+            className="challenge-detail-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Modal */}
+            <div className="challenge-detail-header">
+              <h2 className="challenge-detail-title">Chi tiết thử thách</h2>
+              <button
+                onClick={() => setDetailChallenge(null)}
+                className="p-1 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body nội dung - Chữ mảnh nhã nhặn */}
+            <div className="challenge-detail-body">
+              {/* Tên thử thách */}
+              <div>
+                <span className="info-field-label">Tên thử thách</span>
+                <div className="info-field-box">
+                  {detailChallenge.title || "Chưa đặt tên"}
+                </div>
+              </div>
+
+              {/* Mô tả yêu cầu */}
+              <div>
+                <span className="info-field-label">Mô tả yêu cầu</span>
+                <div className="info-field-box info-field-box-desc">
+                  {detailChallenge.description ||
+                    "Không có mô tả chi tiết cho thử thách này."}
+                </div>
+              </div>
+
+              {/* Khung Grid thông số (2 Cột ngay ngắn) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
+                {/* Loại hoạt động */}
+                <div>
+                  <span className="info-field-label">
+                    Loại hoạt động (Metric)
+                  </span>
+                  <div className="info-field-box font-mono uppercase text-xs">
+                    {detailChallenge.metricCode || "N/A"}
+                  </div>
+                </div>
+
+                {/* Mục tiêu cần đạt */}
+                <div>
+                  <span className="info-field-label">Mục tiêu cần đạt</span>
+                  <div className="info-field-box">
+                    {detailChallenge.targetValue?.toLocaleString() || 0}
+                  </div>
+                </div>
+
+                {/* Thời gian bắt đầu */}
+                <div>
+                  <span className="info-field-label">Thời gian bắt đầu</span>
+                  <div className="info-field-box text-xs">
+                    {detailChallenge.startAt
+                      ? new Date(detailChallenge.startAt).toLocaleString(
+                          "vi-VN",
+                        )
+                      : "N/A"}
+                  </div>
+                </div>
+
+                {/* Thời gian kết thúc */}
+                <div>
+                  <span className="info-field-label">Thời gian kết thúc</span>
+                  <div className="info-field-box text-xs">
+                    {detailChallenge.endAt
+                      ? new Date(detailChallenge.endAt).toLocaleString("vi-VN")
+                      : "N/A"}
+                  </div>
+                </div>
+
+                {/* Số người tham gia */}
+                <div>
+                  <span className="info-field-label">Thành viên tham gia</span>
+                  <div className="info-field-box">
+                    {detailChallenge.participants?.toLocaleString() ?? 0} người
+                    đang chạy
+                  </div>
+                </div>
+
+                {/* Trạng thái hiển thị */}
+                <div>
+                  <span className="info-field-label">Trạng thái hiển thị</span>
+                  <div className="info-field-box flex items-center gap-1.5 text-xs">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${detailChallenge.isActive ? "bg-primary" : "bg-destructive"}`}
+                    />
+                    <span
+                      className={
+                        detailChallenge.isActive
+                          ? "text-primary"
+                          : "text-destructive"
+                      }
+                    >
+                      {detailChallenge.isActive
+                        ? "Đang diễn ra"
+                        : "Đã kết thúc / Ẩn"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cấu hình vận hành hệ thống - Đã việt hóa data từ API */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span className="info-field-label">Trạng thái vận hành</span>
+                  <div className="info-field-box text-xs font-medium">
+                    {(() => {
+                      const currentStatus = String(detailChallenge.status || "")
+                        .toLowerCase()
+                        .trim();
+                      const statusMap = {
+                        active: "Đang diễn ra",
+                        ongoing: "Đang diễn ra",
+                        upcoming: "Sắp diễn ra",
+                        ended: "Đã kết thúc",
+                        closed: "Đã kết thúc",
+                      };
+                      return (
+                        statusMap[currentStatus] ||
+                        detailChallenge.status ||
+                        "Chưa xác định"
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div>
+                  <span className="info-field-label">
+                    Cho phép người chơi hủy
+                  </span>
+                  <div className="info-field-box text-xs">
+                    {detailChallenge.isCancelable
+                      ? "Có hỗ trợ hủy ngang"
+                      : "Khóa cố định khi nhận"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Khối hiển thị phần thưởng chia cột chuẩn*/}
+              <div>
+                <span className="info-field-label">
+                  Phần thưởng khi hoàn thành
+                </span>
+                <div className="info-field-box flex flex-wrap items-center gap-2 min-h-[46px]">
+                  {/* Xu ví xu / Giọt sương */}
+                  {Number(detailChallenge.walletAmount) > 0 && (
+                    <div className="reward-badge-drops">
+                      <Droplets className="w-3.5 h-3.5 text-primary" />
+                      <span>
+                        +{detailChallenge.walletAmount?.toLocaleString()} Giọt
+                        Sương
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Danh sách vật phẩm */}
+                  {detailChallenge.rewardItems &&
+                  detailChallenge.rewardItems.length > 0
+                    ? detailChallenge.rewardItems.map((item, index) => (
+                        <div
+                          key={item.itemId || index}
+                          className="reward-badge-item"
+                        >
+                          <Package className="w-3.5 h-3.5" />
+                          <span>
+                            {item.itemName || "Vật phẩm"} x{item.quantity}
+                          </span>
+                        </div>
+                      ))
+                    : /* Khi không có quà */
+                      !(Number(detailChallenge.walletAmount) > 0) && (
+                        <span className="text-xs text-muted-foreground/70 italic">
+                          Không có phần thưởng đính kèm.
+                        </span>
+                      )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer chứa nút Đóng full-width cân đối theo form mẫu mới */}
+            <div className="challenge-detail-footer">
+              <button
+                onClick={() => setDetailChallenge(null)}
+                className="btn-detail-close-custom"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Form Tạo mới Thử thách */}
       {showCreateModal && (

@@ -11,6 +11,8 @@ export const challengeApi = {
   },
 
   getMetricCodes: () => axiosClient.get("/api/admin/metric-codes"),
+
+  getChallengeById: (id) => axiosClient.get(`/api/admin/challenges/${id}`),
 };
 
 export default challengeApi;
