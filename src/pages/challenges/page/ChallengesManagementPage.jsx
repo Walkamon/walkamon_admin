@@ -10,19 +10,31 @@ import {
   CheckCircle,
   Loader2,
   X,
-  AlertTriangle, // Thêm icon lỗi cho popup
+  AlertTriangle,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
+import { Button } from "../../../components/common/button.jsx";
 import { challengeApi } from "../../../api/challengeApi";
 import { itemApi } from "../../../api/itemApi";
 import CustomSelect from "../../../components/common/CustomSelect";
 import CustomDatePicker from "../../../components/common/CustomDatePicker";
 import "../css/challengesManagement.css";
 
+const translateChallengeError = (key, message) => {
+  if (key === "Title") return "Vui lòng nhập tên thử thách.";
+  if (key === "MetricCode") return "Vui lòng chọn loại hoạt động.";
+  if (key === "TargetValue") return "Mục tiêu phải lớn hơn 0.";
+  if (key.includes("RewardItems") && key.includes("Quantity"))
+    return "Số lượng vật phẩm phải lớn hơn 0.";
+  return message; // Fallback nếu lỗi chưa được định nghĩa
+};
+
 const emptyForm = {
   title: "",
   description: "",
-  metricCode: "", // Để trống để tự động gán giá trị code đầu tiên nhận từ API/Dự phòng
+  metricCode: "",
   targetValue: 0,
   startAt: "",
   endAt: "",
@@ -36,7 +48,7 @@ const emptyForm = {
 export default function ChallengesManagementPage() {
   const [challenges, setChallenges] = useState([]);
   const [items, setItems] = useState([]);
-  const [metricOptions, setMetricOptions] = useState([]); // State lưu mảng động từ Swagger
+  const [metricOptions, setMetricOptions] = useState([]);
   const [summary, setSummary] = useState({
     totalChallenges: 0,
     ongoingChallenges: 0,
@@ -49,7 +61,10 @@ export default function ChallengesManagementPage() {
   const [createForm, setCreateForm] = useState({ ...emptyForm });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- THÊM STATE QUẢN LÝ POPUP THÔNG BÁO ---
+  // State quản lý lỗi validation của từng ô nhập liệu giống mẫu vật phẩm
+  const [formErrors, setFormErrors] = useState({});
+
+  // State điều khiển popup thông báo thành công / thất bại hệ thống
   const [dialog, setDialog] = useState({
     show: false,
     message: "",
@@ -62,10 +77,11 @@ export default function ChallengesManagementPage() {
     try {
       setIsLoading(true);
 
-      // Đồng bộ gọi 3 API thực tế của hệ thống
+      const defaultParams = { page: 1, pageSize: 100, limit: 100 };
+
       const [challengeRes, itemRes, metricRes] = await Promise.allSettled([
         challengeApi.getChallenges
-          ? challengeApi.getChallenges()
+          ? challengeApi.getChallenges(defaultParams)
           : Promise.reject(),
         itemApi && typeof itemApi.getAll === "function"
           ? itemApi.getAll()
@@ -75,29 +91,39 @@ export default function ChallengesManagementPage() {
           : Promise.reject(),
       ]);
 
-      // 1. Xử lý dữ liệu danh sách Thử thách
-      if (
-        challengeRes.status === "fulfilled" &&
-        challengeRes.value?.data?.success
-      ) {
-        setChallenges(challengeRes.value.data.data.challenges || []);
-        setSummary(challengeRes.value.data.data.summary || summary);
+      // 1. Xử lý danh sách thử thách và dữ liệu tổng quan
+      if (challengeRes.status === "fulfilled" && challengeRes.value) {
+        const resData = challengeRes.value.data || challengeRes.value;
+        const actualData = resData.data || resData;
+
+        let finalArray = [];
+        if (Array.isArray(actualData)) {
+          finalArray = actualData;
+        } else if (actualData && Array.isArray(actualData.challenges)) {
+          finalArray = actualData.challenges;
+        } else if (actualData && Array.isArray(actualData.items)) {
+          finalArray = actualData.items;
+        } else if (actualData && Array.isArray(actualData.result)) {
+          finalArray = actualData.result;
+        }
+
+        setChallenges(finalArray);
+
+        if (actualData && actualData.summary) {
+          setSummary(actualData.summary);
+        }
       }
 
-      // 2. KHỚP NỐI CHUẨN ĐÚNG CẤU TRÚC ĐA TA TỪ SWAGGER
+      // 2. Tải danh sách cấu hình hoạt động (Metric Codes)
       if (metricRes.status === "fulfilled" && metricRes.value) {
         const mRes = metricRes.value;
         const rawMetrics = mRes?.data?.data || mRes?.data || [];
 
         if (Array.isArray(rawMetrics) && rawMetrics.length > 0) {
-          console.log(
-            "Đã kết nối thành công dữ liệu Metric chuẩn từ Swagger:",
-            rawMetrics,
-          );
           setMetricOptions(rawMetrics);
           setCreateForm((prev) => ({
             ...prev,
-            metricCode: rawMetrics[0].code || "steps",
+            metricCode: prev.metricCode || rawMetrics[0].code || "steps",
           }));
         } else {
           triggerFallbackMetrics();
@@ -106,12 +132,12 @@ export default function ChallengesManagementPage() {
         triggerFallbackMetrics();
       }
 
-      // 3. Logic lấy danh sách Vật phẩm đang hoạt động tốt
+      // 3. Tải danh sách vật phẩm phần thưởng
       if (itemRes.status === "fulfilled" && itemRes.value) {
         const res = itemRes.value;
         const rawItemsArray = Array.isArray(res)
           ? res
-          : res?.data || res?.items || res?.result || [];
+          : res?.data?.data || res?.data || res?.items || [];
 
         const sanitizedItems = rawItemsArray.map((item) => ({
           id: item.itemId || item.id || "",
@@ -121,21 +147,11 @@ export default function ChallengesManagementPage() {
         if (sanitizedItems.length > 0) {
           setItems(sanitizedItems);
         } else {
-          setItems([
-            {
-              id: "test_1",
-              itemName: "Thức ăn thú cưng (API thật trả về mảng rỗng)",
-            },
-            {
-              id: "test_2",
-              itemName: "Thuốc hồi phục (API thật trả về mảng rỗng)",
-            },
-          ]);
+          setItems([{ id: "test_1", itemName: "Thức ăn thú cưng (Trống)" }]);
         }
       } else {
         setItems([
-          { id: "err_1", itemName: "Vật phẩm dự phòng (Lỗi kết nối API)" },
-          { id: "err_2", itemName: "Đồ chơi chuông (Lỗi kết nối API)" },
+          { id: "err_1", itemName: "Vật phẩm dự phòng (Lỗi kết nối)" },
         ]);
       }
     } catch (error) {
@@ -146,9 +162,6 @@ export default function ChallengesManagementPage() {
   };
 
   const triggerFallbackMetrics = () => {
-    console.warn(
-      "Không gọi được API metric-codes, dùng list dự phòng chuẩn hóa Swagger",
-    );
     const defaultList = [
       { code: "steps", label: "BƯỚC CHÂN" },
       { code: "feed_pet", label: "CHO TINH LINH GIỌT SƯƠNG" },
@@ -170,13 +183,37 @@ export default function ChallengesManagementPage() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
 
-    if (!createForm.title || !createForm.startAt || !createForm.endAt) {
-      showDialog("Vui lòng bổ sung đầy đủ thông tin bắt buộc!", "error");
+    // 1. Kiểm tra các lỗi cơ bản
+    const errors = {};
+    if (!createForm.title || !createForm.title.trim()) {
+      errors.title = "Vui lòng nhập tên thử thách.";
+    }
+    if (!createForm.startAt) {
+      errors.startAt = "Vui lòng chọn thời gian bắt đầu.";
+    }
+    if (!createForm.endAt) {
+      errors.endAt = "Vui lòng chọn thời gian kết thúc.";
+    }
+
+    // 2. Logic kiểm tra: Bắt buộc có Tiền thưởng ví HOẶC Vật phẩm
+    const hasWallet = Number(createForm.walletAmount) > 0;
+    const hasItem = createForm.tempItemId && Number(createForm.tempItemQty) > 0;
+
+    if (!hasWallet && !hasItem) {
+      const msg = "Vui lòng nhập tiền thưởng ví hoặc chọn vật phẩm.";
+      errors.walletAmount = msg;
+      errors["rewardItems[0].Quantity"] = msg;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
+    // 3. Gửi API nếu đã qua kiểm tra
     try {
       setIsSubmitting(true);
+      setFormErrors({});
 
       const submitData = {
         title: createForm.title,
@@ -198,34 +235,30 @@ export default function ChallengesManagementPage() {
           : [],
       };
 
-      const res = await challengeApi.createChallenge(submitData);
+      await challengeApi.createChallenge(submitData);
 
-      // Thay Alert bằng Dialog Xịn
-      if (
-        res.data?.challengeId ||
-        res.data?.success ||
-        res.status === 200 ||
-        res.status === 201
-      ) {
-        showDialog("Tạo thử thách mới thành công!", "success");
-        setShowCreateModal(false);
-        setCreateForm({ ...emptyForm });
-        loadInitialData();
-      } else {
-        showDialog(
-          res.data?.message || "Hệ thống từ chối tạo thử thách!",
-          "error",
-        );
-      }
+      showDialog("Tạo thử thách mới thành công!", "success");
+      setShowCreateModal(false);
+      setCreateForm({ ...emptyForm });
+      loadInitialData();
     } catch (error) {
-      console.error("=== [X] LỖI API ===", error);
-      if (error.response) {
-        showDialog(
-          `Lỗi từ Server (${error.response.status}): ${error.response.data?.message || "Vui lòng kiểm tra lại!"}`,
-          "error",
-        );
+      console.error("=== [X] LỖI API ===", error.response?.data);
+
+      if (error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const newErrors = {};
+
+        Object.keys(backendErrors).forEach((key) => {
+          const fieldKey = key.charAt(0).toLowerCase() + key.slice(1);
+          newErrors[fieldKey] = translateChallengeError(
+            key,
+            backendErrors[key][0],
+          );
+        });
+
+        setFormErrors(newErrors);
       } else {
-        showDialog(`Lỗi kết nối: ${error.message}`, "error");
+        showDialog(error.response?.data?.message || "Có lỗi xảy ra!", "error");
       }
     } finally {
       setIsSubmitting(false);
@@ -238,28 +271,28 @@ export default function ChallengesManagementPage() {
 
   return (
     <div className="page-container relative">
+      {/* POPUP THÔNG BÁO HỆ THỐNG */}
       {dialog.show && (
-        <div className="notif-fixed-overlay">
-          <div
-            className={`notif-card-box ${dialog.type === "success" ? "success-mode" : "error-mode"}`}
-          >
-            <div className="notif-icon-circle">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${dialog.type === "success" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+            >
               {dialog.type === "success" ? (
                 <CheckCircle size={32} />
               ) : (
                 <AlertTriangle size={32} />
               )}
             </div>
-
-            <h3>{dialog.type === "success" ? "Thành công!" : "Thất bại"}</h3>
-
-            <p>{dialog.message}</p>
-
+            <h3 className="text-xl font-bold mb-2 text-foreground">
+              {dialog.type === "success" ? "Thành công!" : "Thất bại"}
+            </h3>
+            <p className="text-muted-foreground mb-6">{dialog.message}</p>
             <button
-              className="notif-submit-btn"
+              className={`w-full py-2.5 px-4 font-medium rounded-lg text-white transition-colors ${dialog.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
               onClick={() => setDialog({ ...dialog, show: false })}
             >
-              Xác nhận đóng
+              Đóng
             </button>
           </div>
         </div>
@@ -273,49 +306,57 @@ export default function ChallengesManagementPage() {
             Cấu hình các nhiệm vụ và phần thưởng trong trò chơi
           </p>
         </div>
-        <button className="btn-create" onClick={() => setShowCreateModal(true)}>
+        <button
+          className="btn-create"
+          onClick={() => {
+            setFormErrors({});
+            setShowCreateModal(true);
+          }}
+        >
           <Plus className="w-4 h-4" /> Tạo thử thách mới
         </button>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-content w-full">
-            <div>
-              <p className="stat-label">Tổng thử thách</p>
-              <p className="stat-value">
-                {summary.totalChallenges.toLocaleString()}
-              </p>
-            </div>
-            <div className="stat-icon-primary">
-              <Trophy className="w-6 h-6" />
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6 max-w-5xl">
+        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Tổng thử thách
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+              {summary.totalChallenges.toLocaleString()}
+            </h3>
+          </div>
+          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
+            <Trophy className="w-5 h-5" />
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-content w-full">
-            <div>
-              <p className="stat-label">Đang diễn ra</p>
-              <p className="stat-value">
-                {summary.ongoingChallenges.toLocaleString()}
-              </p>
-            </div>
-            <div className="stat-icon-secondary">
-              <Target className="w-6 h-6" />
-            </div>
+
+        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Đang diễn ra
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+              {summary.ongoingChallenges.toLocaleString()}
+            </h3>
+          </div>
+          <div className="p-2.5 bg-emerald-500/5 rounded-full text-emerald-600 border border-emerald-500/10">
+            <Target className="w-5 h-5" />
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-content w-full">
-            <div>
-              <p className="stat-label">Tổng người tham gia</p>
-              <p className="stat-value">
-                {summary.totalParticipants.toLocaleString()}
-              </p>
-            </div>
-            <div className="stat-icon-accent">
-              <Users className="w-6 h-6" />
-            </div>
+
+        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Tổng người tham gia
+            </p>
+            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+              {summary.totalParticipants.toLocaleString()}
+            </h3>
+          </div>
+          <div className="p-2.5 bg-orange-500/5 rounded-full text-orange-600 border border-orange-500/10">
+            <Users className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -345,7 +386,9 @@ export default function ChallengesManagementPage() {
                 <th>Thời gian</th>
                 <th>Người tham gia</th>
                 <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground text-left bg-muted/70">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -366,7 +409,7 @@ export default function ChallengesManagementPage() {
                 </tr>
               ) : (
                 filteredChallenges.map((challenge) => (
-                  <tr key={challenge.challengeId}>
+                  <tr key={challenge.challengeId || challenge.id}>
                     <td className="challenge-id-text">
                       #
                       {challenge.challengeId
@@ -400,11 +443,42 @@ export default function ChallengesManagementPage() {
                         {challenge.isActive ? "Đang diễn ra" : "Đã kết thúc"}
                       </span>
                     </td>
-                    <td>
+                    <td className="px-4 py-3 whitespace-nowrap text-left align-middle">
                       <div className="action-buttons-wrapper">
-                        <button className="btn-edit-custom">
-                          <Pencil className="w-3 h-3" /> Sửa
-                        </button>
+                        {/* Nút Sửa */}
+                        <Button
+                          onClick={() => handleEditClick(challenge)}
+                          title="Sửa thử thách"
+                          className="btn-edit-custom"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>Sửa</span>
+                        </Button>
+
+                        {/* Nút Kích hoạt / Vô hiệu hóa */}
+                        <Button
+                          onClick={() => handleToggleStatus(challenge)}
+                          title={
+                            challenge.isActive ? "Vô hiệu hoá" : "Kích hoạt"
+                          }
+                          className={
+                            challenge.isActive
+                              ? "btn-toggle-disable"
+                              : "btn-toggle-enable"
+                          }
+                        >
+                          {challenge.isActive ? (
+                            <>
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Vô hiệu hóa</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Kích hoạt</span>
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -415,7 +489,7 @@ export default function ChallengesManagementPage() {
         </div>
       </div>
 
-      {/* Modal Form Tạo */}
+      {/* Modal Form Tạo mới Thử thách */}
       {showCreateModal && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
@@ -437,7 +511,11 @@ export default function ChallengesManagementPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-5 space-y-5">
+            <form
+              onSubmit={handleCreateSubmit}
+              className="p-5 space-y-5"
+              noValidate
+            >
               <div className="space-y-3.5">
                 <span className="block text-xs font-semibold text-muted-foreground uppercase">
                   Thông tin chung
@@ -448,12 +526,23 @@ export default function ChallengesManagementPage() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={createForm.title}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, title: e.target.value })
+                    onChange={(e) => {
+                      setCreateForm({ ...createForm, title: e.target.value });
+                      if (formErrors.title)
+                        setFormErrors({ ...formErrors, title: "" });
+                    }}
+                    className={
+                      formErrors.title
+                        ? "border-destructive focus:ring-destructive"
+                        : ""
                     }
                   />
+                  {formErrors.title && (
+                    <p className="text-xs text-destructive mt-1.5 font-normal">
+                      {formErrors.title}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">
@@ -482,16 +571,31 @@ export default function ChallengesManagementPage() {
                     <label className="block text-xs text-muted-foreground mb-1">
                       Loại hoạt động
                     </label>
-                    <CustomSelect
-                      value={createForm.metricCode}
-                      onChange={(val) =>
-                        setCreateForm({ ...createForm, metricCode: val })
+                    <div
+                      className={
+                        formErrors.metricCode
+                          ? "border-destructive focus:ring-destructive rounded-lg border"
+                          : ""
                       }
-                      options={metricOptions}
-                      valueKey="code"
-                      labelKey="label"
-                      placeholder="--- Chọn hoạt động ---"
-                    />
+                    >
+                      <CustomSelect
+                        value={createForm.metricCode}
+                        onChange={(val) => {
+                          setCreateForm({ ...createForm, metricCode: val });
+                          if (formErrors.metricCode)
+                            setFormErrors({ ...formErrors, metricCode: "" });
+                        }}
+                        options={metricOptions}
+                        valueKey="code"
+                        labelKey="label"
+                        placeholder="--- Chọn hoạt động ---"
+                      />
+                    </div>
+                    {formErrors.metricCode && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.metricCode}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">
@@ -501,13 +605,25 @@ export default function ChallengesManagementPage() {
                       type="number"
                       min="0"
                       value={createForm.targetValue || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCreateForm({
                           ...createForm,
                           targetValue: e.target.value,
-                        })
+                        });
+                        if (formErrors.targetValue)
+                          setFormErrors({ ...formErrors, targetValue: "" });
+                      }}
+                      className={
+                        formErrors.targetValue
+                          ? "border-destructive focus:ring-destructive"
+                          : ""
                       }
                     />
+                    {formErrors.targetValue && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.targetValue}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -521,28 +637,59 @@ export default function ChallengesManagementPage() {
                     <label className="block text-xs text-muted-foreground mb-1">
                       Bắt đầu <span className="text-destructive">*</span>
                     </label>
-                    <CustomDatePicker
-                      required
-                      value={createForm.startAt}
-                      onChange={(e) =>
-                        setCreateForm({
-                          ...createForm,
-                          startAt: e.target.value,
-                        })
+                    <div
+                      className={
+                        formErrors.startAt
+                          ? "border-destructive focus:ring-destructive rounded-lg border"
+                          : ""
                       }
-                    />
+                    >
+                      <CustomDatePicker
+                        value={createForm.startAt}
+                        onChange={(e) => {
+                          setCreateForm({
+                            ...createForm,
+                            startAt: e.target.value,
+                          });
+                          if (formErrors.startAt)
+                            setFormErrors({ ...formErrors, startAt: "" });
+                        }}
+                      />
+                    </div>
+                    {formErrors.startAt && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.startAt}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">
                       Kết thúc <span className="text-destructive">*</span>
                     </label>
-                    <CustomDatePicker
-                      required
-                      value={createForm.endAt}
-                      onChange={(e) =>
-                        setCreateForm({ ...createForm, endAt: e.target.value })
+                    <div
+                      className={
+                        formErrors.endAt
+                          ? "border-destructive focus:ring-destructive rounded-lg border"
+                          : ""
                       }
-                    />
+                    >
+                      <CustomDatePicker
+                        value={createForm.endAt}
+                        onChange={(e) => {
+                          setCreateForm({
+                            ...createForm,
+                            endAt: e.target.value,
+                          });
+                          if (formErrors.endAt)
+                            setFormErrors({ ...formErrors, endAt: "" });
+                        }}
+                      />
+                    </div>
+                    {formErrors.endAt && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.endAt}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -559,13 +706,25 @@ export default function ChallengesManagementPage() {
                     type="number"
                     min="0"
                     value={createForm.walletAmount || ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setCreateForm({
                         ...createForm,
                         walletAmount: e.target.value,
-                      })
+                      });
+                      if (formErrors.walletAmount)
+                        setFormErrors({ ...formErrors, walletAmount: "" });
+                    }}
+                    className={
+                      formErrors.walletAmount
+                        ? "border-destructive focus:ring-destructive"
+                        : ""
                     }
                   />
+                  {formErrors.walletAmount && (
+                    <p className="text-xs text-destructive mt-1.5 font-normal">
+                      {formErrors.walletAmount}
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
@@ -591,13 +750,28 @@ export default function ChallengesManagementPage() {
                       type="number"
                       min="1"
                       value={createForm.tempItemQty || ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCreateForm({
                           ...createForm,
                           tempItemQty: e.target.value,
-                        })
+                        });
+                        if (formErrors["rewardItems[0].Quantity"])
+                          setFormErrors({
+                            ...formErrors,
+                            "rewardItems[0].Quantity": "",
+                          });
+                      }}
+                      className={
+                        formErrors["rewardItems[0].Quantity"]
+                          ? "border-destructive focus:ring-destructive"
+                          : ""
                       }
                     />
+                    {formErrors["rewardItems[0].Quantity"] && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors["rewardItems[0].Quantity"]}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -615,7 +789,11 @@ export default function ChallengesManagementPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setFormErrors({});
+                    setCreateForm({ ...emptyForm });
+                    setShowCreateModal(false);
+                  }}
                   className="px-4 py-2 bg-muted text-foreground rounded-lg border border-border/50"
                 >
                   Hủy bỏ
