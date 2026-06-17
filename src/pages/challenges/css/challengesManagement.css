@@ -20,16 +20,16 @@
 }
 
 .btn-create {
-  @apply flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium;
+  @apply flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm shadow-sm;
 }
 
 /* --- Thống kê (Stats Grid) --- */
 .stats-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
 }
 
 .stat-card {
-  @apply bg-card border border-border rounded-xl p-4;
+  @apply bg-card border border-border rounded-xl p-4 shadow-sm;
 }
 
 .stat-content {
@@ -44,7 +44,6 @@
   @apply font-bold text-2xl text-foreground;
 }
 
-/* Màu riêng cho Icon Thống kê */
 .stat-icon-primary {
   @apply w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0;
 }
@@ -59,7 +58,7 @@
 
 /* --- Khung Bảng & Bộ lọc --- */
 .main-content-wrapper {
-  @apply bg-card border border-border rounded-xl p-6;
+  @apply bg-card border border-border rounded-xl p-6 shadow-sm;
 }
 
 .filter-bar {
@@ -74,8 +73,9 @@
   @apply absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground;
 }
 
+/* Sửa background của ô search thành bg-input-background để trắng tinh */
 .search-input {
-  @apply w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm;
+  @apply w-full pl-10 pr-4 py-2 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm;
 }
 
 /* --- Bảng dữ liệu (Table) --- */
@@ -88,14 +88,7 @@
 }
 
 .custom-table th {
-  /* Đổi sang màu xám nhạt tinh tế của chữ tiêu đề cột */
-  @apply text-left py-3.5 px-4 text-sm font-medium text-muted-foreground/80;
-
-  /* Xóa bỏ mọi màu nền xám cũ, để nó trong suốt tiệp màu với khung trắng border */
-  @apply bg-transparent;
-
-  /* Thêm đường gạch ngang mờ ở dưới đáy các tiêu đề cột */
-  @apply border-b border-border/60;
+  @apply text-left py-3.5 px-4 text-sm font-medium text-muted-foreground/80 bg-transparent border-b border-border/60;
 }
 
 .custom-table tr {
@@ -118,22 +111,24 @@
   @apply text-xs text-muted-foreground mt-0.5 line-clamp-1;
 }
 
-/* --- Badges Trạng thái --- */
+/* ==========================================================================
+   ĐỒNG BỘ BADGE VÀ NÚT BẤM THEO CHUẨN MÀU THEME (PRIMARY, ACCENT, DESTRUCTIVE)
+   ========================================================================== */
+
 .badge-type {
   @apply px-2 py-1 bg-primary/10 text-primary text-xs rounded-full inline-block;
 }
 
-/* Tương ứng với Status Colors trong file TSX */
 .badge-status-active {
-  @apply px-2 py-1 text-xs rounded-full bg-secondary/10 text-secondary inline-block;
+  @apply px-2.5 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary inline-block;
 }
 
 .badge-status-upcoming {
-  @apply px-2 py-1 text-xs rounded-full bg-accent/10 text-accent inline-block;
+  @apply px-2.5 py-0.5 text-xs font-medium rounded-full bg-accent/10 text-accent inline-block;
 }
 
 .badge-status-ended {
-  @apply px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground inline-block;
+  @apply px-2.5 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground inline-block;
 }
 
 /* --- Nút Hành động (Actions) --- */
@@ -142,13 +137,261 @@
 }
 
 .btn-edit-custom {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-yellow-500/10 text-yellow-700 border border-yellow-500/25 hover:bg-yellow-500 hover:text-white hover:border-yellow-500;
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-accent/10 text-accent border border-accent/30 hover:bg-accent hover:text-accent-foreground hover:border-accent;
 }
 
 .btn-toggle-disable {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white hover:border-destructive;
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive;
 }
 
 .btn-toggle-enable {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white hover:border-primary;
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary;
+}
+
+/* ==========================================================================
+   THIẾT KẾ ĐỒNG NHẤT MODAL & INPUT (HẾT BỊ MÀU HỒNG)
+   ========================================================================== */
+
+.animate-fade-in {
+  animation: fadeInCustom 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInCustom {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Thu nhỏ thanh cuộn dọc (scrollbar) của Modal để không bị thô và dính lề */
+.max-h-\[85vh\] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.max-h-\[85vh\]::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-\[85vh\]::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 10px;
+  /* Thụt đầu đuôi thanh cuộn cho đẹp */
+}
+
+.max-h-\[85vh\]::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 10px;
+}
+
+/* Đồng bộ background trắng tinh tế và viền mượt mà cho tất cả input thường */
+form input[type="text"],
+form input[type="number"],
+form textarea {
+  @apply w-full px-3.5 py-2 bg-input-background border border-border/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 transition-all shadow-xs;
+}
+
+/* Hiệu ứng Focus đồng bộ khi click vào ô nhập bất kỳ */
+form input[type="text"]:focus,
+form input[type="number"]:focus,
+form textarea:focus,
+.group-calendar:focus-within input[type="datetime-local"] {
+  @apply outline-none border-ring ring-3 ring-ring/15;
+}
+
+/* Dropdown vật phẩm chung */
+.item-select-btn {
+  @apply w-full rounded-lg py-2 px-3.5 pr-9 bg-input-background border border-border/60 text-sm text-left text-foreground flex items-center justify-between transition-all shadow-xs;
+}
+
+.item-select-btn:focus {
+  @apply outline-none border-ring ring-3 ring-ring/15;
+}
+
+ul.absolute {
+  @apply shadow-xl rounded-xl border border-border bg-popover text-popover-foreground p-1 max-h-52 overflow-y-auto mt-1 z-50;
+  scrollbar-width: thin;
+}
+
+ul.absolute::-webkit-scrollbar {
+  @apply w-1;
+}
+
+ul.absolute::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+
+button:disabled {
+  @apply !opacity-50 !cursor-not-allowed;
+}
+
+/* Khung bao bọc */
+.group-calendar {
+  @apply relative flex items-center w-full;
+}
+
+/* Đổi bg-background thành bg-input-background để ô lịch có màu trắng giống ô khác */
+.group-calendar input[type="datetime-local"] {
+  @apply w-full pl-3.5 pr-9 py-2 bg-input-background border border-border/60 rounded-lg text-sm text-foreground relative z-10 shadow-xs cursor-pointer;
+}
+
+/* Ẩn vùng hiển thị icon mặc định của trình duyệt nhưng giữ vùng click */
+.group-calendar input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  @apply absolute top-0 left-0 right-0 bottom-0 w-full h-full opacity-0 cursor-pointer z-20;
+}
+
+/* Giữ form chữ thẳng thớm không lệch hàng */
+.group-calendar input[type="datetime-local"] {
+  min-height: 38px;
+  @apply appearance-none;
+}
+
+.sticky.top-0 h2 {
+  color: var(--foreground) !important;
+  /* Dùng màu xanh đậm chủ đạo hệ thống */
+  font-weight: 600 !important;
+  /* Tăng độ đậm lên semi-bold */
+  font-size: 1.125rem !important;
+  /* Kích thước 18px cho nổi bật */
+  letter-spacing: -0.01em;
+}
+
+/* 2. Tiêu đề phụ của từng phân vùng (Ví dụ: THÔNG TIN CHUNG, CHỈ SỐ ĐIỀU KIỆN) */
+form .space-y-3\.5>span.block {
+  color: var(--foreground) !important;
+  /* Đồng bộ màu chữ đậm rõ ràng */
+  font-weight: 700 !important;
+  /* Đẩy hẳn lên bold để phân tách các vùng */
+  font-size: 0.8rem !important;
+  /* Thu nhỏ vừa vặn kiểu sub-header */
+  letter-spacing: 0.05em;
+  /* Giãn chữ nhẹ tạo cảm giác thoáng, cao cấp */
+  opacity: 0.9;
+  /* Giảm opacity một chút xíu để phân cấp thị giác */
+}
+
+/* 3. Tên nhãn của từng ô input (Ví dụ: Tên gọi thử thách, Ngày giờ bắt đầu) */
+form label {
+  color: var(--foreground) !important;
+  /* Màu chữ đậm dễ đọc */
+  font-weight: 500 !important;
+  /* Cường độ vừa phải (Medium) */
+  font-size: 0.85rem !important;
+  /* Kích thước 13.6px vừa mắt */
+  opacity: 0.85;
+}
+
+/* Nền mờ bao phủ phủ hợp tông màu dịu */
+.notif-fixed-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(74, 93, 35, 0.3) !important;
+  /* Dựa trên màu --foreground mờ */
+  transition: opacity 0.3s ease;
+}
+
+/* Khung hộp thông báo */
+.notif-card-box {
+  background-color: var(--card, #FFFFFF) !important;
+  border: 1px solid var(--border, #E5DCCF) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(74, 93, 35, 0.08),
+    0 10px 10px -5px rgba(74, 93, 35, 0.04) !important;
+  width: 90%;
+  max-width: 24rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: notifPopupScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Tiêu đề & Nội dung */
+.notif-card-box h3 {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  color: var(--foreground, #4A5D23) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.notif-card-box p {
+  color: var(--muted-foreground, #9A8F82) !important;
+  font-size: 0.875rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Vòng tròn Icon */
+.notif-icon-circle {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* BIẾN THỂ THÀNH CÔNG (Dùng màu Primary của hệ thống) */
+.notif-card-box.success-mode .notif-icon-circle {
+  background-color: rgba(118, 160, 132, 0.15) !important;
+  /* mờ của --primary */
+  color: var(--primary, #76A084) !important;
+}
+
+.notif-card-box.success-mode .notif-submit-btn {
+  background-color: var(--primary, #76A084) !important;
+  color: var(--primary-foreground, #ffffff) !important;
+}
+
+.notif-card-box.success-mode .notif-submit-btn:hover {
+  filter: brightness(0.92);
+}
+
+/* BIẾN THỂ THẤT BẠI (Dùng màu Accent / Destructive đất nung của hệ thống) */
+.notif-card-box.error-mode .notif-icon-circle {
+  background-color: rgba(229, 154, 115, 0.15) !important;
+  /* mờ của --accent */
+  color: var(--accent, #76A084) !important;
+}
+
+.notif-card-box.error-mode .notif-submit-btn {
+  background-color: var(--accent, #76A084) !important;
+  color: var(--accent-foreground, #ffffff) !important;
+}
+
+.notif-card-box.error-mode .notif-submit-btn:hover {
+  filter: brightness(0.92);
+}
+
+/* Nút bấm Đóng */
+.notif-submit-btn {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Animation nảy popup */
+@keyframes notifPopupScale {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
