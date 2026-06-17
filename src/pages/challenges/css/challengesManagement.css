@@ -1,0 +1,154 @@
+@reference "tailwindcss";
+@reference "../../../index.css";
+
+/* --- Layout Tổng --- */
+.page-container {
+  @apply p-6 space-y-6;
+}
+
+/* --- Header --- */
+.header-wrapper {
+  @apply flex items-center justify-between;
+}
+
+.header-title {
+  @apply font-bold mb-1 text-2xl text-foreground;
+}
+
+.header-subtitle {
+  @apply text-sm text-muted-foreground;
+}
+
+.btn-create {
+  @apply flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium;
+}
+
+/* --- Thống kê (Stats Grid) --- */
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+.stat-card {
+  @apply bg-card border border-border rounded-xl p-4;
+}
+
+.stat-content {
+  @apply flex items-center justify-between;
+}
+
+.stat-label {
+  @apply text-sm text-muted-foreground mb-1;
+}
+
+.stat-value {
+  @apply font-bold text-2xl text-foreground;
+}
+
+/* Màu riêng cho Icon Thống kê */
+.stat-icon-primary {
+  @apply w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0;
+}
+
+.stat-icon-secondary {
+  @apply w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary shrink-0;
+}
+
+.stat-icon-accent {
+  @apply w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent shrink-0;
+}
+
+/* --- Khung Bảng & Bộ lọc --- */
+.main-content-wrapper {
+  @apply bg-card border border-border rounded-xl p-6;
+}
+
+.filter-bar {
+  @apply flex flex-col md:flex-row gap-4 mb-6;
+}
+
+.search-input-wrapper {
+  @apply flex-1 relative;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground;
+}
+
+.search-input {
+  @apply w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm;
+}
+
+/* --- Bảng dữ liệu (Table) --- */
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+.custom-table {
+  @apply w-full;
+}
+
+.custom-table th {
+  /* Đổi sang màu xám nhạt tinh tế của chữ tiêu đề cột */
+  @apply text-left py-3.5 px-4 text-sm font-medium text-muted-foreground/80;
+
+  /* Xóa bỏ mọi màu nền xám cũ, để nó trong suốt tiệp màu với khung trắng border */
+  @apply bg-transparent;
+
+  /* Thêm đường gạch ngang mờ ở dưới đáy các tiêu đề cột */
+  @apply border-b border-border/60;
+}
+
+.custom-table tr {
+  @apply border-b border-border hover:bg-muted/50 transition-colors cursor-pointer;
+}
+
+.custom-table td {
+  @apply py-3 px-4 text-sm align-middle;
+}
+
+.challenge-id-text {
+  @apply text-muted-foreground font-mono text-xs;
+}
+
+.challenge-name {
+  @apply font-medium text-foreground;
+}
+
+.challenge-desc {
+  @apply text-xs text-muted-foreground mt-0.5 line-clamp-1;
+}
+
+/* --- Badges Trạng thái --- */
+.badge-type {
+  @apply px-2 py-1 bg-primary/10 text-primary text-xs rounded-full inline-block;
+}
+
+/* Tương ứng với Status Colors trong file TSX */
+.badge-status-active {
+  @apply px-2 py-1 text-xs rounded-full bg-secondary/10 text-secondary inline-block;
+}
+
+.badge-status-upcoming {
+  @apply px-2 py-1 text-xs rounded-full bg-accent/10 text-accent inline-block;
+}
+
+.badge-status-ended {
+  @apply px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground inline-block;
+}
+
+/* --- Nút Hành động (Actions) --- */
+.action-buttons-wrapper {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.btn-edit-custom {
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-yellow-500/10 text-yellow-700 border border-yellow-500/25 hover:bg-yellow-500 hover:text-white hover:border-yellow-500;
+}
+
+.btn-toggle-disable {
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white hover:border-destructive;
+}
+
+.btn-toggle-enable {
+  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white hover:border-primary;
+}

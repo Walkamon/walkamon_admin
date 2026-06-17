@@ -1,4 +1,8 @@
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
 import { UsersManagement } from "./pages/players/ViewPlayerList.jsx";
@@ -7,6 +11,7 @@ import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
 import { ItemTypeManager } from "./pages/itemType/itemTypeManager.jsx";
 import ReportListPage from "./pages/reports/viewReportList.jsx";
+import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -44,6 +49,10 @@ const router = createBrowserRouter([
             path: "items",
             element: <ItemManagerPage />,
           },
+          {
+            path: "challenges",
+            element: <ChallengesManagementPage />,
+          },
         ],
       },
     ],
@@ -54,7 +63,9 @@ const router = createBrowserRouter([
     element: (
       <div className="p-8 text-center text-destructive">
         <h2 className="text-2xl font-bold">404 - Không tìm thấy trang</h2>
-        <p className="text-sm text-muted-foreground mt-2">Đường dẫn này không tồn tại!</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Đường dẫn này không tồn tại!
+        </p>
       </div>
     ),
   },
