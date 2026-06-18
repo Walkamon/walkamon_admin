@@ -591,3 +591,135 @@ form label {
   background-color: #d18b67 !important;
   /* Đậm hơn một chút khi hover */
 }
+
+.custom-datepicker-wrapper .react-datepicker-wrapper,
+.custom-datepicker-wrapper .react-datepicker__input-container {
+  display: block;
+  width: 100%;
+}
+
+#datepicker-portal .react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+#datepicker-portal .react-datepicker {
+  display: flex !important;
+  flex-direction: row !important;
+  font-family: inherit !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  background-color: var(--card, #ffffff) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden;
+}
+
+/* --- CỘT TRÁI: LỊCH CHỌN NGÀY --- */
+#datepicker-portal .react-datepicker__month-container {
+  float: none !important;
+  width: 250px !important;
+  padding: 10px !important;
+  background-color: var(--card) !important;
+}
+
+#datepicker-portal .react-datepicker__header {
+  background-color: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 4px 0 8px 0 !important;
+}
+
+/* Ẩn hoàn toàn các nút điều hướng mặc định cũ bị lỗi vị trí của thư viện */
+#datepicker-portal .react-datepicker__navigation {
+  display: none !important;
+}
+
+/* Bố cục hàng ngày */
+#datepicker-portal .react-datepicker__day-names,
+#datepicker-portal .react-datepicker__week {
+  display: flex !important;
+  justify-content: space-between !important;
+}
+
+#datepicker-portal .react-datepicker__day-name,
+#datepicker-portal .react-datepicker__day {
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  text-align: center !important;
+  margin: 2px 0 !important;
+  color: var(--foreground) !important;
+  font-size: 0.85rem !important;
+}
+
+#datepicker-portal .react-datepicker__day-name {
+  color: var(--muted-foreground) !important;
+}
+
+#datepicker-portal .react-datepicker__day:hover {
+  background-color: rgba(118, 160, 132, 0.15) !important;
+  color: #76A084 !important;
+  border-radius: 6px !important;
+}
+
+/* --- CỘT PHẢI: CHỌN GIỜ ĐỨNG THẲNG TẮP --- */
+#datepicker-portal .react-datepicker__time-container {
+  float: none !important;
+  border-left: 1px solid var(--border) !important;
+  width: 85px !important;
+  background-color: var(--card) !important;
+}
+
+#datepicker-portal .react-datepicker__header--time {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  padding: 0 !important;
+}
+
+/* Chữ "Giờ" */
+#datepicker-portal .react-datepicker-time__header {
+  background-color: transparent !important;
+  color: var(--muted-foreground) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  height: 34px !important;
+  /* Khớp khít tỉ lệ với chiều cao header tự tạo bên trái */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Danh sách cuộn giờ */
+#datepicker-portal .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list {
+  height: 204px !important;
+  background-color: var(--card) !important;
+  padding: 0 !important;
+}
+
+#datepicker-portal .react-datepicker__time-list-item {
+  height: 30px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground) !important;
+  font-size: 0.8rem !important;
+  margin: 2px 4px !important;
+  border-radius: 6px !important;
+  padding: 0 !important;
+}
+
+#datepicker-portal .react-datepicker__time-list-item:hover {
+  background-color: rgba(118, 160, 132, 0.15) !important;
+  color: #76A084 !important;
+}
+
+/* Trạng thái active */
+#datepicker-portal .react-datepicker__day--selected,
+#datepicker-portal .react-datepicker__day--keyboard-selected,
+#datepicker-portal .react-datepicker__time-list-item--selected {
+  background-color: #76A084 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}

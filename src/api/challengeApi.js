@@ -10,6 +10,10 @@ export const challengeApi = {
     return axiosClient.post("/api/admin/challenges", data);
   },
 
+  updateChallenge: (id, data) => {
+    return axiosClient.put(`/api/admin/challenges/${id}`, data);
+  },
+
   getMetricCodes: () => axiosClient.get("/api/admin/metric-codes"),
 
   getChallengeById: (id) => axiosClient.get(`/api/admin/challenges/${id}`),
