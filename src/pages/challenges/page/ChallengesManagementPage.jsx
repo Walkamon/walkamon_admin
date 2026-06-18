@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "../../../components/common/button.jsx";
+import { Pagination } from "../../../components/common/pagination";
 import { challengeApi } from "../../../api/challengeApi";
 import { itemApi } from "../../../api/itemApi";
 import CustomSelect from "../../../components/common/CustomSelect";
@@ -45,6 +46,8 @@ const emptyForm = {
   tempItemQty: 0,
 };
 
+const ITEMS_PER_PAGE = 5;
+
 export default function ChallengesManagementPage() {
   const [challenges, setChallenges] = useState([]);
   const [items, setItems] = useState([]);
@@ -56,6 +59,7 @@ export default function ChallengesManagementPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ ...emptyForm });
@@ -142,10 +146,12 @@ export default function ChallengesManagementPage() {
           ? res
           : res?.data?.data || res?.data || res?.items || [];
 
-        const sanitizedItems = rawItemsArray.map((item) => ({
-          id: item.itemId || item.id || "",
-          itemName: item.itemName || "Vật phẩm không tên",
-        }));
+        const sanitizedItems = rawItemsArray
+          .filter((item) => item && item.isActive === true)
+          .map((item) => ({
+            id: item.itemId || item.id || "",
+            itemName: item.itemName || "Vật phẩm không tên",
+          }));
 
         if (sanitizedItems.length > 0) {
           setItems(sanitizedItems);
@@ -288,27 +294,44 @@ export default function ChallengesManagementPage() {
     c.title?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredChallenges.length / ITEMS_PER_PAGE),
+  );
+  const pagedChallenges = filteredChallenges.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  const startItem =
+    filteredChallenges.length === 0
+      ? 0
+      : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endItem = Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    filteredChallenges.length,
+  );
+
   return (
     <div className="page-container relative">
       {/* POPUP THÔNG BÁO HỆ THỐNG */}
       {dialog.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${dialog.type === "success" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-            >
+        <div className="common-dialog-overlay">
+          <div
+            className={`common-dialog-container ${dialog.type === "success" ? "common-dialog-success" : "common-dialog-error"}`}
+          >
+            <div className="common-dialog-icon">
               {dialog.type === "success" ? (
                 <CheckCircle size={32} />
               ) : (
                 <AlertTriangle size={32} />
               )}
             </div>
-            <h3 className="text-xl font-bold mb-2 text-foreground">
+            <h3 className="common-dialog-title">
               {dialog.type === "success" ? "Thành công!" : "Thất bại"}
             </h3>
-            <p className="text-muted-foreground mb-6">{dialog.message}</p>
+            <p className="common-dialog-message">{dialog.message}</p>
             <button
-              className={`w-full py-2.5 px-4 font-medium rounded-lg text-white transition-colors ${dialog.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+              className="common-dialog-btn"
               onClick={() => setDialog({ ...dialog, show: false })}
             >
               Đóng
@@ -389,7 +412,10 @@ export default function ChallengesManagementPage() {
               type="text"
               placeholder="Tìm kiếm nhiệm vụ, thử thách..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="search-input"
             />
           </div>
@@ -417,7 +443,7 @@ export default function ChallengesManagementPage() {
                     <Loader2 className="animate-spin inline-block text-primary w-6 h-6" />
                   </td>
                 </tr>
-              ) : filteredChallenges.length === 0 ? (
+              ) : pagedChallenges.length === 0 ? (
                 <tr>
                   <td
                     colSpan="7"
@@ -427,7 +453,7 @@ export default function ChallengesManagementPage() {
                   </td>
                 </tr>
               ) : (
-                filteredChallenges.map((challenge) => {
+                pagedChallenges.map((challenge) => {
                   const currentId = challenge.challengeId || challenge.id;
                   return (
                     <tr
@@ -510,6 +536,18 @@ export default function ChallengesManagementPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
+          <p>
+            Hiển thị {startItem}–{endItem} trong {filteredChallenges.length} kết
+            quả
+          </p>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onChange={setCurrentPage}
+          />
         </div>
       </div>
 

@@ -537,3 +537,57 @@ form label {
     opacity: 1;
   }
 }
+
+.common-dialog-overlay {
+  @apply fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity;
+}
+
+.common-dialog-container {
+  @apply bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100;
+}
+
+.common-dialog-icon {
+  @apply w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors;
+}
+
+.common-dialog-title {
+  @apply text-xl font-bold mb-2 text-foreground;
+}
+
+.common-dialog-message {
+  @apply text-muted-foreground mb-6;
+}
+
+.common-dialog-btn {
+  @apply w-full py-2.5 px-4 font-medium rounded-lg text-white transition-colors cursor-pointer;
+}
+
+/* --- SUCCESS: Dùng #76A084 --- */
+.common-dialog-success .common-dialog-icon {
+  background-color: rgba(118, 160, 132, 0.12) !important;
+  color: #76A084 !important;
+}
+
+.common-dialog-success .common-dialog-btn {
+  background-color: #76A084 !important;
+}
+
+.common-dialog-success .common-dialog-btn:hover {
+  background-color: #658b72 !important;
+  /* Đậm hơn một chút khi hover */
+}
+
+/* --- ERROR: Dùng #E59A73 --- */
+.common-dialog-error .common-dialog-icon {
+  background-color: rgba(229, 154, 115, 0.12) !important;
+  color: #E59A73 !important;
+}
+
+.common-dialog-error .common-dialog-btn {
+  background-color: #E59A73 !important;
+}
+
+.common-dialog-error .common-dialog-btn:hover {
+  background-color: #d18b67 !important;
+  /* Đậm hơn một chút khi hover */
+}
