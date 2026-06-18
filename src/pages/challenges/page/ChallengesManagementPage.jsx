@@ -49,15 +49,41 @@ const emptyForm = {
 
 const ITEMS_PER_PAGE = 5;
 
+const getChallengeParticipants = (challenge) =>
+  Number(
+    challenge?.participants ??
+      challenge?.participantCount ??
+      challenge?.totalParticipants ??
+      challenge?.userCount ??
+      0,
+  ) || 0;
+
+const isChallengeOngoing = (challenge) => {
+  // Lấy status chuẩn từ backend (luôn là tiếng Anh chữ thường để check chính xác)
+  const status = String(challenge?.status || challenge?.statusCode || "")
+    .toLowerCase()
+    .trim();
+
+  // Nếu trạng thái hệ thống thuộc nhóm đang chạy
+  if (["active", "ongoing", "in_progress", "running"].includes(status)) {
+    return true;
+  }
+
+  // Nếu trạng thái hệ thống thuộc nhóm kết thúc/hủy
+  if (
+    ["ended", "closed", "inactive", "disabled", "cancelled"].includes(status)
+  ) {
+    return false;
+  }
+
+  // Trường hợp dự phòng (Fallback) nếu backend không trả về status rõ ràng
+  return challenge?.isActive === true;
+};
+
 export default function ChallengesManagementPage() {
   const [challenges, setChallenges] = useState([]);
   const [items, setItems] = useState([]);
   const [metricOptions, setMetricOptions] = useState([]);
-  const [summary, setSummary] = useState({
-    totalChallenges: 0,
-    ongoingChallenges: 0,
-    totalParticipants: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,10 +147,6 @@ export default function ChallengesManagementPage() {
         }
 
         setChallenges(finalArray);
-
-        if (actualData && actualData.summary) {
-          setSummary(actualData.summary);
-        }
       }
 
       // 2. Tải danh sách cấu hình hoạt động (Metric Codes)
@@ -194,6 +216,32 @@ export default function ChallengesManagementPage() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  const handleToggleStatus = async (challenge) => {
+    const currentId = challenge.challengeId || challenge.id;
+    const nextState = !challenge.isActive;
+
+    try {
+      setIsLoading(true);
+
+      await challengeApi.toggleChallengeStatus(currentId, nextState);
+
+      showDialog(
+        `Đã ${nextState ? "kích hoạt" : "vô hiệu hóa"} thử thách thành công!`,
+        "success",
+      );
+      await loadInitialData();
+    } catch (error) {
+      console.error("Lỗi thay đổi trạng thái:", error.response?.data || error);
+      const backendMessage =
+        error.response?.data?.message ||
+        error.response?.data?.title ||
+        "Cập nhật trạng thái thất bại!";
+      showDialog(backendMessage, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleViewDetail = async (id) => {
     if (!id) return;
@@ -428,6 +476,15 @@ export default function ChallengesManagementPage() {
     c.title?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const summary = {
+    totalChallenges: challenges.length,
+    ongoingChallenges: challenges.filter(isChallengeOngoing).length,
+    totalParticipants: challenges.reduce(
+      (total, challenge) => total + getChallengeParticipants(challenge),
+      0,
+    ),
+  };
+
   const totalPages = Math.max(
     1,
     Math.ceil(filteredChallenges.length / ITEMS_PER_PAGE),
@@ -564,7 +621,7 @@ export default function ChallengesManagementPage() {
                 <th>Mục tiêu</th>
                 <th>Thời gian</th>
                 <th>Người tham gia</th>
-                <th>Trạng thái</th>
+                <th>Trạng thái vận hành</th>
                 <th className="px-4 py-3 font-semibold text-muted-foreground text-left bg-muted/70">
                   Thao tác
                 </th>
@@ -613,16 +670,20 @@ export default function ChallengesManagementPage() {
                           {challenge.timeText || "Cố định"}
                         </div>
                       </td>
-                      <td>{challenge.participants?.toLocaleString() ?? 0}</td>
+                      <td>
+                        {getChallengeParticipants(challenge).toLocaleString()}
+                      </td>
                       <td>
                         <span
                           className={
-                            challenge.isActive
+                            isChallengeOngoing(challenge)
                               ? "badge-status-active"
                               : "badge-status-ended"
                           }
                         >
-                          {challenge.isActive ? "Đang diễn ra" : "Đã kết thúc"}
+                          {isChallengeOngoing(challenge)
+                            ? "Đang hiện (Mở)"
+                            : "Đang ẩn (Khóa)"}
                         </span>
                       </td>
 
@@ -771,29 +832,27 @@ export default function ChallengesManagementPage() {
                 <div>
                   <span className="info-field-label">Thành viên tham gia</span>
                   <div className="info-field-box">
-                    {detailChallenge.participants?.toLocaleString() ?? 0} người
-                    đang chạy
+                    {getChallengeParticipants(detailChallenge).toLocaleString()}{" "}
+                    người đang chạy
                   </div>
                 </div>
 
                 {/* Trạng thái hiển thị */}
                 <div>
-                  <span className="info-field-label">Trạng thái hiển thị</span>
-                  <div className="info-field-box flex items-center gap-1.5 text-xs">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${detailChallenge.isActive ? "bg-primary" : "bg-destructive"}`}
-                    />
-                    <span
-                      className={
-                        detailChallenge.isActive
-                          ? "text-primary"
-                          : "text-destructive"
+                  <span className="info-field-label">Trạng thái vận hành</span>
+                  <div className="info-field-box text-xs font-medium">
+                    {(() => {
+                      if (detailChallenge.isActive === false) {
+                        return (
+                          <span className="text-destructive">
+                            Đang ẩn (Khóa)
+                          </span>
+                        );
                       }
-                    >
-                      {detailChallenge.isActive
-                        ? "Đang diễn ra"
-                        : "Đã kết thúc / Ẩn"}
-                    </span>
+                      return (
+                        <span className="text-primary">Đang hiện (Mở)</span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -801,25 +860,43 @@ export default function ChallengesManagementPage() {
               {/* Cấu hình vận hành hệ thống - Đã việt hóa data từ API */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <span className="info-field-label">Trạng thái vận hành</span>
-                  <div className="info-field-box text-xs font-medium">
-                    {(() => {
-                      const currentStatus = String(detailChallenge.status || "")
-                        .toLowerCase()
-                        .trim();
-                      const statusMap = {
-                        active: "Đang diễn ra",
-                        ongoing: "Đang diễn ra",
-                        upcoming: "Sắp diễn ra",
-                        ended: "Đã kết thúc",
-                        closed: "Đã kết thúc",
-                      };
-                      return (
-                        statusMap[currentStatus] ||
-                        detailChallenge.status ||
-                        "Chưa xác định"
-                      );
-                    })()}
+                  <span className="info-field-label">Trạng thái hệ thống</span>
+                  <div className="info-field-box flex items-center gap-1.5 text-xs font-medium">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${isChallengeOngoing(detailChallenge) ? "bg-emerald-500" : "bg-destructive"}`}
+                    />
+                    <span
+                      className={
+                        isChallengeOngoing(detailChallenge)
+                          ? "text-emerald-600"
+                          : "text-destructive"
+                      }
+                    >
+                      {(() => {
+                        const currentStatus = String(
+                          detailChallenge.status || "",
+                        )
+                          .toLowerCase()
+                          .trim();
+
+                        const statusMap = {
+                          active: "Đang diễn ra",
+                          ongoing: "Đang diễn ra",
+                          upcoming: "Sắp diễn ra",
+                          ended: "Đã kết thúc",
+                          closed: "Đã kết thúc",
+                          cancelled: "Đã hủy",
+                          inactive: "Tạm dừng",
+                          disabled: "Tạm dừng",
+                        };
+
+                        return (
+                          statusMap[currentStatus] ||
+                          detailChallenge.status ||
+                          "Chưa xác định"
+                        );
+                      })()}
+                    </span>
                   </div>
                 </div>
                 <div>
