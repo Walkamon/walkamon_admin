@@ -27,6 +27,7 @@ const translateChallengeError = (key, message) => {
   if (key === "Title") return "Vui lòng nhập tên thử thách.";
   if (key === "MetricCode") return "Vui lòng chọn loại hoạt động.";
   if (key === "TargetValue") return "Mục tiêu phải lớn hơn 0.";
+  if (key === "MaxPetLevel") return "Cấp độ Tinh linh tối đa chỉ đến cấp 30.";
   if (key.includes("RewardItems") && key.includes("Quantity"))
     return "Số lượng vật phẩm phải lớn hơn 0.";
   return message; // Fallback nếu lỗi chưa được định nghĩa
@@ -64,6 +65,11 @@ export default function ChallengesManagementPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ ...emptyForm });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ ...emptyForm });
+  const [editingId, setEditingId] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [detailChallenge, setDetailChallenge] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -220,6 +226,13 @@ export default function ChallengesManagementPage() {
       errors.endAt = "Vui lòng chọn thời gian kết thúc.";
     }
 
+    if (
+      String(createForm.metricCode).toLowerCase() === "pet_level" &&
+      Number(createForm.targetValue) > 30
+    ) {
+      errors.targetValue = "Cấp độ Tinh linh mục tiêu tối đa là 30.";
+    }
+
     // 2. Logic kiểm tra: Bắt buộc có Tiền thưởng ví HOẶC Vật phẩm
     const hasWallet = Number(createForm.walletAmount) > 0;
     const hasItem = createForm.tempItemId && Number(createForm.tempItemQty) > 0;
@@ -287,6 +300,127 @@ export default function ChallengesManagementPage() {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // --- XỬ LÝ KHI BẤM NÚT SỬA TRÊN BẢNG ---
+  const handleEditClick = async (challenge) => {
+    setFormErrors({});
+    const currentId = challenge.challengeId || challenge.id;
+    setEditingId(currentId);
+
+    try {
+      setIsLoadingDetail(true); // Tận dụng state loading để UI mượt
+      const res = await challengeApi.getChallengeById(currentId);
+      const detailData = res?.data?.data || res?.data || res;
+
+      // Đổ dữ liệu từ API vào form sửa
+      setEditForm({
+        title: detailData.title || "",
+        description: detailData.description || "",
+        metricCode: detailData.metricCode || "steps",
+        targetValue: detailData.targetValue || 0,
+        // Ép kiểu Date về chuỗi YYYY-MM-DDTHH:mm cho CustomDatePicker
+        startAt: detailData.startAt
+          ? new Date(detailData.startAt).toISOString().slice(0, 16)
+          : "",
+        endAt: detailData.endAt
+          ? new Date(detailData.endAt).toISOString().slice(0, 16)
+          : "",
+        isCancelable: detailData.isCancelable ?? true,
+        isActive: detailData.isActive ?? true,
+        walletAmount: detailData.walletAmount || 0,
+        tempItemId: detailData.rewardItems?.[0]?.itemId || "",
+        tempItemQty: detailData.rewardItems?.[0]?.quantity || 0,
+      });
+      setShowEditModal(true);
+    } catch (error) {
+      console.error("Lỗi lấy chi tiết để sửa:", error);
+      showDialog("Không thể tải thông tin thử thách để sửa!", "error");
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  // --- XỬ LÝ KHI BẤM LƯU (SUBMIT) Ở MODAL SỬA ---
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    const errors = {};
+    if (!editForm.title || !editForm.title.trim())
+      errors.title = "Vui lòng nhập tên thử thách.";
+    if (!editForm.startAt) errors.startAt = "Vui lòng chọn thời gian bắt đầu.";
+    if (!editForm.endAt) errors.endAt = "Vui lòng chọn thời gian kết thúc.";
+    if (
+      String(editForm.metricCode).toLowerCase() === "pet_level" &&
+      Number(editForm.targetValue) > 30
+    ) {
+      errors.targetValue = "Cấp độ Tinh linh mục tiêu tối đa là 30.";
+    }
+
+    const hasWallet = Number(editForm.walletAmount) > 0;
+    const hasItem = editForm.tempItemId && Number(editForm.tempItemQty) > 0;
+    if (!hasWallet && !hasItem) {
+      const msg = "Vui lòng nhập tiền thưởng ví hoặc chọn vật phẩm.";
+      errors.walletAmount = msg;
+      errors["rewardItems[0].Quantity"] = msg;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      setFormErrors({});
+
+      const submitData = {
+        title: editForm.title,
+        description: editForm.description,
+        metricCode: String(editForm.metricCode || "steps").toLowerCase(),
+        targetValue: Number(editForm.targetValue),
+        startAt: new Date(editForm.startAt).toISOString(),
+        endAt: new Date(editForm.endAt).toISOString(),
+        isCancelable: editForm.isCancelable,
+        isActive: editForm.isActive,
+        walletAmount: Number(editForm.walletAmount),
+        rewardItems: editForm.tempItemId
+          ? [
+              {
+                itemId: editForm.tempItemId,
+                quantity: Number(editForm.tempItemQty),
+              },
+            ]
+          : [],
+      };
+
+      await challengeApi.updateChallenge(editingId, submitData);
+
+      showDialog("Cập nhật thử thách thành công!", "success");
+      setShowEditModal(false);
+      loadInitialData(currentPage); // Tải lại trang hiện tại
+    } catch (error) {
+      console.error("Lỗi update:", error.response?.data);
+      if (error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const newErrors = {};
+        Object.keys(backendErrors).forEach((key) => {
+          const fieldKey = key.charAt(0).toLowerCase() + key.slice(1);
+          newErrors[fieldKey] = translateChallengeError(
+            key,
+            backendErrors[key][0],
+          );
+        });
+        setFormErrors(newErrors);
+      } else {
+        showDialog(
+          error.response?.data?.message || "Có lỗi xảy ra khi cập nhật!",
+          "error",
+        );
+      }
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -754,6 +888,259 @@ export default function ChallengesManagementPage() {
         </div>
       )}
 
+      {/* ====== MODAL POPUP: CHỈNH SỬA THỬ THÁCH ====== */}
+      {showEditModal && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
+              <h2 className="font-semibold text-base text-foreground">
+                Cập nhật thử thách
+              </h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleEditSubmit}
+              className="p-5 space-y-5"
+              noValidate
+            >
+              <div className="space-y-3.5">
+                <span className="block text-xs font-semibold text-muted-foreground uppercase">
+                  Thông tin chung
+                </span>
+                <div>
+                  <label className="block text-xs mb-1">
+                    Tên thử thách <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, title: e.target.value });
+                      if (formErrors.title)
+                        setFormErrors({ ...formErrors, title: "" });
+                    }}
+                    className={
+                      formErrors.title
+                        ? "border-destructive focus:ring-destructive"
+                        : ""
+                    }
+                  />
+                  {formErrors.title && (
+                    <p className="text-xs text-destructive mt-1.5 font-normal">
+                      {formErrors.title}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">
+                    Mô tả chi tiết
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editForm.description}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, description: e.target.value })
+                    }
+                    className="resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3.5">
+                <span className="block text-xs font-semibold text-muted-foreground uppercase">
+                  Chỉ số điều kiện
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Loại hoạt động
+                    </label>
+                    <div
+                      className={
+                        formErrors.metricCode
+                          ? "border-destructive focus:ring-destructive rounded-lg border"
+                          : ""
+                      }
+                    >
+                      <CustomSelect
+                        value={editForm.metricCode}
+                        onChange={(val) => {
+                          setEditForm({ ...editForm, metricCode: val });
+                          if (formErrors.metricCode)
+                            setFormErrors({ ...formErrors, metricCode: "" });
+                        }}
+                        options={metricOptions}
+                        valueKey="code"
+                        labelKey="label"
+                        placeholder="--- Chọn hoạt động ---"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Mục tiêu cần đạt
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.targetValue || ""}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (
+                          String(editForm.metricCode).toLowerCase() ===
+                            "pet_level" &&
+                          Number(val) > 30
+                        ) {
+                          val = "30";
+                        }
+
+                        setEditForm({ ...editForm, targetValue: val });
+                        if (formErrors.targetValue)
+                          setFormErrors({ ...formErrors, targetValue: "" });
+                      }}
+                      className={
+                        formErrors.targetValue
+                          ? "border-destructive focus:ring-destructive"
+                          : ""
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3.5">
+                <span className="block text-xs font-semibold text-muted-foreground uppercase">
+                  Thời gian
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Bắt đầu <span className="text-destructive">*</span>
+                    </label>
+                    <CustomDatePicker
+                      value={editForm.startAt}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, startAt: e.target.value })
+                      }
+                    />
+                    {formErrors.startAt && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.startAt}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Kết thúc <span className="text-destructive">*</span>
+                    </label>
+                    <CustomDatePicker
+                      value={editForm.endAt}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, endAt: e.target.value })
+                      }
+                    />
+                    {formErrors.endAt && (
+                      <p className="text-xs text-destructive mt-1.5 font-normal">
+                        {formErrors.endAt}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3.5">
+                <span className="block text-xs font-semibold text-muted-foreground uppercase">
+                  Cơ cấu giải thưởng
+                </span>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">
+                    Tiền thưởng ví
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editForm.walletAmount || ""}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, walletAmount: e.target.value })
+                    }
+                  />
+                  {formErrors.walletAmount && (
+                    <p className="text-xs text-destructive mt-1.5 font-normal">
+                      {formErrors.walletAmount}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Vật phẩm đính kèm
+                    </label>
+                    <CustomSelect
+                      value={editForm.tempItemId}
+                      onChange={(val) =>
+                        setEditForm({ ...editForm, tempItemId: val })
+                      }
+                      options={items}
+                      valueKey="id"
+                      labelKey="itemName"
+                      placeholder="--- Chọn vật phẩm phần thưởng ---"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Số lượng
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.tempItemQty || ""}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          tempItemQty: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-3.5 border-t border-border">
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-2 shadow-xs"
+                >
+                  {isUpdating && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}{" "}
+                  Lưu cập nhật
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-muted text-foreground rounded-lg border border-border/50"
+                >
+                  Hủy bỏ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal Form Tạo mới Thử thách */}
       {showCreateModal && (
         <div
@@ -871,10 +1258,16 @@ export default function ChallengesManagementPage() {
                       min="0"
                       value={createForm.targetValue || ""}
                       onChange={(e) => {
-                        setCreateForm({
-                          ...createForm,
-                          targetValue: e.target.value,
-                        });
+                        let val = e.target.value;
+                        if (
+                          String(createForm.metricCode).toLowerCase() ===
+                            "pet_level" &&
+                          Number(val) > 30
+                        ) {
+                          val = "30";
+                        }
+
+                        setCreateForm({ ...createForm, targetValue: val });
                         if (formErrors.targetValue)
                           setFormErrors({ ...formErrors, targetValue: "" });
                       }}
