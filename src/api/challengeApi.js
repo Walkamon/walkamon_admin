@@ -14,6 +14,12 @@ export const challengeApi = {
     return axiosClient.put(`/api/admin/challenges/${id}`, data);
   },
 
+  toggleChallengeStatus: (id, isActive) => {
+    return axiosClient.patch(`/api/admin/challenges/${id}/status`, {
+      isActive,
+    });
+  },
+
   getMetricCodes: () => axiosClient.get("/api/admin/metric-codes"),
 
   getChallengeById: (id) => axiosClient.get(`/api/admin/challenges/${id}`),
