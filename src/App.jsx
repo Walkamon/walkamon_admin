@@ -5,13 +5,14 @@ import {
 } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
-import { UsersManagement } from "./pages/players/ViewPlayerList.jsx";
+import { UsersManagement } from "./pages/players/viewPlayerList.jsx";
 import { authRoutes } from "./routes/AuthRoutes";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
 import { ItemTypeManager } from "./pages/itemType/itemTypeManager.jsx";
 import ReportListPage from "./pages/reports/viewReportList.jsx";
 import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
+import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -52,6 +53,10 @@ const router = createBrowserRouter([
           {
             path: "challenges",
             element: <ChallengesManagementPage />,
+          },
+          {
+            path: "missions",
+            element: <MissionsManagement />,
           },
         ],
       },
