@@ -1,0 +1,172 @@
+@reference "tailwindcss";
+@reference "../../../index.css";
+
+/* --- Layout Tổng --- */
+.page-container {
+    @apply w-full space-y-6;
+}
+
+/* --- Header --- */
+.header-wrapper {
+    @apply flex flex-col md:flex-row justify-between items-start md:items-center;
+}
+
+.header-title {
+    @apply text-2xl font-bold text-foreground;
+}
+
+.header-subtitle {
+    @apply text-sm text-muted-foreground mt-1;
+}
+
+.btn-create {
+    @apply flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm;
+}
+
+/* --- Thống kê (Stats Grid) --- */
+.stats-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-4;
+}
+
+.stat-card {
+    @apply bg-card border border-border rounded-xl p-4 flex items-center gap-4;
+}
+
+.stat-icon-wrapper {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+}
+
+.stat-value {
+    @apply text-2xl font-bold text-foreground;
+}
+
+.stat-label {
+    @apply text-xs text-muted-foreground;
+}
+
+/* --- Khung Lọc & Tìm kiếm --- */
+.filter-container {
+    @apply flex flex-wrap items-center gap-3 px-5 py-4 border border-border rounded-xl bg-card;
+}
+
+.search-wrapper {
+    @apply flex-1 min-w-[200px];
+}
+
+.select-wrapper {
+    @apply relative min-w-[11rem];
+}
+
+/* --- Bảng dữ liệu --- */
+.custom-table {
+    @apply w-full text-sm border-collapse;
+}
+
+.custom-table th {
+    @apply px-5 py-3 font-medium text-muted-foreground text-left border-b border-border whitespace-nowrap;
+}
+
+.custom-table td {
+    @apply px-5 py-3 border-b border-border/60 text-muted-foreground transition-colors align-middle;
+}
+
+.custom-table tr:hover td {
+    @apply bg-muted/30;
+}
+
+.item-id-text {
+    @apply text-muted-foreground font-mono text-xs;
+}
+
+.item-name-text {
+    @apply font-medium text-foreground;
+}
+
+.price-text {
+    @apply font-semibold text-primary;
+}
+
+/* --- Badge Trạng thái --- */
+.badge-active {
+    @apply px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary;
+}
+
+.badge-inactive {
+    @apply px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground;
+}
+
+/* --- Footer khối phân trang --- */
+.footer-container {
+    @apply flex items-center justify-between px-5 py-4 border border-border rounded-xl bg-card text-xs text-muted-foreground;
+}
+
+.item-image-container {
+    @apply w-15 h-15 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0;
+}
+
+.item-preview-img {
+    @apply w-full h-full object-cover;
+}
+
+.item-image-fallback {
+    @apply w-full h-full flex items-center justify-center bg-muted;
+}
+
+/* ─── MODAL & FORM ─── */
+.modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm;
+}
+
+.modal-content {
+    @apply bg-card border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col overflow-hidden;
+}
+
+.modal-header {
+    @apply flex items-center justify-between px-6 py-4 border-b border-border;
+}
+
+.modal-header h2 {
+    @apply text-lg font-semibold text-primary m-0;
+}
+
+.modal-close-btn {
+    @apply text-muted-foreground hover:text-primary transition-colors bg-transparent border-none cursor-pointer p-0 flex items-center;
+}
+
+.modal-body {
+    @apply overflow-y-auto flex-1 px-6 py-4 text-left;
+}
+
+.item-form-layout {
+    @apply space-y-4;
+}
+
+.form-group {
+    @apply flex flex-col gap-1;
+}
+
+.form-group label {
+    @apply text-sm font-medium text-foreground;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    @apply w-full rounded-lg py-2 px-3 bg-muted border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20;
+}
+
+.form-row-grid {
+    @apply grid grid-cols-2 gap-4;
+}
+
+.form-actions {
+    @apply flex gap-3 pt-2;
+}
+
+.btn-cancel {
+    @apply flex-1 border border-border bg-transparent rounded-lg py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer;
+}
+
+.btn-submit {
+    @apply flex-1 bg-primary text-primary-foreground border-none rounded-lg py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer;
+}

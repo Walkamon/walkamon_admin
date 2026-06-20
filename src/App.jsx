@@ -13,6 +13,7 @@ import { ItemTypeManager } from "./pages/itemType/itemTypeManager.jsx";
 import ReportListPage from "./pages/reports/viewReportList.jsx";
 import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
 import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
+import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -58,9 +59,13 @@ const router = createBrowserRouter([
             path: "missions",
             element: <MissionsManagement />,
           },
+           {
+            path: "shop",
+            element: <ShopPage />,
+          },
         ],
       },
-    ],
+    ],  
   },
 
   {
