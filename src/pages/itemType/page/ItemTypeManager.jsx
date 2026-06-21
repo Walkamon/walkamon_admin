@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X, CheckCircle } from "lucide-react";
 
-import { Button } from "../../components/common/button.jsx";
-import { SearchFilter } from "../../components/common/SearchFilter.jsx";
-import { Table } from "../../components/common/table.jsx";
-import { Pagination } from "../../components/common/pagination.jsx";
-import { itemTypeApi } from "../../api/itemTypeApi";
-import "./css/itemTypeManagerPage.css";
+import { Button } from "../../../components/common/Button.jsx";
+import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
+import { Table } from "../../../components/common/Table.jsx";
+import { Pagination } from "../../../components/common/Pagination.jsx";
+import { itemTypeApi } from "../../../api/itemTypeApi.js";
+import "../css/itemTypeManagerPage.css";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -52,6 +52,14 @@ function ItemTypeDetailView({ itemType, onClose }) {
         <div className="detail-info-group">
           <span className="detail-label">Tên loại</span>
           <span className="detail-value-name">{itemType.itemTypeName || "Chưa đặt tên"}</span>
+        </div>
+        <div className="detail-info-group">
+          <span className="detail-label">Trạng thái</span>
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+            itemType.isActive ? "bg-emerald-100 text-emerald-700" : "bg-destructive/10 text-destructive"
+          }`}>
+            {itemType.isActive ? "Hoạt động" : "Ngừng hoạt động"}
+          </span>
         </div>
       </div>
 
@@ -269,8 +277,17 @@ export function ItemTypeManager() {
   const [editError, setEditError] = useState("");
   const [deletingTypeId, setDeletingTypeId] = useState(null);
   const [confirmDeleteType, setConfirmDeleteType] = useState(null);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertVariant, setAlertVariant] = useState("success");
+  const [confirmActionTarget, setConfirmActionTarget] = useState(null); // boolean: target isActive value
+  
+  const [dialog, setDialog] = useState({ show: false, message: "", type: "success" });
+
+  const showDialog = (message, type = "success") => {
+    setDialog({ show: true, message, type });
+  };
+
+  const closeDialog = () => {
+    setDialog((d) => ({ ...d, show: false }));
+  };
 
   const fetchItemTypes = async () => {
     setIsLoading(true);
@@ -296,13 +313,7 @@ export function ItemTypeManager() {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (!alertMessage) return;
-    const timer = setTimeout(() => {
-      setAlertMessage("");
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, [alertMessage]);
+  // dialog replaces alertMessage/toast for success/error messages
 
   const translateTypeError = (message) => {
     if (!message) return "Lỗi không xác định.";
@@ -344,8 +355,7 @@ export function ItemTypeManager() {
       );
       setEditType(null);
       setCurrentPage(1);
-      setAlertMessage("Cập nhật loại vật phẩm thành công!");
-      setAlertVariant("success");
+      showDialog("Cập nhật loại vật phẩm thành công!", "success");
     } catch (err) {
       const payload = err?.response?.data || err?.response?.data?.errors || {};
       const serverMessage =
@@ -357,34 +367,40 @@ export function ItemTypeManager() {
     }
   };
 
-  const handleDeleteType = async (id) => {
+  const handleToggleActive = async (id, currentIsActive) => {
+    // Open confirm modal and set the target isActive (toggle)
     setConfirmDeleteType(id);
+    setConfirmActionTarget(!currentIsActive);
   };
 
   const handleConfirmDeleteType = async () => {
     if (!confirmDeleteType) return;
     const id = confirmDeleteType;
+    const target = confirmActionTarget;
     setConfirmDeleteType(null);
-    setAlertMessage("");
     setDeletingTypeId(id);
 
     try {
-      await itemTypeApi.deleteType(id);
-      setTypes((prev) => prev.filter((type) => type.itemTypeId !== id));
+      const res = await itemTypeApi.deactivateType(id, { isActive: target });
+      // Update local list: set isActive = target
+      setTypes((prev) => prev.map((type) =>
+        type.itemTypeId === id ? { ...type, isActive: target } : type
+      ));
       setCurrentPage(1);
-      setAlertMessage("Xóa loại vật phẩm thành công!");
-      setAlertVariant("success");
+      const serverMsg = res?.data?.message || (target ? "Kích hoạt loại vật phẩm thành công!" : "Vô hiệu hóa loại vật phẩm thành công!");
+      showDialog(serverMsg, "success");
     } catch (err) {
-      console.error("Lỗi khi xóa loại vật phẩm:", err);
-      setAlertMessage("Không thể xóa loại vật phẩm. Vui lòng thử lại.");
-      setAlertVariant("error");
+      console.error("Lỗi khi cập nhật trạng thái loại vật phẩm:", err);
+      showDialog("Không thể cập nhật trạng thái loại vật phẩm. Vui lòng thử lại.", "error");
     } finally {
       setDeletingTypeId(null);
+      setConfirmActionTarget(null);
     }
   };
 
   const handleCancelDeleteType = () => {
     setConfirmDeleteType(null);
+    setConfirmActionTarget(null);
   };
 
   const filteredTypes = types.filter((type) =>
@@ -441,15 +457,43 @@ export function ItemTypeManager() {
         </div>
       </div>
 
-      {alertMessage && (
-        <div
-          className={`alert-toast ${
-            alertVariant === "success"
-              ? "alert-toast-success"
-              : "alert-toast-error"
-          }`}
-        >
-          {alertMessage}
+      {dialog.show && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
+          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                dialog.type === "success"
+                  ? "bg-primary/10 text-primary"
+                  : dialog.type === "error"
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-amber-500/10 text-amber-500"
+              }`}
+            >
+              {dialog.type === "success" && <CheckCircle size={32} />}
+              {dialog.type === "error" && <X size={32} />}
+            </div>
+
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              {dialog.type === "success"
+                ? "Thành công"
+                : dialog.type === "error"
+                  ? "Có lỗi xảy ra"
+                  : "Thông báo"}
+            </h3>
+
+            <p className="text-muted-foreground mb-6 text-sm">{dialog.message}</p>
+
+            <button
+              onClick={closeDialog}
+              className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                dialog.type === "success"
+                  ? "bg-primary hover:bg-primary/90 focus:ring-primary"
+                  : "bg-destructive hover:bg-destructive/90 focus:ring-destructive"
+              }`}
+            >
+              Xác nhận
+            </button>
+          </div>
         </div>
       )}
 
@@ -459,21 +503,22 @@ export function ItemTypeManager() {
             <tr className="bg-muted/50 text-muted-foreground">
               <th className="px-5 py-3">Mã loại</th>
               <th className="px-4 py-3">Tên loại</th>
-              <th className="px-4 py-3">Số lượng item có trong loại vật phẩm này</th>
+              <th className="px-4 py-3">Số lượng item đang sử dụng</th>
+              <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={3} className="py-12 text-center text-muted-foreground">
+                <td colSpan={5} className="py-12 text-center text-muted-foreground">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
                   Đang tải danh sách...
                 </td>
               </tr>
             ) : pagedTypes.length === 0 ? (
               <tr>
-                <td colSpan={3} className="py-12 text-center text-muted-foreground">
+                <td colSpan={5} className="py-12 text-center text-muted-foreground">
                   Không có loại vật phẩm nào.
                 </td>
               </tr>
@@ -503,6 +548,13 @@ export function ItemTypeManager() {
                     {type.count ?? 0}
                   </td>
                   <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      type.isActive ? "bg-emerald-100 text-emerald-700" : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {type.isActive ? "Hoạt động" : "Ngừng hoạt động"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="inline-flex items-center gap-2">
                       <button
                         type="button"
@@ -526,13 +578,15 @@ export function ItemTypeManager() {
                         type="button"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          await handleDeleteType(type.itemTypeId);
+                          await handleToggleActive(type.itemTypeId, type.isActive);
                         }}
                         disabled={deletingTypeId === type.itemTypeId}
                         className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${
                           deletingTypeId === type.itemTypeId
                             ? "bg-destructive/10 text-destructive border border-destructive/25 opacity-70 cursor-not-allowed"
-                            : "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
+                            : type.isActive
+                              ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
+                              : "bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200"
                         }`}
                       >
                         {deletingTypeId === type.itemTypeId ? (
@@ -540,7 +594,7 @@ export function ItemTypeManager() {
                         ) : (
                           <Trash2 className="w-3 h-3" />
                         )}
-                        <span>Xóa</span>
+                        <span>{type.isActive ? "Vô hiệu hóa" : "Kích hoạt"}</span>
                       </button>
                     </div>
                   </td>
@@ -609,12 +663,14 @@ export function ItemTypeManager() {
 
       {confirmDeleteType && (
         <Modal
-          title="Xác nhận xóa loại vật phẩm"
+          title={confirmActionTarget ? "Xác nhận kích hoạt loại vật phẩm" : "Xác nhận vô hiệu hóa loại vật phẩm"}
           onClose={handleCancelDeleteType}
         >
           <div className="space-y-6">
             <p className="text-sm text-muted-foreground">
-              Bạn có chắc chắn muốn xóa loại vật phẩm này không? Hành động này không thể hoàn tác.
+              {confirmActionTarget === false
+                ? "Bạn có chắc chắn muốn vô hiệu hóa loại vật phẩm này không? Hành động này không thể hoàn tác."
+                : "Bạn có chắc chắn muốn kích hoạt lại loại vật phẩm này không?"}
             </p>
             <div className="rounded-2xl border border-border bg-muted/60 p-4">
               <div className="text-sm text-muted-foreground">Mã loại</div>
@@ -637,16 +693,16 @@ export function ItemTypeManager() {
                 className={`w-full sm:w-auto py-2 px-4 rounded-xl text-sm font-semibold transition-colors ${
                   deletingTypeId === confirmDeleteType
                     ? "bg-destructive/20 text-destructive cursor-not-allowed"
-                    : "bg-destructive text-white hover:bg-destructive/90"
+                    : (confirmActionTarget ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-destructive text-white hover:bg-destructive/90")
                 }`}
               >
                 {deletingTypeId === confirmDeleteType ? (
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Đang xóa...
+                    {confirmActionTarget ? "Đang kích hoạt..." : "Đang vô hiệu hóa..."}
                   </span>
                 ) : (
-                  "Xóa"
+                  confirmActionTarget ? "Kích hoạt" : "Vô hiệu hóa"
                 )}
               </button>
             </div>

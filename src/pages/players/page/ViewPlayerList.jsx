@@ -9,12 +9,12 @@ import {
     AlertCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
-import playerApi from "../../api/playerApi";
-import { PlayerDetailModal } from "./viewPlayerDetails.jsx";
-import { Button } from "../../components/common/button.jsx";
-import { SearchFilter } from "../../components/common/SearchFilter.jsx";
-import { Pagination } from "../../components/common/pagination.jsx";
-import { Table, TableEmpty } from "../../components/common/table.jsx";
+import playerApi from "../../../api/playerApi";
+import { PlayerDetailModal } from "./ViewPlayerDetails.jsx";
+import { Button } from "../../../components/common/Button.jsx";
+import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
+import { Pagination } from "../../../components/common/Pagination.jsx";
+import { Table, TableEmpty } from "../../../components/common/Table.jsx";
 import "./css/user-actions.css";
 import "./css/user-status.css";
 
