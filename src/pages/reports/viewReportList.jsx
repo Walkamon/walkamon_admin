@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 
 import reportApi from "../../api/reportApi";
-import { Pagination } from "../../components/common/pagination.jsx";
-import { Button } from "../../components/common/button.jsx";
+import { Pagination } from "../../components/common/Pagination.jsx";
+import { Button } from "../../components/common/Button.jsx";
 
 function Modal({ open, onClose, title, children }) {
 	if (!open) return null;
@@ -64,6 +64,7 @@ export default function ReportListPage() {
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [page, setPage] = useState(1);
 	const pageSize = 5;
+	const [totalReports, setTotalReports] = useState(0);
 
 	const [detailReport, setDetailReport] = useState(null);
 	const [replyReport, setReplyReport] = useState(null);
@@ -94,8 +95,23 @@ export default function ReportListPage() {
 		try {
 			const params = { page, pageSize, q: query || undefined, status: statusFilter === 'all' ? undefined : statusFilter };
 			const res = await reportApi.getReports(params);
-			const list = Array.isArray(res) ? res : res?.data ?? res?.items ?? res?.reports ?? [];
-			setReports(list);
+			const rawData = Array.isArray(res) ? res : res?.data ?? res;
+			const rawList = Array.isArray(rawData)
+				? rawData
+				: rawData?.items ?? rawData?.reports ?? rawData?.list ?? rawData?.data ?? [];
+			const totalCount = typeof rawData?.total === 'number'
+				? rawData.total
+				: typeof rawData?.totalItems === 'number'
+				? rawData.totalItems
+				: typeof rawData?.count === 'number'
+				? rawData.count
+				: typeof rawData?.meta?.total === 'number'
+				? rawData.meta.total
+				: rawList.length;
+			const shouldSlice = Array.isArray(rawList) && rawList.length > pageSize && totalCount === rawList.length;
+			const pageList = shouldSlice ? rawList.slice((page - 1) * pageSize, page * pageSize) : rawList;
+			setReports(pageList);
+			setTotalReports(totalCount);
 		} catch (err) {
 			console.error(err);
 			setError('Không thể tải danh sách báo cáo.');
@@ -211,8 +227,8 @@ export default function ReportListPage() {
 				</div>
 
 				<div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
-					<p className="text-sm text-muted-foreground">Hiển thị 1–{Math.min(page*pageSize, reports.length)} trong {reports.length} kết quả</p>
-					<Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(reports.length / pageSize))} onChange={(p) => setPage(p)} />
+				<p className="text-sm text-muted-foreground">Hiển thị {reports.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalReports)} trong {totalReports} kết quả</p>
+				<Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(totalReports / pageSize))} onChange={(p) => setPage(p)} />
 				</div>
 				</>
 				)}

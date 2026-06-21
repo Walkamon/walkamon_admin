@@ -5,12 +5,12 @@ import {
 } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
-import { UsersManagement } from "./pages/players/viewPlayerList.jsx";
+import { UsersManagement } from "./pages/players/page/ViewPlayerList.jsx";
 import { authRoutes } from "./routes/AuthRoutes";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
-import { ItemTypeManager } from "./pages/itemType/itemTypeManager.jsx";
-import ReportListPage from "./pages/reports/viewReportList.jsx";
+import { ItemTypeManager } from "./pages/itemType/page/ItemTypeManager.jsx";
+import ReportListPage from "./pages/reports/ViewReportList.jsx";
 import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
 import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";

@@ -20,9 +20,12 @@ export const itemTypeApi = {
   updateType: (id, payload) => {
     return axiosClient.put(`/api/item-types/${id}`, payload);
   },
+  // Vô hiệu hóa / cập nhật trạng thái loại vật phẩm (PATCH /api/item-types/{id})
+  deactivateType: (id, payload) => {
+    return axiosClient.patch(`/api/item-types/${id}`, payload);
+  },
 
-  // Xóa loại vật phẩm (DELETE /api/item-types/{id})
-  deleteType: (id) => {
-    return axiosClient.delete(`/api/item-types/${id}`);
+  getActiveTypes: () => {
+    return axiosClient.get("/api/item-types/active");
   },
 };
