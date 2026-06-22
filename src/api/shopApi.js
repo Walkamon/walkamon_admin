@@ -18,10 +18,14 @@ export const shopApi = {
 	},
 
 	remove: (id) => {
-		return axiosClient.delete(`/api/ShopItem/${id}`);
+		return axiosClient.patch(`/api/ShopItem/${id}/toggle-status`);
 	},
 
-	activate: (id, data) => {
-		return axiosClient.put(`/api/ShopItem/${id}`, { ...data, isActive: true });
+	toggleStatus: (id) => {
+		return axiosClient.patch(`/api/ShopItem/${id}/toggle-status`);
+	},
+
+	activate: (id) => {
+		return axiosClient.patch(`/api/ShopItem/${id}/toggle-status`);
 	},
 };

@@ -609,12 +609,8 @@ export function ShopPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await shopApi.remove(deleteTarget.shopItemId);
-      setShopItems((prev) =>
-        prev.map((item) =>
-          item.shopItemId === deleteTarget.shopItemId ? { ...item, isActive: false } : item,
-        ),
-      );
+      await shopApi.toggleStatus(deleteTarget.shopItemId);
+      await fetchData();
       setDeleteTarget(null);
       showDialog("Đã vô hiệu hóa shop item.", "success");
     } catch (err) {
@@ -637,10 +633,7 @@ export function ShopPage() {
     }
 
     try {
-      await shopApi.activate(shopItemId, {
-        itemId,
-        priceAmount: item.priceAmount,
-      });
+      await shopApi.toggleStatus(shopItemId);
       await fetchData();
       showDialog("Kích hoạt shop item thành công!", "success");
     } catch (err) {
