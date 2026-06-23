@@ -15,10 +15,10 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "../../../components/common/Button";
-import { Pagination } from "../../../components/common/Pagination";
+import { Button } from "../../../components/common/button.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter";
-import { Table } from "../../../components/common/Table";
+import { Table } from "../../../components/common/table.jsx";
 
 import { itemApi } from "../../../api/itemApi";
 import { shopApi } from "../../../api/shopApi";
