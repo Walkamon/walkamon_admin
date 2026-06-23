@@ -15,8 +15,8 @@ import {
   Droplets,
 } from "lucide-react";
 
-import { Button } from "../../../components/common/Button.jsx";
-import { Pagination } from "../../../components/common/Pagination.jsx";
+import { Button } from "../../../components/common/button.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
 import { challengeApi } from "../../../api/challengeApi";
 import { itemApi } from "../../../api/itemApi";
 import CustomSelect from "../../../components/common/CustomSelect";
