@@ -7,9 +7,9 @@ import {
 	RefreshCw,
 } from "lucide-react";
 
-import reportApi from "../../api/reportApi";
-import { Pagination } from "../../components/common/Pagination.jsx";
-import { Button } from "../../components/common/Button.jsx";
+import reportApi from "../../../api/reportApi";
+import { Pagination } from "../../../components/common/Pagination.jsx";
+import { Button } from "../../../components/common/Button.jsx";
 
 function Modal({ open, onClose, title, children }) {
 	if (!open) return null;

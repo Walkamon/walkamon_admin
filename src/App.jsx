@@ -6,11 +6,11 @@ import {
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
 import { UsersManagement } from "./pages/players/page/ViewPlayerList.jsx";
-import { authRoutes } from "../routes/AuthRoutes";
+import { authRoutes } from "./routes/AuthRoutes.jsx";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
 import { ItemTypeManager } from "./pages/itemType/page/ItemTypeManager.jsx";
-import ReportListPage from "../pages/reports/ViewReportList.jsx";
+import ReportListPage from "./pages/reports/page/ViewReportList.jsx";
 import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
 import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
