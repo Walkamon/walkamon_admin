@@ -17,11 +17,7 @@ export const shopApi = {
 		return axiosClient.put(`/api/ShopItem/${id}`, data);
 	},
 
-	remove: (id) => {
-		return axiosClient.delete(`/api/ShopItem/${id}`);
-	},
-
-	activate: (id, data) => {
-		return axiosClient.put(`/api/ShopItem/${id}`, { ...data, isActive: true });
+	toggleStatus: (id) => {
+		return axiosClient.patch(`/api/ShopItem/${id}/toggle-status`);
 	},
 };
