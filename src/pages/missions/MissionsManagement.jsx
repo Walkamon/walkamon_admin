@@ -12,10 +12,10 @@ import {
 import { missionApi } from "../../api/missionApi";
 import "../missions/css/missionsManagement.css";
 
-import { Table, TableEmpty } from "../../components/common/Table";
-import { Button } from "../../components/common/Button";
+import { Table, TableEmpty } from "../../components/common/table.jsx";
+import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter";
-import { Pagination } from "../../components/common/Pagination";
+import { Pagination } from "../../components/common/pagination.jsx";
 
 const ITEMS_PER_PAGE = 5;
 

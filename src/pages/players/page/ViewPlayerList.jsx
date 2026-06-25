@@ -11,10 +11,10 @@ import {
 import { useEffect, useRef, useState, useCallback } from "react";
 import playerApi from "../../../api/playerApi";
 import { PlayerDetailModal } from "./ViewPlayerDetails.jsx";
-import { Button } from "../../../components/common/Button.jsx";
+import { Button } from "../../../components/common/button.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
-import { Pagination } from "../../../components/common/Pagination.jsx";
-import { Table, TableEmpty } from "../../../components/common/Table.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
+import { Table, TableEmpty } from "../../../components/common/table.jsx";
 import "../css/user-actions.css";
 import "../css/user-status.css";
 
@@ -24,8 +24,19 @@ function getUsername(user) {
     return user?.profile?.username || user?.username || "Không rõ";
 }
 
+function normalizeStatusCode(status) {
+    const code = String(status || "").trim().toLowerCase();
+    if (["disabled", "blocked", "locked", "lock"].includes(code)) return "disabled";
+    if (["active", "enabled", "enable"].includes(code)) return "active";
+    return code || "unknown";
+}
+
+function isBlocked(user) {
+    return normalizeStatusCode(user?.statusCode) === "disabled";
+}
+
 function isActive(user) {
-    return user?.statusCode !== "blocked";
+    return normalizeStatusCode(user?.statusCode) === "active";
 }
 
 function formatDate(dateStr) {
@@ -145,7 +156,16 @@ export function UsersManagement() {
             const list = Array.isArray(data)
                 ? data
                 : (data?.data ?? data?.users ?? data?.items ?? []);
-            setUsers(list);
+            const normalizedUsers = list.map((user) => ({
+                ...user,
+                statusCode: normalizeStatusCode(user.statusCode ?? user.status),
+            }));
+            setUsers(normalizedUsers);
+            setDetailUser((prev) => {
+                if (!prev) return prev;
+                const prevUid = prev.userId || prev.id;
+                return normalizedUsers.find((user) => (user.userId || user.id) === prevUid) || prev;
+            });
         } catch (err) {
             console.error("Lỗi tải danh sách người dùng:", err);
             const status = err?.response?.status;
@@ -188,7 +208,7 @@ export function UsersManagement() {
         const user = users.find((u) => (u.userId || u.id) === userId);
         if (!user) return;
 
-        const isCurrentlyBlocked = user.statusCode === "blocked";
+        const isCurrentlyBlocked = isBlocked(user);
         setLockingUserId(userId);
         try {
             if (isCurrentlyBlocked) {
@@ -197,17 +217,31 @@ export function UsersManagement() {
                 await playerApi.disableUser(userId);
             }
             // Cập nhật state local để không cần reload toàn bộ
+            const newStatus = isCurrentlyBlocked ? "active" : "disabled";
+            const newLockoutAt = isCurrentlyBlocked ? null : new Date().toISOString();
+
             setUsers((prev) =>
                 prev.map((u) => {
                     const uid = u.userId || u.id;
                     if (uid !== userId) return u;
                     return {
                         ...u,
-                        statusCode: isCurrentlyBlocked ? "active" : "blocked",
-                        lockoutEndAt: isCurrentlyBlocked ? null : new Date().toISOString(),
+                        statusCode: newStatus,
+                        lockoutEndAt: newLockoutAt,
                     };
                 })
             );
+
+            setDetailUser((prev) => {
+                if (!prev) return prev;
+                const prevUid = prev.userId || prev.id;
+                if (prevUid !== userId) return prev;
+                return {
+                    ...prev,
+                    statusCode: newStatus,
+                    lockoutEndAt: newLockoutAt,
+                };
+            });
         } catch (err) {
             console.error("Lỗi khi thay đổi trạng thái người dùng:", err);
             alert("Thao tác thất bại. Vui lòng thử lại.");
@@ -216,11 +250,15 @@ export function UsersManagement() {
         }
     }
 
-    const statusLabel = (user) => (isActive(user) ? "Hoạt động" : "Không hoạt động");
-    const statusClass = (user) =>
-        isActive(user)
-            ? "bg-green-500/10 text-green-600"
-            : "bg-gray-500/10 text-gray-600";
+    const statusLabel = (user) => {
+        if (isBlocked(user)) return "Đã khóa";
+        return "Hoạt động";
+    };
+
+    const statusClass = (user) => {
+        if (isBlocked(user)) return "bg-destructive/10 text-destructive";
+        return "bg-green-500/10 text-green-600";
+    };
 
     // ── Trạng thái loading ──
     if (loading) {
@@ -330,10 +368,10 @@ export function UsersManagement() {
                                             </td>
                                             <td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
                                                 <UserActionButtons
-                                                    isBlocked={user.statusCode === "blocked"}
+                                                    isBlocked={isBlocked(user)}
                                                     isLocking={lockingUserId === uid}
                                                     onLock={() =>
-                                                        user.statusCode === "blocked"
+                                                        isBlocked(user)
                                                             ? toggleBan(uid)
                                                             : setBanConfirmUser(user)
                                                     }

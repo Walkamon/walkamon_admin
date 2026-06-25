@@ -19,6 +19,13 @@ function formatGender(gender) {
     return gender;
 }
 
+function normalizeStatusCode(status) {
+    const value = String(status || "").trim().toLowerCase();
+    if (["disabled", "blocked", "locked", "lock"].includes(value)) return "disabled";
+    if (["active", "enabled", "enable"].includes(value)) return "active";
+    return value || "unknown";
+}
+
 function getUsername(user) {
     return user?.profile?.username || user?.username || "Không rõ";
 }
@@ -78,7 +85,7 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                 ["User ID", user.userId || user.id],
                                 ["Email", user.email],
                                 ["Email chuẩn hóa", user.normalizedEmail || user.email?.toUpperCase()],
-                                ["Mã trạng thái", user.statusCode],
+                                ["Mã trạng thái", normalizeStatusCode(user.statusCode)],
                                 ["Ngày tạo", formatDate(user.createdAt)],
                                 ["Đăng nhập cuối", user.lastLoginAt ? formatDate(user.lastLoginAt) : "Chưa từng"],
                             ].map(([label, value]) => (

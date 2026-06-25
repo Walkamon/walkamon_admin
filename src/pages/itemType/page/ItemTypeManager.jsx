@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Pencil, Trash2, X, CheckCircle } from "lucide-react";
 
-import { Button } from "../../../components/common/Button.jsx";
+import { Button } from "../../../components/common/button.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
-import { Table } from "../../../components/common/Table.jsx";
-import { Pagination } from "../../../components/common/Pagination.jsx";
+import { Table } from "../../../components/common/table.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
 import { itemTypeApi } from "../../../api/itemTypeApi.js";
 import "../css/itemTypeManagerPage.css";
 

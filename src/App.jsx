@@ -3,10 +3,10 @@ import {
   RouterProvider,
   Navigate,
 } from "react-router-dom";
-import { MainLayout } from "./components/layout/MainLayout";
-import { DashboardPage } from "./pages/dashboard/page/DashboardPage";
+import { MainLayout } from "./components/layout/MainLayout.jsx";
+import { DashboardPage } from "./pages/dashboard/page/DashboardPage.jsx";
 import { UsersManagement } from "./pages/players/page/ViewPlayerList.jsx";
-import { authRoutes } from "./routes/AuthRoutes.jsx";
+import { authRoutes } from "./routes/AuthenRoutes.jsx";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
 import { ItemManagerPage } from "./pages/items/page/ItemManagerPage.jsx";
 import { ItemTypeManager } from "./pages/itemType/page/ItemTypeManager.jsx";

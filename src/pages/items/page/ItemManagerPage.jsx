@@ -12,10 +12,10 @@ import {
   X,
 } from "lucide-react";
 
-import { Button } from "../../../components/common/Button.jsx";
-import { Pagination } from "../../../components/common/Pagination.jsx";
+import { Button } from "../../../components/common/button.jsx";
+import { Pagination } from "../../../components/common/pagination.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
-import { Table } from "../../../components/common/Table.jsx";
+import { Table } from "../../../components/common/table.jsx";
 
 import { itemApi } from "../../../api/itemApi";
 import { itemTypeApi } from "../../../api/itemTypeApi";
