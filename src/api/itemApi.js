@@ -31,4 +31,8 @@ export const itemApi = {
   getById: (id) => {
     return axiosClient.get(`/api/items/${id}`);
   },
+
+  getActiveItems: () => {
+    return axiosClient.get("/api/items/active");
+  }
 };

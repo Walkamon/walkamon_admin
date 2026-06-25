@@ -250,6 +250,13 @@ export default function ChallengesManagementPage() {
       const res = await challengeApi.getChallengeById(id);
       // Áp dụng bóc tách data linh hoạt theo chuẩn axiosClient của ông
       const detailData = res?.data?.data || res?.data || res;
+
+      // Đồng bộ hậu tố targetText từ danh sách nếu API chi tiết không trả về
+      const listMatch = challenges.find((c) => (c.challengeId || c.id) === id);
+      if (listMatch && listMatch.targetText && !detailData.targetText) {
+        detailData.targetText = listMatch.targetText;
+      }
+
       setDetailChallenge(detailData);
     } catch (error) {
       console.error("Lỗi khi lấy chi tiết thử thách:", error);
@@ -574,7 +581,7 @@ export default function ChallengesManagementPage() {
               {summary.ongoingChallenges.toLocaleString()}
             </h3>
           </div>
-          <div className="p-2.5 bg-emerald-500/5 rounded-full text-emerald-600 border border-emerald-500/10">
+          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
             <Target className="w-5 h-5" />
           </div>
         </div>
@@ -588,7 +595,7 @@ export default function ChallengesManagementPage() {
               {summary.totalParticipants.toLocaleString()}
             </h3>
           </div>
-          <div className="p-2.5 bg-orange-500/5 rounded-full text-orange-600 border border-orange-500/10">
+          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
             <Users className="w-5 h-5" />
           </div>
         </div>
@@ -661,14 +668,12 @@ export default function ChallengesManagementPage() {
                           {challenge.description}
                         </div>
                       </td>
-                      <td>
+                      <td className="!font-normal !text-muted-foreground align-middle">
                         {challenge.targetText ||
                           `${challenge.targetValue} (Chỉ số)`}
                       </td>
-                      <td>
-                        <div className="text-primary font-medium">
-                          {challenge.timeText || "Cố định"}
-                        </div>
+                      <td className="!font-normal !text-muted-foreground align-middle">
+                        <div>{challenge.timeText || "Cố định"}</div>
                       </td>
                       <td>
                         {getChallengeParticipants(challenge).toLocaleString()}
@@ -732,231 +737,272 @@ export default function ChallengesManagementPage() {
             </tbody>
           </table>
         </div>
-
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
-          <p>
-            Hiển thị {startItem}–{endItem} trong {filteredChallenges.length} kết
-            quả
-          </p>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onChange={setCurrentPage}
-          />
-        </div>
       </div>
 
-      {/* ====== MODAL POPUP: CHI TIẾT THỬ THÁCH (BẢN CẬP NHẬT NÚT ĐÓNG RỘNG & VIỆT HÓA DATA) ====== */}
+      <div className="footer-container mb-6 mt-4">
+        <p>
+          Hiển thị {startItem}–{endItem} trong {filteredChallenges.length} kết
+          quả
+        </p>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onChange={setCurrentPage}
+        />
+      </div>
+
+      {/* ====== MODAL POPUP: CHI TIẾT THỬ THÁCH (CẬP NHẬT GIAO DIỆN MỚI) ====== */}
       {detailChallenge && (
         <div
-          className="challenge-detail-overlay"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
           onClick={() => setDetailChallenge(null)}
         >
           <div
-            className="challenge-detail-container"
+            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] shadow-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Modal */}
-            <div className="challenge-detail-header">
-              <h2 className="challenge-detail-title">Chi tiết thử thách</h2>
+            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
+              <h2 className="font-semibold text-base text-foreground">
+                Chi tiết thử thách
+              </h2>
               <button
                 onClick={() => setDetailChallenge(null)}
-                className="p-1 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md transition-colors"
+                className="text-muted-foreground hover:bg-muted p-1.5 rounded-md transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Body nội dung - Chữ mảnh nhã nhặn */}
-            <div className="challenge-detail-body">
-              {/* Tên thử thách */}
-              <div>
-                <span className="info-field-label">Tên thử thách</span>
-                <div className="info-field-box">
-                  {detailChallenge.title || "Chưa đặt tên"}
-                </div>
-              </div>
-
-              {/* Mô tả yêu cầu */}
-              <div>
-                <span className="info-field-label">Mô tả yêu cầu</span>
-                <div className="info-field-box info-field-box-desc">
-                  {detailChallenge.description ||
-                    "Không có mô tả chi tiết cho thử thách này."}
-                </div>
-              </div>
-
-              {/* Khung Grid thông số (2 Cột ngay ngắn) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
-                {/* Loại hoạt động */}
-                <div>
-                  <span className="info-field-label">
-                    Loại hoạt động (Metric)
-                  </span>
-                  <div className="info-field-box font-mono uppercase text-xs">
-                    {detailChallenge.metricCode || "N/A"}
-                  </div>
-                </div>
-
-                {/* Mục tiêu cần đạt */}
-                <div>
-                  <span className="info-field-label">Mục tiêu cần đạt</span>
-                  <div className="info-field-box">
-                    {detailChallenge.targetValue?.toLocaleString() || 0}
-                  </div>
-                </div>
-
-                {/* Thời gian bắt đầu */}
-                <div>
-                  <span className="info-field-label">Thời gian bắt đầu</span>
-                  <div className="info-field-box text-xs">
-                    {detailChallenge.startAt
-                      ? new Date(detailChallenge.startAt).toLocaleString(
-                          "vi-VN",
-                        )
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Thời gian kết thúc */}
-                <div>
-                  <span className="info-field-label">Thời gian kết thúc</span>
-                  <div className="info-field-box text-xs">
-                    {detailChallenge.endAt
-                      ? new Date(detailChallenge.endAt).toLocaleString("vi-VN")
-                      : "N/A"}
-                  </div>
-                </div>
-
-                {/* Số người tham gia */}
-                <div>
-                  <span className="info-field-label">Thành viên tham gia</span>
-                  <div className="info-field-box">
-                    {getChallengeParticipants(detailChallenge).toLocaleString()}{" "}
-                    người đang chạy
-                  </div>
-                </div>
-
-                {/* Trạng thái hiển thị */}
-                <div>
-                  <span className="info-field-label">Trạng thái vận hành</span>
-                  <div className="info-field-box text-xs font-medium">
-                    {(() => {
-                      if (detailChallenge.isActive === false) {
-                        return (
-                          <span className="text-destructive">
-                            Đang ẩn (Khóa)
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="text-primary">Đang hiện (Mở)</span>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Cấu hình vận hành hệ thống - Đã việt hóa data từ API */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="info-field-label">Trạng thái hệ thống</span>
-                  <div className="info-field-box flex items-center gap-1.5 text-xs font-medium">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${isChallengeOngoing(detailChallenge) ? "bg-emerald-500" : "bg-destructive"}`}
-                    />
-                    <span
-                      className={
-                        isChallengeOngoing(detailChallenge)
-                          ? "text-emerald-600"
-                          : "text-destructive"
-                      }
-                    >
-                      {(() => {
-                        const currentStatus = String(
-                          detailChallenge.status || "",
-                        )
-                          .toLowerCase()
-                          .trim();
-
-                        const statusMap = {
-                          active: "Đang diễn ra",
-                          ongoing: "Đang diễn ra",
-                          upcoming: "Sắp diễn ra",
-                          ended: "Đã kết thúc",
-                          closed: "Đã kết thúc",
-                          cancelled: "Đã hủy",
-                          inactive: "Tạm dừng",
-                          disabled: "Tạm dừng",
-                        };
-
-                        return (
-                          statusMap[currentStatus] ||
-                          detailChallenge.status ||
-                          "Chưa xác định"
-                        );
-                      })()}
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-scroll flex-1 text-left bg-muted/10">
+              {/* Container 1: Thông tin chung */}
+              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                  Thông tin chung
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Tên thử thách
                     </span>
+                    <p className="text-sm font-medium text-foreground">
+                      {detailChallenge.title || "Chưa đặt tên"}
+                    </p>
                   </div>
-                </div>
-                <div>
-                  <span className="info-field-label">
-                    Cho phép người chơi hủy
-                  </span>
-                  <div className="info-field-box text-xs">
-                    {detailChallenge.isCancelable
-                      ? "Có hỗ trợ hủy ngang"
-                      : "Khóa cố định khi nhận"}
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Mô tả yêu cầu
+                    </span>
+                    <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
+                      {detailChallenge.description ||
+                        "Không có mô tả chi tiết cho thử thách này."}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Khối hiển thị phần thưởng chia cột chuẩn*/}
-              <div>
-                <span className="info-field-label">
-                  Phần thưởng khi hoàn thành
-                </span>
-                <div className="info-field-box flex flex-wrap items-center gap-2 min-h-[46px]">
-                  {/* Xu ví xu / Giọt sương */}
+              {/* Container 2: Chỉ số & Thời gian */}
+              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                  Chỉ số & Thời gian
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Loại hoạt động
+                    </span>
+                    <p className="text-sm font-semibold text-foreground uppercase">
+                      {metricOptions.find(
+                        (m) => m.code === detailChallenge.metricCode,
+                      )?.label ||
+                        detailChallenge.metricCode ||
+                        "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Mục tiêu cần đạt
+                    </span>
+                    <p className="text-sm font-semibold text-foreground">
+                      {detailChallenge.targetText ||
+                        `${detailChallenge.targetValue?.toLocaleString() || 0} (Chỉ số)`}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Thời gian bắt đầu
+                    </span>
+                    <p className="text-sm text-foreground">
+                      {detailChallenge.startAt
+                        ? new Date(detailChallenge.startAt).toLocaleString(
+                            "vi-VN",
+                          )
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Thời gian kết thúc
+                    </span>
+                    <p className="text-sm text-foreground">
+                      {detailChallenge.endAt
+                        ? new Date(detailChallenge.endAt).toLocaleString(
+                            "vi-VN",
+                          )
+                        : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Container 3: Vận hành & Trạng thái */}
+              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                  Vận hành & Trạng thái
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Thành viên tham gia
+                    </span>
+                    <p className="text-sm text-foreground">
+                      <span className="font-semibold">
+                        {getChallengeParticipants(
+                          detailChallenge,
+                        ).toLocaleString()}
+                      </span>{" "}
+                      người
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Cho phép người chơi hủy
+                    </span>
+                    <p className="text-sm text-foreground">
+                      {detailChallenge.isCancelable
+                        ? "Có hỗ trợ hủy ngang"
+                        : "Khóa cố định"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Hiển thị ứng dụng
+                    </span>
+                    <p className="text-sm font-medium">
+                      {detailChallenge.isActive === false ? (
+                        <span className="text-destructive">Đang ẩn (Khóa)</span>
+                      ) : (
+                        <span className="text-primary">Đang hiện (Mở)</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-muted-foreground mb-1">
+                      Trạng thái hệ thống
+                    </span>
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${isChallengeOngoing(detailChallenge) ? "bg-primary" : "bg-destructive"}`}
+                      />
+                      <span
+                        className={
+                          isChallengeOngoing(detailChallenge)
+                            ? "text-primary"
+                            : "text-destructive"
+                        }
+                      >
+                        {(() => {
+                          const currentStatus = String(
+                            detailChallenge.status || "",
+                          )
+                            .toLowerCase()
+                            .trim();
+                          const statusMap = {
+                            active: "Đang diễn ra",
+                            ongoing: "Đang diễn ra",
+                            upcoming: "Sắp diễn ra",
+                            ended: "Đã kết thúc",
+                            closed: "Đã kết thúc",
+                            cancelled: "Đã hủy",
+                            inactive: "Tạm dừng",
+                            disabled: "Tạm dừng",
+                          };
+                          return (
+                            statusMap[currentStatus] ||
+                            detailChallenge.status ||
+                            "Chưa xác định"
+                          );
+                        })()}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Container 4: Phần thưởng */}
+              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                  Phần thưởng hoàn thành
+                </h3>
+                <div className="flex flex-col gap-2.5">
                   {Number(detailChallenge.walletAmount) > 0 && (
-                    <div className="reward-badge-drops">
-                      <Droplets className="w-3.5 h-3.5 text-primary" />
-                      <span>
-                        +{detailChallenge.walletAmount?.toLocaleString()} Giọt
-                        Sương
+                    <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-sm">
+                          <Droplets className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          Giọt Sương
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-primary">
+                        +{detailChallenge.walletAmount?.toLocaleString()}
                       </span>
                     </div>
                   )}
 
-                  {/* Danh sách vật phẩm */}
                   {detailChallenge.rewardItems &&
-                  detailChallenge.rewardItems.length > 0
-                    ? detailChallenge.rewardItems.map((item, index) => (
-                        <div
-                          key={item.itemId || index}
-                          className="reward-badge-item"
-                        >
-                          <Package className="w-3.5 h-3.5" />
-                          <span>
-                            {item.itemName || "Vật phẩm"} x{item.quantity}
+                    detailChallenge.rewardItems.length > 0 &&
+                    detailChallenge.rewardItems.map((item, index) => (
+                      <div
+                        key={item.itemId || index}
+                        className="flex items-center justify-between p-3 bg-accent/5 border border-accent/20 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent shadow-sm">
+                            <Package className="w-4 h-4" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">
+                            {item.itemName || "Vật phẩm đính kèm"}
                           </span>
                         </div>
-                      ))
-                    : /* Khi không có quà */
-                      !(Number(detailChallenge.walletAmount) > 0) && (
-                        <span className="text-xs text-muted-foreground/70 italic">
-                          Không có phần thưởng đính kèm.
+                        <span className="text-sm font-bold text-accent">
+                          x{item.quantity}
                         </span>
-                      )}
+                      </div>
+                    ))}
+
+                  {!(Number(detailChallenge.walletAmount) > 0) &&
+                    (!detailChallenge.rewardItems ||
+                      detailChallenge.rewardItems.length === 0) && (
+                      <div className="text-sm text-muted-foreground/70 italic text-center py-5 bg-muted/30 rounded-lg border border-dashed border-border/60">
+                        Thử thách này không có phần thưởng đính kèm.
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
 
-            {/* Footer chứa nút Đóng full-width cân đối theo form mẫu mới */}
-            <div className="challenge-detail-footer">
+            {/* Footer */}
+            <div className="flex justify-end gap-2.5 px-5 py-4 border-t border-border bg-muted/30">
               <button
                 onClick={() => setDetailChallenge(null)}
-                className="btn-detail-close-custom"
+                className="px-6 py-2 bg-card text-foreground font-medium rounded-lg border border-border shadow-sm hover:bg-muted transition-colors"
               >
                 Đóng
               </button>
@@ -972,7 +1018,7 @@ export default function ChallengesManagementPage() {
           onClick={() => setShowEditModal(false)}
         >
           <div
-            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-xl flex flex-col"
+            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] shadow-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
@@ -989,7 +1035,7 @@ export default function ChallengesManagementPage() {
 
             <form
               onSubmit={handleEditSubmit}
-              className="p-5 space-y-5"
+              className="p-5 space-y-5 flex-1 overflow-y-scroll"
               noValidate
             >
               <div className="space-y-3.5">
@@ -1225,7 +1271,7 @@ export default function ChallengesManagementPage() {
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-xl flex flex-col"
+            className="bg-card border border-border rounded-xl max-w-xl w-full max-h-[85vh] shadow-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
@@ -1242,7 +1288,7 @@ export default function ChallengesManagementPage() {
 
             <form
               onSubmit={handleCreateSubmit}
-              className="p-5 space-y-5"
+              className="p-5 space-y-5 flex-1 overflow-y-scroll"
               noValidate
             >
               <div className="space-y-3.5">
