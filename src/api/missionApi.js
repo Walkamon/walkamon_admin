@@ -15,4 +15,8 @@ export const missionApi = {
       headers: { 'accept': 'text/plain' }
     });
   },
+
+  getOverallMissionDetail: (missionId) => {
+    return axiosClient.get(`/api/admin/missions/overall/${missionId}`);
+  },
 };
