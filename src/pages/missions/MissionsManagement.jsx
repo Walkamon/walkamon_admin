@@ -114,6 +114,11 @@ export default function MissionsManagement() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+  const [dialogInfo, setDialogInfo] = useState({
+    isOpen: false,
+    type: "success", // 'success' hoặc 'error'
+    message: "",
+  });
 
   const fetchOverallData = async (tab = activeTab) => {
     try {
@@ -311,6 +316,41 @@ export default function MissionsManagement() {
     return errors;
   };
 
+  const handleToggleStatus = async (missionId, currentStatus) => {
+    try {
+      const newStatus = !currentStatus; // Đảo ngược trạng thái hiện tại
+
+      // 1. Gọi API gửi trạng thái mới lên
+      await missionApi.changeMissionStatus(missionId, newStatus);
+
+      // 2. CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Không cần đợi fetch)
+      setMissions((prevMissions) =>
+        prevMissions.map((m) =>
+          m.missionId === missionId || m.id === missionId
+            ? { ...m, isActive: newStatus }
+            : m,
+        ),
+      );
+
+      // 3. Hiện popup thành công
+      setDialogInfo({
+        isOpen: true,
+        type: "success",
+        message: `Đã ${newStatus ? "kích hoạt" : "vô hiệu hóa"} nhiệm vụ thành công!`,
+      });
+
+      // 4. Vẫn gọi lại fetchOverallData ngầm để đảm bảo đồng bộ hoàn toàn với server
+      fetchOverallData();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái nhiệm vụ:", err);
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message: "Không thể cập nhật trạng thái nhiệm vụ. Vui lòng thử lại.",
+      });
+    }
+  };
+
   const handleRowClick = async (missionId) => {
     try {
       setIsFetchingDetail(true);
@@ -379,7 +419,11 @@ export default function MissionsManagement() {
       setIsSubmitting(true);
       setFormErrors({});
       await missionApi.createOverallMission(payload);
-      setSuccessMessage("Tạo nhiệm vụ thành công!");
+      setDialogInfo({
+        isOpen: true,
+        type: "success",
+        message: "Chúc mừng! Bạn đã tạo nhiệm vụ mới thành công.",
+      });
       setShowCreateModal(false);
       setCreateForm({
         ...emptyOverallMissionForm,
@@ -400,10 +444,13 @@ export default function MissionsManagement() {
         });
         setFormErrors(nextErrors);
       } else {
-        setError(
-          err.response?.data?.message ||
+        setDialogInfo({
+          isOpen: true,
+          type: "error",
+          message:
+            err.response?.data?.message ||
             "Không thể tạo nhiệm vụ. Vui lòng kiểm tra lại kết nối.",
-        );
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -825,7 +872,10 @@ export default function MissionsManagement() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleToggleStatus(mission.id || mission.missionId)
+                            handleToggleStatus(
+                              mission.id || mission.missionId,
+                              mission.isActive,
+                            )
                           }
                           className="mission-table-pill-btn"
                           style={{
@@ -2097,6 +2147,44 @@ export default function MissionsManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Dialog Thông báo (Success / Error) */}
+      {dialogInfo.isOpen && (
+        <div className="common-dialog-overlay">
+          <div
+            className={`common-dialog-container ${
+              dialogInfo.type === "success"
+                ? "common-dialog-success"
+                : "common-dialog-error"
+            }`}
+          >
+            {/* Vòng tròn chứa Icon */}
+            <div className="common-dialog-icon">
+              {dialogInfo.type === "success" ? (
+                <CheckCircle className="w-8 h-8" />
+              ) : (
+                <AlertCircle className="w-8 h-8" />
+              )}
+            </div>
+
+            {/* Tiêu đề biểu mẫu thông báo */}
+            <h3 className="common-dialog-title">
+              {dialogInfo.type === "success" ? "Thành công" : "Thất bại"}
+            </h3>
+
+            {/* Nội dung thông báo phản hồi từ hệ thống */}
+            <p className="common-dialog-message">{dialogInfo.message}</p>
+
+            {/* Nút bấm hành động duy nhất để đóng */}
+            <button
+              type="button"
+              className="common-dialog-btn"
+              onClick={() => setDialogInfo({ ...dialogInfo, isOpen: false })}
+            >
+              Đóng
+            </button>
           </div>
         </div>
       )}

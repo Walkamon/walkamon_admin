@@ -19,4 +19,11 @@ export const missionApi = {
   getOverallMissionDetail: (missionId) => {
     return axiosClient.get(`/api/admin/missions/overall/${missionId}`);
   },
+
+changeMissionStatus: (missionId, newStatus) => {
+    return axiosClient.patch(`/api/admin/missions/overall/${missionId}/status`, {
+      isActive: newStatus,
+      status: newStatus
+    });
+  },
 };
