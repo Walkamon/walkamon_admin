@@ -120,6 +120,10 @@ export default function MissionsManagement() {
     message: "",
   });
 
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateForm, setUpdateForm] = useState(null);
+  const [currentUpdateMissionId, setCurrentUpdateMissionId] = useState(null);
+
   const fetchOverallData = async (tab = activeTab) => {
     try {
       setIsLoading(true);
@@ -314,6 +318,167 @@ export default function MissionsManagement() {
         "Giá trị mục tiêu điều kiện mở khóa phải lớn hơn 0.";
 
     return errors;
+  };
+
+  const handleEdit = async (mission) => {
+    setFormErrors({});
+    setError(null);
+    try {
+      const response = await missionApi.getOverallMissionDetail(
+        mission.missionId || mission.id,
+      );
+      const detail = response?.data?.data || response?.data || response;
+
+      const formState = {
+        title: detail.title || "",
+        description: detail.description || "",
+        missionTypeCode: detail.missionTypeCode || "",
+        isActive: detail.isActive !== undefined ? detail.isActive : true,
+        walletAmount: detail.walletAmount || "",
+        // Ép mảng an toàn tuyệt đối chống lỗi map()
+        rewardItemList: Array.isArray(detail.rewardItems)
+          ? detail.rewardItems.map((item) => ({
+              itemId: item.itemId,
+              quantity: item.quantity,
+              itemName: item.itemName,
+            }))
+          : [],
+        completionConditionCode:
+          detail.completionConditions?.[0]?.conditionCode || "",
+        completionTargetValue:
+          detail.completionConditions?.[0]?.targetValue || "",
+        assignmentConditionCode:
+          detail.assignmentConditions?.[0]?.conditionCode || "",
+        assignmentTargetValue:
+          detail.assignmentConditions?.[0]?.targetValue || "",
+      };
+
+      setUpdateForm(formState);
+      setCurrentUpdateMissionId(
+        detail.missionId || mission.missionId || mission.id,
+      );
+      setShowUpdateModal(true);
+    } catch (err) {
+      console.error("Lỗi khi tải dữ liệu sửa nhiệm vụ:", err);
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message: "Không thể tải thông tin chi tiết nhiệm vụ để sửa.",
+      });
+    }
+  };
+
+  const setUpdateField = (field, value) => {
+    setUpdateForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleUpdateOverallMission = async (e) => {
+    e.preventDefault();
+    const errors = {};
+    const walletAmount = Number(updateForm.walletAmount || 0);
+    const completionTarget = Number(updateForm.completionTargetValue || 0);
+    const assignmentTarget = Number(updateForm.assignmentTargetValue || 0);
+    const hasAssignment =
+      updateForm.assignmentConditionCode ||
+      updateForm.assignmentTargetValue !== "";
+
+    // Validate
+    if (!(updateForm.title || "").trim())
+      errors.title = "Vui lòng nhập tên nhiệm vụ.";
+    if (!(updateForm.missionTypeCode || "").trim())
+      errors.missionTypeCode = "Vui lòng chọn loại nhiệm vụ.";
+    if (walletAmount < 0)
+      errors.walletAmount = "Tiền thưởng Giọt Sương không được nhỏ hơn 0.";
+
+    (updateForm.rewardItemList || []).forEach((item, index) => {
+      if (!item.itemId)
+        errors[`rewardItem_${index}_id`] = "Vui lòng chọn vật phẩm.";
+      if (!item.quantity || Number(item.quantity) <= 0)
+        errors[`rewardItem_${index}_qty`] = "Số lượng phải > 0.";
+    });
+
+    if (!(updateForm.completionConditionCode || "").trim())
+      errors.completionConditionCode = "Vui lòng chọn điều kiện hoàn thành.";
+    if (completionTarget <= 0)
+      errors.completionTargetValue =
+        "Giá trị mục tiêu hoàn thành phải lớn hơn 0.";
+    if (hasAssignment && !(updateForm.assignmentConditionCode || "").trim())
+      errors.assignmentConditionCode =
+        "Vui lòng chọn điều kiện mở khóa nhiệm vụ.";
+    if (hasAssignment && assignmentTarget <= 0)
+      errors.assignmentTargetValue =
+        "Giá trị mục tiêu điều kiện mở khóa phải lớn hơn 0.";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    // 1. Tạo mảng completionConditions
+    const completionConditions = [
+      {
+        conditionCode: (updateForm.completionConditionCode || "").trim(),
+        targetValue: completionTarget,
+        referenceMissionId: null, // Hoặc string UUID nếu có
+      },
+    ];
+
+    // 2. Tạo mảng assignmentConditions (nếu có chọn)
+    const assignmentConditions = [];
+    if (updateForm.assignmentConditionCode) {
+      assignmentConditions.push({
+        conditionCode: (updateForm.assignmentConditionCode || "").trim(),
+        targetValue: assignmentTarget,
+        referenceMissionId: null, // Hoặc string UUID nếu có
+      });
+    }
+
+    // 3. Tạo mảng rewardItems
+    const rewardItemsPayload = (updateForm.rewardItemList || []).map(
+      (item) => ({
+        itemId: item.itemId,
+        quantity: Number(item.quantity),
+      }),
+    );
+
+    // PAYLOAD PUT CHUẨN
+    const payload = {
+      title: (updateForm.title || "").trim(),
+      description: (updateForm.description || "").trim(),
+      missionTypeCode: (updateForm.missionTypeCode || "").trim(),
+      isActive: updateForm.isActive,
+      walletAmount: walletAmount,
+      rewardItems: rewardItemsPayload,
+      completionConditions: completionConditions,
+      assignmentConditions: assignmentConditions,
+    };
+
+    try {
+      setIsSubmitting(true);
+      setFormErrors({});
+      await missionApi.updateOverallMission(currentUpdateMissionId, payload);
+      setDialogInfo({
+        isOpen: true,
+        type: "success",
+        message: "Cập nhật nhiệm vụ thành công.",
+      });
+      setShowUpdateModal(false);
+      setUpdateForm(null);
+      setCurrentUpdateMissionId(null);
+      await fetchOverallData(); // Load lại data table
+    } catch (err) {
+      console.error(err);
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message:
+          err.response?.data?.message ||
+          "Không thể cập nhật nhiệm vụ. Vui lòng thử lại.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToggleStatus = async (missionId, currentStatus) => {
@@ -938,6 +1103,418 @@ export default function MissionsManagement() {
           />
         </div>
       </div>
+
+      {/* ===== DIALOG CẬP NHẬT NHIỆM VỤ (FIX DROPDOWN BỊ ẨN DO OVERFLOW) ===== */}
+      {showUpdateModal && updateForm && (
+        <div
+          className="common-dialog-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowUpdateModal(false);
+          }}
+        >
+          <div
+            className="common-dialog-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mission-dialog-header">
+              <h2 className="mission-dialog-title">
+                Cập nhật thông tin nhiệm vụ
+              </h2>
+              <button
+                type="button"
+                className="mission-dialog-close"
+                onClick={() => setShowUpdateModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              className="mission-dialog-form"
+              onSubmit={handleUpdateOverallMission}
+            >
+              <div
+                className="mission-dialog-body"
+                style={{ overflow: "visible" }}
+              >
+                {" "}
+                {/* Bẻ khóa overflow tạm thời để dropdown bung ra ngoài tự do */}
+                <div className="mission-form-layout-wrapper">
+                  {/* KHỐI GRID CHIA TÊN/MÔ TẢ VÀ LOẠI/TIỀN */}
+                  <div className="mission-form-grid-two-thirds">
+                    {/* Cột trái: Tên & Mô tả */}
+                    <div className="mission-form-column-main">
+                      <div className="mission-form-group">
+                        <label className="mission-form-label">
+                          Tên nhiệm vụ <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`mission-form-input ${formErrors.title ? "error" : ""}`}
+                          value={updateForm.title || ""}
+                          onChange={(e) =>
+                            setUpdateField("title", e.target.value)
+                          }
+                          placeholder="Nhập tên nhiệm vụ..."
+                        />
+                        {formErrors.title && (
+                          <span className="mission-form-error">
+                            {formErrors.title}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mission-form-group">
+                        <label className="mission-form-label">
+                          Mô tả nhiệm vụ
+                        </label>
+                        <textarea
+                          className="mission-form-textarea"
+                          value={updateForm.description || ""}
+                          onChange={(e) =>
+                            setUpdateField("description", e.target.value)
+                          }
+                          placeholder="Nhập nội dung hướng dẫn..."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Cột phải: Loại & Phần thưởng */}
+                    <div className="mission-form-column-side">
+                      <div className="mission-form-group">
+                        <label className="mission-form-label">
+                          Loại nhiệm vụ <span className="text-red-500">*</span>
+                        </label>
+                        <div style={{ position: "relative", zIndex: 50 }}>
+                          <CustomSelect
+                            options={[
+                              {
+                                value: "overall",
+                                label: "Nhiệm vụ Tổng",
+                              },
+                              {
+                                value: "daily",
+                                label: "Nhiệm vụ Ngày",
+                              },
+                            ]}
+                            value={updateForm.missionTypeCode || ""}
+                            valueKey="value"
+                            onChange={(val) =>
+                              setUpdateField("missionTypeCode", val)
+                            }
+                            placeholder="Chọn loại nhiệm vụ"
+                            error={formErrors.missionTypeCode}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mission-form-group">
+                        <label className="mission-form-label">
+                          Phần thưởng Giọt Sương
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Droplets className="h-5 w-5 text-sky-500" />
+                          </div>
+                          <input
+                            type="number"
+                            className={`mission-form-input pl-10 ${formErrors.walletAmount ? "error" : ""}`}
+                            value={
+                              updateForm.walletAmount !== undefined
+                                ? updateForm.walletAmount
+                                : ""
+                            }
+                            onChange={(e) =>
+                              setUpdateField("walletAmount", e.target.value)
+                            }
+                            placeholder="Số lượng..."
+                            min="0"
+                          />
+                        </div>
+                        {formErrors.walletAmount && (
+                          <span className="mission-form-error">
+                            {formErrors.walletAmount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VẬT PHẨM PHẦN THƯỞNG KÈM THEO */}
+                  <div className="mission-form-group">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="mission-form-label mb-0">
+                        Vật phẩm phần thưởng kèm theo
+                      </label>
+                      <button
+                        type="button"
+                        className="text-sm text-sky-600 hover:text-sky-700 flex items-center gap-1 font-medium bg-transparent border-none cursor-pointer"
+                        onClick={() => {
+                          const currentItems = Array.isArray(
+                            updateForm.rewardItemList,
+                          )
+                            ? updateForm.rewardItemList
+                            : [];
+                          setUpdateField("rewardItemList", [
+                            ...currentItems,
+                            { itemId: "", quantity: 1 },
+                          ]);
+                        }}
+                      >
+                        <Plus className="w-4 h-4" /> Thêm quà tặng
+                      </button>
+                    </div>
+
+                    {!updateForm.rewardItemList ||
+                    !Array.isArray(updateForm.rewardItemList) ||
+                    updateForm.rewardItemList.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-lg border border-dashed text-center m-0">
+                        Chưa cấu hình vật phẩm quà tặng kèm theo cho nhiệm vụ
+                        này.
+                      </p>
+                    ) : (
+                      <div
+                        className="space-y-3"
+                        style={{ overflow: "visible" }}
+                      >
+                        {updateForm.rewardItemList.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex gap-3 items-center bg-gray-50 p-2 rounded-lg border"
+                            style={{ overflow: "visible" }}
+                          >
+                            {/* Bọc relative cấp cao z-index tăng dần để không bị đè lên nhau */}
+                            <div
+                              className="flex-1"
+                              style={{
+                                position: "relative",
+                                zIndex: 40 - index,
+                              }}
+                            >
+                              <CustomSelect
+                                options={rewardItems || []}
+                                value={item.itemId || ""}
+                                valueKey="itemId"
+                                labelKey="itemName"
+                                onChange={(val) => {
+                                  const newList = [
+                                    ...updateForm.rewardItemList,
+                                  ];
+                                  newList[index].itemId = val;
+                                  setUpdateField("rewardItemList", newList);
+                                }}
+                                placeholder="Chọn vật phẩm"
+                                error={formErrors[`rewardItem_${index}_id`]}
+                              />
+                            </div>
+
+                            <div className="w-32">
+                              <input
+                                type="number"
+                                className={`mission-form-input ${formErrors[`rewardItem_${index}_qty`] ? "error" : ""}`}
+                                value={
+                                  item.quantity !== undefined
+                                    ? item.quantity
+                                    : 1
+                                }
+                                onChange={(e) => {
+                                  const newList = [
+                                    ...updateForm.rewardItemList,
+                                  ];
+                                  newList[index].quantity = e.target.value;
+                                  setUpdateField("rewardItemList", newList);
+                                }}
+                                placeholder="Số lượng"
+                                min="1"
+                              />
+                              {formErrors[`rewardItem_${index}_qty`] && (
+                                <span className="mission-form-error">
+                                  {formErrors[`rewardItem_${index}_qty`]}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded border-none bg-transparent cursor-pointer"
+                              onClick={() => {
+                                const newList =
+                                  updateForm.rewardItemList.filter(
+                                    (_, i) => i !== index,
+                                  );
+                                setUpdateField("rewardItemList", newList);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* KHỐI HAI ĐIỀU KIỆN FIELDSET */}
+                  <div
+                    className="mission-fieldset-row"
+                    style={{ overflow: "visible" }}
+                  >
+                    {/* Điều kiện hoàn thành */}
+                    <fieldset
+                      className="mission-fieldset completion"
+                      style={{ overflow: "visible" }}
+                    >
+                      <legend className="mission-legend">
+                        <Package className="w-4 h-4 text-sky-600" /> Điều kiện
+                        hoàn thành mục tiêu{" "}
+                        <span className="text-red-500">*</span>
+                      </legend>
+                      <div
+                        className="mission-fieldset-inner"
+                        style={{ overflow: "visible" }}
+                      >
+                        <div
+                          className="mission-form-group flex-1"
+                          style={{ position: "relative", zIndex: 20 }}
+                        >
+                          <label className="mission-form-label">
+                            Loại điều kiện thực hiện
+                          </label>
+                          <CustomSelect
+                            options={conditionCodes || []}
+                            value={updateForm.completionConditionCode || ""}
+                            valueKey="code"
+                            labelKey="label"
+                            onChange={(val) =>
+                              setUpdateField("completionConditionCode", val)
+                            }
+                            placeholder="Chọn điều kiện"
+                            error={formErrors.completionConditionCode}
+                          />
+                        </div>
+                        <div className="mission-form-group flex-1">
+                          <label className="mission-form-label">
+                            Giá trị mục tiêu
+                          </label>
+                          <input
+                            type="number"
+                            className={`mission-form-input ${formErrors.completionTargetValue ? "error" : ""}`}
+                            value={
+                              updateForm.completionTargetValue !== undefined
+                                ? updateForm.completionTargetValue
+                                : ""
+                            }
+                            onChange={(e) =>
+                              setUpdateField(
+                                "completionTargetValue",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Ví dụ: 5000..."
+                            min="1"
+                          />
+                          {formErrors.completionTargetValue && (
+                            <span className="mission-form-error">
+                              {formErrors.completionTargetValue}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    {/* Điều kiện mở khóa */}
+                    <fieldset
+                      className="mission-fieldset assignment"
+                      style={{ overflow: "visible" }}
+                    >
+                      <legend className="mission-legend">
+                        <AlertCircle className="w-4 h-4 text-amber-600" /> Điều
+                        kiện mở khóa (Tùy chọn)
+                      </legend>
+                      <div
+                        className="mission-fieldset-inner"
+                        style={{ overflow: "visible" }}
+                      >
+                        <div
+                          className="mission-form-group flex-1"
+                          style={{ position: "relative", zIndex: 20 }}
+                        >
+                          <label className="mission-form-label">
+                            Loại điều kiện mở khóa
+                          </label>
+                          <CustomSelect
+                            options={[
+                              { code: "", label: "MẶC ĐỊNH MỞ KHOÁ" },
+                              ...(conditionCodes || []),
+                            ]}
+                            value={updateForm.assignmentConditionCode || ""}
+                            valueKey="code"
+                            labelKey="label"
+                            onChange={(val) => {
+                              setUpdateField("assignmentConditionCode", val);
+                              if (!val)
+                                setUpdateField("assignmentTargetValue", "");
+                            }}
+                            placeholder="Chọn điều kiện mở khóa"
+                            error={formErrors.assignmentConditionCode}
+                          />
+                        </div>
+                        <div className="mission-form-group flex-1">
+                          <label className="mission-form-label">
+                            Giá trị mở khóa
+                          </label>
+                          <input
+                            type="number"
+                            className={`mission-form-input ${formErrors.assignmentTargetValue ? "error" : ""}`}
+                            value={
+                              updateForm.assignmentTargetValue !== undefined
+                                ? updateForm.assignmentTargetValue
+                                : ""
+                            }
+                            onChange={(e) =>
+                              setUpdateField(
+                                "assignmentTargetValue",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Ví dụ: 10..."
+                            disabled={!updateForm.assignmentConditionCode}
+                            min="1"
+                          />
+                          {formErrors.assignmentTargetValue && (
+                            <span className="mission-form-error">
+                              {formErrors.assignmentTargetValue}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mission-dialog-footer">
+                <button
+                  type="button"
+                  className="mission-btn-secondary"
+                  onClick={() => setShowUpdateModal(false)}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="mission-btn-primary"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Cập nhật nhiệm vụ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showDetailModal && selectedDetail && (
         <div

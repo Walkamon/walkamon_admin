@@ -749,3 +749,55 @@
 .mission-table-pill-btn:active {
     transform: translateY(0);
 }
+
+/* ==========================================================================
+   FIX TRIỆT ĐỂ LỖI DROPDOWN KHÔNG HIỂN THỊ TRÊN MODAL UPDATE MISSION
+   ========================================================================== */
+
+/* Ép body của form update không được ẩn các thành phần con tràn ra ngoài */
+.mission-dialog-body.mission-update-dialog-body {
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    max-height: none !important;
+}
+
+/* Đảm bảo container chính của modal cho phép dropdown bung tự do */
+.common-dialog-container.mission-update-modal-container {
+    overflow: visible !important;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ép khối bọc select có thứ tự hiển thị cao hơn */
+.mission-custom-select-wrapper-z50 {
+    position: relative !important;
+    z-index: 99 !important;
+}
+
+.mission-custom-select-wrapper-item {
+    position: relative !important;
+}
+
+.mission-custom-select-wrapper-z20 {
+    position: relative !important;
+    z-index: 20 !important;
+}
+
+/* Đảm bảo các hàng danh sách vật phẩm phần thưởng không nuốt dropdown */
+.mission-reward-list-scroll-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: visible !important;
+}
+
+.mission-reward-item-row {
+    overflow: visible !important;
+}
+
+.mission-fieldset-row-container {
+    display: flex;
+    gap: 1.5rem;
+    overflow: visible !important;
+}
+

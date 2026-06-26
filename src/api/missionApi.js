@@ -26,4 +26,8 @@ changeMissionStatus: (missionId, newStatus) => {
       status: newStatus
     });
   },
+
+  updateOverallMission: (missionId, data) => {
+    return axiosClient.put(`/api/admin/missions/overall/${missionId}`, data);
+  },
 };
