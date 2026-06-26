@@ -435,6 +435,7 @@ export function ShopPage() {
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingShopItemId, setTogglingShopItemId] = useState(null);
   const navigate = useNavigate();
 
   const showDialog = (message, type = "success") => {
@@ -605,47 +606,39 @@ export function ShopPage() {
     }
   };
 
+  const handleToggleShopItemStatus = async (item) => {
+    const shopItemId = pickField(item, "shopItemId", "ShopItemId");
+
+    if (!shopItemId || togglingShopItemId) return;
+
+    setTogglingShopItemId(shopItemId);
+    try {
+      await shopApi.toggleStatus(shopItemId);
+      await fetchData();
+      showDialog(
+        item.isActive ? "Đã vô hiệu hóa shop item." : "Kích hoạt shop item thành công!",
+        "success",
+      );
+    } catch (err) {
+      showDialog(getErrorMessage(err, "Không thể thay đổi trạng thái shop item."), "error");
+    } finally {
+      setTogglingShopItemId(null);
+    }
+  };
+
   const handleDeactivate = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await shopApi.remove(deleteTarget.shopItemId);
-      setShopItems((prev) =>
-        prev.map((item) =>
-          item.shopItemId === deleteTarget.shopItemId ? { ...item, isActive: false } : item,
-        ),
-      );
+      await handleToggleShopItemStatus(deleteTarget);
       setDeleteTarget(null);
-      showDialog("Đã vô hiệu hóa shop item.", "success");
-    } catch (err) {
-      showDialog(getErrorMessage(err, "Không thể vô hiệu hóa shop item."), "error");
     } finally {
       setDeleting(false);
     }
   };
 
   const handleActivate = async (item) => {
-    const itemInfo =
-      getLinkedItem(item, itemLookup) ??
-      itemNameLookup.get(normalizeId(pickField(item, "itemName", "ItemName")));
-    const itemId = pickField(item, "itemId", "ItemId") ?? pickField(itemInfo, "itemId", "ItemId");
-    const shopItemId = pickField(item, "shopItemId", "ShopItemId");
-
-    if (!itemId) {
-      showDialog("Không thể kích hoạt vì thiếu mã vật phẩm.", "error");
-      return;
-    }
-
-    try {
-      await shopApi.activate(shopItemId, {
-        itemId,
-        priceAmount: item.priceAmount,
-      });
-      await fetchData();
-      showDialog("Kích hoạt shop item thành công!", "success");
-    } catch (err) {
-      showDialog(getErrorMessage(err, "Không thể kích hoạt shop item."), "error");
-    }
+    await handleToggleShopItemStatus(item);
   };
 
   const handleOpenDetail = async (item) => {
@@ -674,9 +667,10 @@ export function ShopPage() {
   const handleToggleStatus = (item) => {
     if (item.isActive) {
       setDeleteTarget(item);
-    } else {
-      handleActivate(item);
+      return;
     }
+
+    handleActivate(item);
   };
 
   function getErrorMessage(error, fallback = "Có lỗi xảy ra.") {
@@ -895,7 +889,7 @@ export function ShopPage() {
                 const imageSrc = getItemImage(item, itemInfo);
                 const itemName = pickField(item, "itemName", "ItemName") ?? itemInfo?.itemName ?? "-";
                 const itemTypeName = getItemTypeName(item, itemInfo);
-                const isActive = Boolean(item.isActive);
+                const isActive = item.isActive === true;
                 const toggleClass = isActive
                   ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
                   : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white";
@@ -965,9 +959,16 @@ export function ShopPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item)}
+                          disabled={togglingShopItemId === item.shopItemId}
                           className={`py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap ${toggleClass}`}
                         >
-                          {isActive ? <Trash2 className="w-3 h-3 shrink-0" /> : <CheckCircle className="w-3 h-3 shrink-0" />}
+                          {togglingShopItemId === item.shopItemId ? (
+                            <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
+                          ) : isActive ? (
+                            <Trash2 className="w-3 h-3 shrink-0" />
+                          ) : (
+                            <CheckCircle className="w-3 h-3 shrink-0" />
+                          )}
                           <span>{isActive ? "Vô hiệu hóa" : "Kích hoạt"}</span>
                         </button>
                       </div>
