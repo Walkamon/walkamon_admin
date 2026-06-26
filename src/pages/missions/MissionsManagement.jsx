@@ -111,6 +111,15 @@ export default function MissionsManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState(null);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+  const [dialogInfo, setDialogInfo] = useState({
+    isOpen: false,
+    type: "success", // 'success' hoặc 'error'
+    message: "",
+  });
+
   const fetchOverallData = async (tab = activeTab) => {
     try {
       setIsLoading(true);
@@ -307,6 +316,60 @@ export default function MissionsManagement() {
     return errors;
   };
 
+  const handleToggleStatus = async (missionId, currentStatus) => {
+    try {
+      const newStatus = !currentStatus; // Đảo ngược trạng thái hiện tại
+
+      // 1. Gọi API gửi trạng thái mới lên
+      await missionApi.changeMissionStatus(missionId, newStatus);
+
+      // 2. CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Không cần đợi fetch)
+      setMissions((prevMissions) =>
+        prevMissions.map((m) =>
+          m.missionId === missionId || m.id === missionId
+            ? { ...m, isActive: newStatus }
+            : m,
+        ),
+      );
+
+      // 3. Hiện popup thành công
+      setDialogInfo({
+        isOpen: true,
+        type: "success",
+        message: `Đã ${newStatus ? "kích hoạt" : "vô hiệu hóa"} nhiệm vụ thành công!`,
+      });
+
+      // 4. Vẫn gọi lại fetchOverallData ngầm để đảm bảo đồng bộ hoàn toàn với server
+      fetchOverallData();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái nhiệm vụ:", err);
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message: "Không thể cập nhật trạng thái nhiệm vụ. Vui lòng thử lại.",
+      });
+    }
+  };
+
+  const handleRowClick = async (missionId) => {
+    try {
+      setIsFetchingDetail(true);
+      // Gọi API GET chi tiết
+      const response = await missionApi.getOverallMissionDetail(missionId);
+      const detailData = response?.data?.data || response?.data || response;
+
+      if (detailData) {
+        setSelectedDetail(detailData);
+        setShowDetailModal(true);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết nhiệm vụ:", err);
+      setError("Không thể tải thông tin chi tiết nhiệm vụ. Vui lòng thử lại.");
+    } finally {
+      setIsFetchingDetail(false);
+    }
+  };
+
   const handleCreateOverallMission = async (e) => {
     e.preventDefault();
     const errors = validateOverallMission();
@@ -356,7 +419,11 @@ export default function MissionsManagement() {
       setIsSubmitting(true);
       setFormErrors({});
       await missionApi.createOverallMission(payload);
-      setSuccessMessage("Tạo nhiệm vụ thành công!");
+      setDialogInfo({
+        isOpen: true,
+        type: "success",
+        message: "Chúc mừng! Bạn đã tạo nhiệm vụ mới thành công.",
+      });
       setShowCreateModal(false);
       setCreateForm({
         ...emptyOverallMissionForm,
@@ -377,10 +444,13 @@ export default function MissionsManagement() {
         });
         setFormErrors(nextErrors);
       } else {
-        setError(
-          err.response?.data?.message ||
+        setDialogInfo({
+          isOpen: true,
+          type: "error",
+          message:
+            err.response?.data?.message ||
             "Không thể tạo nhiệm vụ. Vui lòng kiểm tra lại kết nối.",
-        );
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -580,7 +650,11 @@ export default function MissionsManagement() {
                 />
               ) : (
                 currentMissions.map((mission) => (
-                  <tr key={mission.missionId}>
+                  <tr
+                    key={mission.missionId}
+                    onClick={() => handleRowClick(mission.missionId)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td className="align-middle">
                       <div className="mission-item-title">{mission.title}</div>
                       <div className="mission-item-id">
@@ -756,6 +830,7 @@ export default function MissionsManagement() {
                     <td
                       className="align-middle text-left"
                       style={{ paddingLeft: "8px" }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <div
                         className="flex items-center justify-start"
@@ -797,7 +872,10 @@ export default function MissionsManagement() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleToggleStatus(mission.id || mission.missionId)
+                            handleToggleStatus(
+                              mission.id || mission.missionId,
+                              mission.isActive,
+                            )
                           }
                           className="mission-table-pill-btn"
                           style={{
@@ -860,6 +938,663 @@ export default function MissionsManagement() {
           />
         </div>
       </div>
+
+      {showDetailModal && selectedDetail && (
+        <div
+          className="mission-modal-overlay"
+          onClick={() => setShowDetailModal(false)}
+        >
+          <div
+            className="mission-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "850px", width: "100%" }}
+          >
+            {/* 1. MODAL HEADER */}
+            <div
+              className="mission-modal-header"
+              style={{
+                padding: "1.25rem 1.5rem",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: 700,
+                    color: "var(--foreground)",
+                    margin: 0,
+                  }}
+                >
+                  Hồ Sơ Chi Tiết Nhiệm Vụ
+                </h2>
+                <p
+                  className="mission-subtitle"
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "0.8125rem",
+                    color: "var(--muted-foreground)",
+                  }}
+                >
+                  Mã định danh:{" "}
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      color: "var(--accent)", // Màu cam đất Terracotta đặc trưng
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedDetail.missionId}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                className="mission-modal-close"
+                onClick={() => setShowDetailModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 2. MODAL BODY */}
+            <div
+              style={{
+                padding: "1.5rem",
+                overflowY: "auto",
+                maxHeight: "calc(90vh - 130px)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+                gap: "1.5rem",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              {/* ================= CỘT TRÁI: THÔNG TIN CỐT LÕI ================= */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                }}
+              >
+                {/* Box Thẻ: Tên & Mô tả */}
+                <div
+                  style={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color: "var(--muted-foreground)",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    TÊN NHIỆM VỤ
+                  </span>
+                  <h3
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color: "var(--primary)",
+                      margin: "4px 0 12px 0",
+                      lineHeight: "1.4",
+                    }}
+                  >
+                    {selectedDetail.title}
+                  </h3>
+
+                  <div
+                    style={{
+                      height: "1px",
+                      backgroundColor: "var(--border)",
+                      margin: "12px 0",
+                    }}
+                  ></div>
+
+                  <span
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color: "var(--muted-foreground)",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    MÔ TẢ CHI TIẾT
+                  </span>
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "var(--muted-foreground)",
+                      margin: "6px 0 0 0",
+                      lineHeight: "1.5",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {selectedDetail.description ||
+                      "Nhiệm vụ này hiện chưa cấu hình nội dung mô tả chi tiết."}
+                  </p>
+                </div>
+
+                {/* Box Thẻ: Phân loại thuộc tính nhanh */}
+                <div
+                  style={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1rem",
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color: "var(--muted-foreground)",
+                        display: "block",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      LOẠI NHIỆM VỤ
+                    </span>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        borderRadius: "6px",
+                        fontSize: "0.8125rem",
+                      }}
+                    >
+                      {selectedDetail.missionTypeCode === "daily"
+                        ? "Nhiệm vụ Ngày"
+                        : "Nhiệm vụ Tổng"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color: "var(--muted-foreground)",
+                        display: "block",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      TRẠNG THÁI HỆ THỐNG
+                    </span>
+                    {selectedDetail.isActive ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 12px",
+                          borderRadius: "6px",
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
+                          backgroundColor: "rgba(118, 160, 132, 0.12)", // Đồng bộ hóa với tone nền xanh lá dịu
+                          color: "var(--foreground)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            backgroundColor: "var(--primary)", // Chấm tròn xanh Sage mộc mạc thay vì xanh neon gắt
+                          }}
+                        ></span>{" "}
+                        Đang kích hoạt
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 12px",
+                          borderRadius: "6px",
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
+                          backgroundColor: "rgba(220, 107, 107, 0.12)", // Sử dụng màu --destructive pastel nhạt
+                          color: "var(--destructive)", // Màu đỏ gạch nhã nhặn cấu hình sẵn trong theme
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            backgroundColor: "var(--destructive)",
+                          }}
+                        ></span>{" "}
+                        Chưa kích hoạt
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ================= CỘT PHẢI: QUY TẮC & PHẦN THƯỞNG ================= */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                }}
+              >
+                {/* Box Thẻ: Các quy tắc điều kiện cấu hình */}
+                <div
+                  style={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.25rem",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color: "var(--muted-foreground)",
+                      margin: 0,
+                      borderBottom: "1px solid var(--border)",
+                      paddingBottom: "8px",
+                    }}
+                  >
+                    TIÊU CHÍ VÀ ĐIỀU KIỆN
+                  </h4>
+
+                  {/* 1. Điều kiện mở khóa */}
+                  <div>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        color: "var(--muted-foreground)",
+                        display: "block",
+                        marginBottom: "8px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      1. ĐIỀU KIỆN MỞ KHÓA
+                    </span>
+
+                    {selectedDetail.assignmentConditions &&
+                    selectedDetail.assignmentConditions.length > 0 ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
+                        }}
+                      >
+                        {selectedDetail.assignmentConditions.map(
+                          (cond, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "6px 0 6px 12px", // Thêm padding trái để đẩy chữ ra khỏi thanh viền
+                                borderLeft: "3px solid var(--primary)", // Thanh dọc bên trái giúp dòng chữ nổi bật, không bị chìm
+                                borderBottom: "1px solid var(--border)", // Đường gạch đáy mờ mảnh
+                              }}
+                            >
+                              {/* Tên điều kiện */}
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600, // Tăng độ đậm để chữ sắc nét hơn
+                                  color: "var(--foreground)", // Sử dụng màu chữ đậm nhất của theme
+                                }}
+                              >
+                                {METRIC_TRANSLATIONS[cond.conditionCode] ||
+                                  cond.conditionCode}
+                              </span>
+
+                              {/* Số liệu / Data mục tiêu */}
+                              <span
+                                style={{
+                                  fontSize: "1rem", // Đẩy hẳn lên cỡ 16px cho rõ ràng
+                                  fontWeight: 800, // Độ đậm tối đa
+                                  color: "var(--foreground)", // Ép về màu đậm, đập ngay vào mắt người nhìn
+                                }}
+                              >
+                                {cond.targetValue?.toLocaleString()}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    ) : (
+                      /* Trạng thái trống */
+                      <div
+                        style={{
+                          fontSize: "0.8125rem",
+                          color: "var(--muted-foreground)",
+                          fontStyle: "italic",
+                          padding: "6px 0 6px 12px",
+                          borderLeft: "3px dashed var(--border)",
+                        }}
+                      >
+                        Mở khóa tự động (Không yêu cầu điều kiện)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. Tiêu chí hoàn thành */}
+                  <div>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        color: "var(--muted-foreground)",
+                        display: "block",
+                        marginBottom: "8px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      2. TIÊU CHÍ HOÀN THÀNH
+                    </span>
+
+                    {selectedDetail.completionConditions &&
+                    selectedDetail.completionConditions.length > 0 ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
+                        }}
+                      >
+                        {selectedDetail.completionConditions.map(
+                          (cond, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "6px 0 6px 12px", // Đẩy chữ ra khỏi thanh viền dọc bên trái
+                                borderLeft: "3px solid var(--primary)", // Thanh viền dọc màu xanh lá làm điểm nhấn nổi bật dòng chữ
+                                borderBottom: "1px solid var(--border)", // Đường gạch đáy mờ mảnh định hình dòng
+                              }}
+                            >
+                              {/* Tên tiêu chí hoàn thành */}
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600, // Tăng độ đậm để chữ sắc nét
+                                  color: "var(--primary)", // Sử dụng tông màu olive đậm nhất của hệ thống
+                                }}
+                              >
+                                {METRIC_TRANSLATIONS[cond.conditionCode] ||
+                                  cond.conditionCode}
+                              </span>
+
+                              {/* Số liệu / Data mục tiêu */}
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600,
+                                  color: "var(--foreground)", // Tránh bị chìm trên nền trơn
+                                }}
+                              >
+                                {cond.targetValue?.toLocaleString()}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    ) : (
+                      /* Trạng thái trống */
+                      <div
+                        style={{
+                          fontSize: "0.8125rem",
+                          color: "var(--muted-foreground)",
+                          fontStyle: "italic",
+                          padding: "6px 0 6px 12px",
+                          borderLeft: "3px dashed var(--border)", // Viền nét đứt nhẹ nhàng cho trạng thái trống
+                        }}
+                      >
+                        Chưa thiết lập mục tiêu đạt.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Box Thẻ: Giá trị phần thưởng quy đổi */}
+                <div
+                  style={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color: "var(--muted-foreground)",
+                      margin: 0,
+                      borderBottom: "1px solid var(--border)",
+                      paddingBottom: "8px",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    PHẦN THƯỞNG KHI HOÀN THÀNH
+                  </h4>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0", // Tạo khoảng cách thông thoáng giữa Khối Giọt Sương và Khối Vật Phẩm
+                      marginTop: "12px",
+                    }}
+                  >
+                    {/* 1. Thưởng Giọt Sương */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        padding: "4px 0 12px 12px", // paddingBottom: 12px để giãn cách với border dưới
+                        borderLeft: "3px solid var(--primary)",
+                        borderBottom: "1px solid var(--border)",
+                        marginBottom: "12px", // Đẩy khối vật phẩm bên dưới xuống
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          color: "var(--primary)",
+                          display: "block",
+                          letterSpacing: "0.05em",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        GIỌT SƯƠNG CẤP PHÁT
+                      </span>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          fontSize: "0.875rem",
+                          color: "var(--primary)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Droplets
+                            size={16}
+                            style={{ color: "var(--primary)" }}
+                          />
+                          <span>Giọt sương cơ bản</span>
+                        </div>
+                        {/* Số lượng hiển thị siêu rõ */}
+                        <span
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            color: "var(--foreground)",
+                          }}
+                        >
+                          +{selectedDetail.walletAmount?.toLocaleString() || 0}{" "}
+                          Giọt
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Vật phẩm đi kèm */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        padding: "4px 0 4px 12px",
+                        borderLeft: "3px solid var(--accent)", // Sử dụng màu cam đất (accent) đặc trưng để phân biệt rõ với khối Giọt Sương bên trên
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          color: "var(--accent)", // Tiêu đề phụ dùng màu cam đất đặc trưng
+                          display: "block",
+                          letterSpacing: "0.05em",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        VẬT PHẨM ĐI KÈM
+                      </span>
+
+                      {selectedDetail.rewardItems &&
+                      selectedDetail.rewardItems.length > 0 ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                          }}
+                        >
+                          {selectedDetail.rewardItems.map((item, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                fontSize: "0.875rem",
+                                color: "var(--accent)",
+                                fontWeight: 600,
+                                paddingBottom: "4px",
+                                // Nếu có nhiều vật phẩm thì sẽ có đường gạch phân cách nhẹ ở giữa các dòng
+                                borderBottom:
+                                  idx !== selectedDetail.rewardItems.length - 1
+                                    ? "1px solid var(--border)"
+                                    : "none",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <Package
+                                  size={16}
+                                  style={{ color: "var(--accent)" }}
+                                />
+                                <span>{item.itemName || "Vật phẩm"}</span>
+                              </div>
+
+                              {/* Số lượng Vật phẩm (Data) hiển thị siêu rõ */}
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  fontWeight: 600,
+                                  color: "var(--foreground)",
+                                }}
+                              >
+                                x{item.quantity}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        /* Trạng thái trống */
+                        <span
+                          style={{
+                            fontSize: "0.8125rem",
+                            color: "var(--muted-foreground)",
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Nhiệm vụ này không đính kèm vật phẩm.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. MODAL FOOTER */}
+            <div
+              className="mission-modal-actions"
+              style={{
+                padding: "1rem 1.5rem",
+                borderTop: "1px solid var(--border)",
+                display: "flex",
+                justifyContent: "flex-end",
+                backgroundColor: "var(--card)",
+              }}
+            >
+              <button
+                type="button"
+                className="mission-btn-secondary"
+                onClick={() => setShowDetailModal(false)}
+                style={{
+                  width: "auto",
+                  minWidth: "130px",
+                  padding: "9px 24px",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: "1px solid var(--border)",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                Đóng cửa sổ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreateModal && (
         <div
@@ -1412,6 +2147,44 @@ export default function MissionsManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Dialog Thông báo (Success / Error) */}
+      {dialogInfo.isOpen && (
+        <div className="common-dialog-overlay">
+          <div
+            className={`common-dialog-container ${
+              dialogInfo.type === "success"
+                ? "common-dialog-success"
+                : "common-dialog-error"
+            }`}
+          >
+            {/* Vòng tròn chứa Icon */}
+            <div className="common-dialog-icon">
+              {dialogInfo.type === "success" ? (
+                <CheckCircle className="w-8 h-8" />
+              ) : (
+                <AlertCircle className="w-8 h-8" />
+              )}
+            </div>
+
+            {/* Tiêu đề biểu mẫu thông báo */}
+            <h3 className="common-dialog-title">
+              {dialogInfo.type === "success" ? "Thành công" : "Thất bại"}
+            </h3>
+
+            {/* Nội dung thông báo phản hồi từ hệ thống */}
+            <p className="common-dialog-message">{dialogInfo.message}</p>
+
+            {/* Nút bấm hành động duy nhất để đóng */}
+            <button
+              type="button"
+              className="common-dialog-btn"
+              onClick={() => setDialogInfo({ ...dialogInfo, isOpen: false })}
+            >
+              Đóng
+            </button>
           </div>
         </div>
       )}
