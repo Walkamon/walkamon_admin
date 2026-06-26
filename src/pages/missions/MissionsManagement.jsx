@@ -1,23 +1,84 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Pencil,
-  Trash2,
-  MoreVertical,
   Loader2,
   AlertCircle,
   Droplets,
-  Target,
+  Package,
+  Trash2,
+  X,
+  CheckCircle,
 } from "lucide-react";
 import { missionApi } from "../../api/missionApi";
+import { itemApi } from "../../api/itemApi";
 import "../missions/css/missionsManagement.css";
 
 import { Table, TableEmpty } from "../../components/common/table.jsx";
 import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter";
 import { Pagination } from "../../components/common/pagination.jsx";
+import CustomSelect from "../../components/common/CustomSelect";
 
 const ITEMS_PER_PAGE = 5;
+
+// Từ điển việt hóa hiển thị cho Metric Codes
+const METRIC_TRANSLATIONS = {
+  steps: "BƯỚC CHÂN",
+  feed_pet: "CHO TINH LINH GIỌT SƯƠNG",
+  mission_completed: "NHIỆM VỤ ĐÃ HOÀN THÀNH",
+  wallet_earned: "GIỌT SƯƠNG TÍCH LŨY",
+  pet_level: "CẤP TINH LINH",
+};
+
+// DỮ LIỆU BACKUP: Đảm bảo dropdown không bao giờ bị trống
+const INITIAL_CONDITION_CODES = [
+  { code: "steps", label: "BƯỚC CHÂN" },
+  { code: "feed_pet", label: "CHO TINH LINH GIỌT SƯƠNG" },
+  { code: "mission_completed", label: "NHIỆM VỤ ĐÃ HOÀN THÀNH" },
+  { code: "wallet_earned", label: "GIỌT SƯƠNG TÍCH LŨY" },
+  { code: "pet_level", label: "CẤP TINH LINH" },
+];
+
+const emptyOverallMissionForm = {
+  title: "",
+  description: "",
+  missionTypeCode: "overall",
+  isActive: true,
+  walletAmount: "",
+  rewardItemList: [],
+  completionConditionCode: "steps",
+  completionTargetValue: "",
+  assignmentConditionCode: "",
+  assignmentTargetValue: "",
+};
+
+const MISSION_TYPES = [
+  { code: "daily", label: "Nhiệm vụ Ngày" },
+  { code: "overall", label: "Nhiệm vụ Tổng" },
+];
+
+const missionErrorFieldMap = {
+  Title: "title",
+  Description: "description",
+  MissionTypeCode: "missionTypeCode",
+  WalletAmount: "walletAmount",
+  "RewardItems[0].ItemId": "rewardItemId",
+  "RewardItems[0].Quantity": "rewardItemQuantity",
+  "CompletionConditions[0].ConditionCode": "completionConditionCode",
+  "CompletionConditions[0].TargetValue": "completionTargetValue",
+  "AssignmentConditions[0].ConditionCode": "assignmentConditionCode",
+  "AssignmentConditions[0].TargetValue": "assignmentTargetValue",
+};
+
+const translateMissionError = (message) => {
+  if (!message) return "Dữ liệu không hợp lệ.";
+  if (message.includes("Reward item quantity"))
+    return "Số lượng vật phẩm phải lớn hơn 0.";
+  if (message.includes("Condition target value"))
+    return "Giá trị mục tiêu điều kiện phải lớn hơn 0.";
+  return message;
+};
 
 export default function MissionsManagement() {
   const [missions, setMissions] = useState([]);
@@ -31,45 +92,323 @@ export default function MissionsManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // State cho Tab, Tìm kiếm, Phân trang
   const [activeTab, setActiveTab] = useState("daily");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchOverallData = async () => {
+  const [rewardItems, setRewardItems] = useState([]);
+
+  // KHỞI TẠO BẰNG DỮ LIỆU BACKUP TRÁNH LỖI TRỐNG DROPDOWN
+  const [conditionCodes, setConditionCodes] = useState(INITIAL_CONDITION_CODES);
+  const [assignmentConditionCodes, setAssignmentConditionCodes] = useState([
+    { code: "", label: "MẶC ĐỊNH MỞ KHOÁ" },
+    ...INITIAL_CONDITION_CODES,
+  ]);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ ...emptyOverallMissionForm });
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const fetchOverallData = async (tab = activeTab) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await missionApi.getOverallMissions();
 
-      // 1. THÊM DÒNG NÀY ĐỂ KIỂM TRA:
-      console.log("DỮ LIỆU DẠNG CHỮ:", JSON.stringify(response, null, 2));
-      const resData = response.data?.data || response.data || response;
+      let response;
+      if (tab === "daily") {
+        // NẾU LÀ TAB DAILY: Chỉ gọi getDailyMissions
+        if (typeof missionApi.getDailyMissions === "function") {
+          response = await missionApi.getDailyMissions();
+        } else {
+          // Bắt buộc trả về rỗng nếu chưa có API Daily, tuyệt đối KHÔNG lấy Overall đắp vào
+          setMissions([]);
+          setSummary({
+            totalMissions: 0,
+            activeMissions: 0,
+            weeklyMissions: 0,
+            monthlyMissions: 0,
+            totalWalletAmount: 0,
+          });
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // NẾU LÀ TAB OVERALL: Gọi getOverallMissions
+        response = await missionApi.getOverallMissions();
+      }
+
+      const resData = response?.data?.data || response?.data || response;
 
       if (resData) {
-        // Nếu bản thân resData là một mảng:
-        if (Array.isArray(resData)) {
-          setMissions(resData);
-        } else {
-          setMissions(resData.missions || []);
-        }
+        const rawMissions = Array.isArray(resData)
+          ? resData
+          : resData.missions || [];
+
+        // Gắn chính xác mác của tab hiện tại vào data để bộ lọc bên dưới nhận diện
+        const finalMissions = rawMissions.map((m) => ({
+          ...m,
+          missionType: m.missionTypeCode || m.type || m.missionType || tab,
+        }));
+
+        setMissions(finalMissions);
+
+        const apiSummary = resData.summary || {};
+        setSummary({
+          totalMissions: apiSummary.totalMissions || finalMissions.length,
+          activeMissions:
+            apiSummary.activeMissions ||
+            finalMissions.filter((m) => m.isActive).length,
+          weeklyMissions: apiSummary.weeklyMissions || 0,
+          monthlyMissions: apiSummary.monthlyMissions || 0,
+          totalWalletAmount:
+            apiSummary.totalWalletAmount ||
+            finalMissions.reduce((t, m) => t + Number(m.walletAmount || 0), 0),
+        });
       }
     } catch (err) {
-      console.error("Lỗi khi lấy dữ liệu missions:", err);
+      console.error(`Lỗi khi lấy dữ liệu missions cho tab ${tab}:`, err);
       setError("Không thể tải dữ liệu nhiệm vụ. Vui lòng thử lại sau.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchRewardItems = async () => {
+    try {
+      let response;
+      try {
+        response =
+          typeof itemApi.getActiveItems === "function"
+            ? await itemApi.getActiveItems()
+            : await itemApi.getAll();
+      } catch {
+        response = await itemApi.getAll();
+      }
+      const rawItems = Array.isArray(response)
+        ? response
+        : response?.data?.data?.items ||
+          response?.data?.data ||
+          response?.data ||
+          response?.items ||
+          [];
+
+      const formattedItems = rawItems
+        .filter((item) => item && item.isActive !== false)
+        .map((item) => ({
+          itemId: item.itemId || item.id,
+          itemName: item.itemName || item.name || "Vật phẩm không tên",
+        }))
+        .filter((item) => item.itemId);
+
+      setRewardItems([
+        { itemId: "", itemName: "Không chọn vật phẩm" },
+        ...formattedItems,
+      ]);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách vật phẩm:", err);
+      setRewardItems([{ itemId: "", itemName: "Không chọn vật phẩm" }]);
+    }
+  };
+
+  const fetchMetricCodes = async () => {
+    try {
+      if (typeof missionApi.getMetricCodes !== "function") {
+        console.warn(
+          "Chưa có hàm getMetricCodes trong missionApi. Đang dùng dữ liệu backup.",
+        );
+        return;
+      }
+      const response = await missionApi.getMetricCodes();
+
+      let rawCodes = [];
+      if (Array.isArray(response)) rawCodes = response;
+      else if (Array.isArray(response.data)) rawCodes = response.data;
+      else if (Array.isArray(response.data?.data))
+        rawCodes = response.data.data;
+
+      if (rawCodes.length > 0) {
+        const formattedCodes = rawCodes.map((item) => {
+          // Đảm bảo lấy ra ĐÚNG CHUỖI STRING từ item (Xử lý trường hợp API trả về object)
+          const codeString =
+            typeof item === "object"
+              ? item.metricCode || item.code || item.id
+              : item;
+
+          return {
+            code: codeString,
+            label:
+              METRIC_TRANSLATIONS[codeString] ||
+              String(codeString).toUpperCase(),
+          };
+        });
+
+        setConditionCodes(formattedCodes);
+        setAssignmentConditionCodes([
+          { code: "", label: "MẶC ĐỊNH MỞ KHOÁ" },
+          ...formattedCodes,
+        ]);
+      }
+    } catch (err) {
+      console.error("Lỗi lấy danh sách Metric Codes:", err);
+    }
+  };
+
   useEffect(() => {
-    fetchOverallData();
+    fetchOverallData(activeTab);
+    fetchRewardItems();
+    fetchMetricCodes();
     setCurrentPage(1);
   }, [activeTab]);
 
-  const filteredMissions = missions.filter((m) =>
-    m.title?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const setCreateField = (field, value) => {
+    setCreateForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const validateOverallMission = () => {
+    const errors = {};
+    const walletAmount = Number(createForm.walletAmount || 0);
+    const completionTarget = Number(createForm.completionTargetValue || 0);
+    const assignmentTarget = Number(createForm.assignmentTargetValue || 0);
+    const hasAssignment =
+      createForm.assignmentConditionCode ||
+      createForm.assignmentTargetValue !== "";
+
+    if (!(createForm.title || "").trim())
+      errors.title = "Vui lòng nhập tên nhiệm vụ.";
+    if (!(createForm.missionTypeCode || "").trim())
+      errors.missionTypeCode = "Vui lòng chọn loại nhiệm vụ.";
+    if (walletAmount < 0)
+      errors.walletAmount = "Tiền thưởng Giọt Sương không được nhỏ hơn 0.";
+
+    (createForm.rewardItemList || []).forEach((item, index) => {
+      if (!item.itemId) {
+        errors[`rewardItem_${index}_id`] = "Vui lòng chọn vật phẩm.";
+      }
+      if (!item.quantity || Number(item.quantity) <= 0) {
+        errors[`rewardItem_${index}_qty`] = "Số lượng phải > 0.";
+      }
+    });
+
+    if (!(createForm.completionConditionCode || "").trim())
+      errors.completionConditionCode = "Vui lòng chọn điều kiện hoàn thành.";
+    if (completionTarget <= 0)
+      errors.completionTargetValue =
+        "Giá trị mục tiêu hoàn thành phải lớn hơn 0.";
+    if (hasAssignment && !(createForm.assignmentConditionCode || "").trim())
+      errors.assignmentConditionCode =
+        "Vui lòng chọn điều kiện mở khóa nhiệm vụ.";
+    if (hasAssignment && assignmentTarget <= 0)
+      errors.assignmentTargetValue =
+        "Giá trị mục tiêu điều kiện mở khóa phải lớn hơn 0.";
+
+    return errors;
+  };
+
+  const handleCreateOverallMission = async (e) => {
+    e.preventDefault();
+    const errors = validateOverallMission();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const completionConditions = [
+      {
+        conditionCode: (createForm.completionConditionCode || "").trim(),
+        targetValue: Number(createForm.completionTargetValue),
+        referenceMissionId: null,
+      },
+    ];
+
+    const assignmentConditions = [];
+    if (createForm.assignmentConditionCode) {
+      assignmentConditions.push({
+        conditionCode: (createForm.assignmentConditionCode || "").trim(),
+        targetValue: Number(createForm.assignmentTargetValue || 0),
+        referenceMissionId: null,
+      });
+    }
+
+    const rewardItemsPayload = (createForm.rewardItemList || []).map(
+      (item) => ({
+        itemId: item.itemId,
+        quantity: Number(item.quantity),
+      }),
+    );
+
+    const payload = {
+      title: (createForm.title || "").trim(),
+      description: (createForm.description || "").trim(),
+      missionTypeCode: (createForm.missionTypeCode || "").trim(),
+      metricCode: (createForm.completionConditionCode || "").trim(),
+      targetValue: Number(createForm.completionTargetValue || 0),
+      isActive: createForm.isActive,
+      walletAmount: Number(createForm.walletAmount || 0),
+      rewardItems: rewardItemsPayload,
+      completionConditions,
+      assignmentConditions,
+    };
+
+    try {
+      setIsSubmitting(true);
+      setFormErrors({});
+      await missionApi.createOverallMission(payload);
+      setSuccessMessage("Tạo nhiệm vụ thành công!");
+      setShowCreateModal(false);
+      setCreateForm({
+        ...emptyOverallMissionForm,
+        completionConditionCode: conditionCodes[0]?.code || "steps",
+      });
+      setActiveTab(createForm.missionTypeCode || "overall");
+      await fetchOverallData();
+
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      const backendErrors = err.response?.data?.errors;
+      if (backendErrors) {
+        const nextErrors = {};
+        Object.entries(backendErrors).forEach(([key, messages]) => {
+          nextErrors[missionErrorFieldMap[key] || key] = translateMissionError(
+            messages?.[0],
+          );
+        });
+        setFormErrors(nextErrors);
+      } else {
+        setError(
+          err.response?.data?.message ||
+            "Không thể tạo nhiệm vụ. Vui lòng kiểm tra lại kết nối.",
+        );
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredMissions = missions.filter((m) => {
+    // 1. Lọc theo từ khóa tìm kiếm
+    const title = m.title || "";
+    const matchesSearch = title
+      .toLowerCase()
+      .includes((searchTerm || "").toLowerCase());
+
+    // 2. Lọc SIÊU CHẶT theo Loại nhiệm vụ (Ngăn chặn Overall lọt vào Daily)
+    const missionType = m.missionTypeCode || m.missionType || m.type || "";
+
+    // Nếu data trả về có sẵn type thì dùng, không thì lấy type đã gán ép ở hàm fetchOverallData
+    const currentType = missionType !== "" ? missionType : activeTab;
+    const matchesTab = currentType.toLowerCase() === activeTab.toLowerCase();
+
+    return matchesSearch && matchesTab;
+  });
+
+  useEffect(() => {
+    if (missions.length > 0) {
+      console.log("Dữ liệu 1 nhiệm vụ mẫu từ API:", missions[0]);
+    }
+  }, [missions]);
 
   const totalPages = Math.max(
     1,
@@ -89,7 +428,6 @@ export default function MissionsManagement() {
 
   return (
     <div className="mission-page-wrapper">
-      {/* Header */}
       <div className="mission-header">
         <div>
           <h1 className="mission-title">Quản lý Nhiệm vụ</h1>
@@ -98,9 +436,20 @@ export default function MissionsManagement() {
           </p>
         </div>
         <div className="mission-header-actions">
-          <Button variant="primary" className="rounded-lg">
-            {" "}
-            {/* Thêm rounded-lg ở đây */}
+          <Button
+            variant="primary"
+            className="rounded-lg"
+            onClick={() => {
+              setFormErrors({});
+              setSuccessMessage("");
+              setError(null);
+              setCreateForm({
+                ...emptyOverallMissionForm,
+                completionConditionCode: conditionCodes[0]?.code || "steps",
+              });
+              setShowCreateModal(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Tạo nhiệm vụ
           </Button>
@@ -114,47 +463,51 @@ export default function MissionsManagement() {
         </div>
       )}
 
-      {/* Grid Thống kê Tổng quan */}
+      {successMessage && (
+        <div className="mission-alert-success">
+          <CheckCircle className="w-5 h-5 mr-2" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
       <div className="mission-stats-grid">
         <div className="mission-stat-card">
           <p className="mission-stat-label">Tổng nhiệm vụ</p>
           <p className="mission-stat-value primary">{summary.totalMissions}</p>
         </div>
-
         <div className="mission-stat-card">
           <p className="mission-stat-label">Đang hoạt động</p>
           <p className="mission-stat-value secondary">
             {summary.activeMissions}
           </p>
         </div>
-
         <div className="mission-stat-card">
-          <p className="mission-stat-label">Tổng Giọt Sương</p>
-          <p className="mission-stat-value primary">
+          <p className="mission-stat-label">Tổng Giọt Sương cấp phát</p>
+          <p className="mission-stat-value" style={{ color: "var(--accent)" }}>
             {summary.totalWalletAmount.toLocaleString()}
           </p>
         </div>
       </div>
 
-      {/* TABS điều hướng */}
       <div className="mission-tabs">
         <button
           className={`mission-tab-btn ${activeTab === "daily" ? "active" : ""}`}
           onClick={() => setActiveTab("daily")}
         >
-          Nhiệm vụ ngày
+          Nhiệm vụ Ngày
         </button>
         <button
           className={`mission-tab-btn ${activeTab === "overall" ? "active" : ""}`}
           onClick={() => setActiveTab("overall")}
         >
-          Nhiệm vụ tổng
+          Nhiệm vụ Tổng
         </button>
       </div>
 
-      {/* Khung Bảng bọc ngoài */}
-      <div className="mission-table-container">
-        {/* Thanh tìm kiếm */}
+      <div
+        className="mission-table-container"
+        style={{ width: "100%", overflowX: "hidden", boxSizing: "border-box" }}
+      >
         <div className="mission-toolbar">
           <div className="mission-toolbar-search">
             <SearchFilter
@@ -168,27 +521,45 @@ export default function MissionsManagement() {
           </div>
         </div>
 
-        {/* Vùng chứa Table cuộn ngang */}
-        <div className="mission-table-responsive">
-          <Table className="mission-table">
+        <div
+          className="mission-table-responsive"
+          style={{ width: "100%", display: "block" }}
+        >
+          <Table
+            className="mission-table"
+            style={{ width: "100%", tableLayout: "auto", margin: "0" }}
+          >
             <thead>
               <tr>
-                <th className="col-title text-left tracking-wide">
+                <th
+                  style={{ width: "24%" }}
+                  className="text-left tracking-wide"
+                >
                   Tên nhiệm vụ
                 </th>
-                <th className="col-condition text-left tracking-wide">
+                <th
+                  style={{ width: "16%" }}
+                  className="text-left tracking-wide"
+                >
                   Điều kiện
                 </th>
-                <th className="col-reward text-left tracking-wide">
+                <th
+                  style={{ width: "23%" }}
+                  className="text-left tracking-wide"
+                >
                   Phần thưởng
                 </th>
-                <th className="col-progress text-left tracking-wide">
-                  Tiến độ
-                </th>
-                <th className="col-status text-left tracking-wide">
+                <th
+                  style={{ width: "15%" }}
+                  className="text-left tracking-wide"
+                >
                   Trạng thái
                 </th>
-                <th className="col-actions text-right tracking-wide">
+                {/* Tăng từ 15% lên 22% để có dư dả không gian chứa 2 nút bấm */}
+                <th
+                  style={{ width: "22%" }}
+                  className="text-left tracking-wide"
+                >
                   Thao tác
                 </th>
               </tr>
@@ -197,14 +568,14 @@ export default function MissionsManagement() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="mission-loading-cell">
+                  <td colSpan={5} className="mission-loading-cell">
                     <Loader2 className="mission-loading-spinner" />
                     <p className="mission-loading-text">Đang tải dữ liệu...</p>
                   </td>
                 </tr>
               ) : currentMissions.length === 0 ? (
                 <TableEmpty
-                  colSpan={6}
+                  colSpan={5}
                   message="Không tìm thấy nhiệm vụ nào phù hợp."
                 />
               ) : (
@@ -216,58 +587,252 @@ export default function MissionsManagement() {
                         ID: {mission.missionId.substring(0, 8)}...
                       </div>
                     </td>
-
                     <td className="align-middle">
                       <div className="mission-condition-wrapper">
-                        <Target className="w-4 h-4 text-muted-foreground" />
-                        <span>{mission.conditionText}</span>
-                      </div>
-                    </td>
-
-                    <td className="align-middle">
-                      <span className="badge-reward">
-                        <Droplets className="w-3 h-3 shrink-0" />
-                        {mission.rewardText || "Không có"}
-                      </span>
-                    </td>
-
-                    <td className="align-middle">
-                      <div className="progress-bar-wrapper">
-                        <div className="progress-text">
-                          {mission.progress || 0}%
-                        </div>
-                        <div className="progress-bar-bg">
-                          <div
-                            className="progress-bar-fill"
-                            style={{ width: `${mission.progress || 0}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="align-middle">
-                      <div className="status-container">
-                        <span className="badge-status">
-                          {mission.statusName || "Chưa rõ"}
+                        <span>
+                          {mission.conditionText
+                            ? mission.conditionText.replace(/level/i, "Cấp")
+                            : "Tham chiếu chi tiết"}
                         </span>
-                        {!mission.isActive && (
-                          <span className="text-disabled-alert">
-                            Đang khóa (Tắt)
+                      </div>
+                    </td>
+                    <td className="align-middle">
+                      <div
+                        className="flex flex-wrap gap-2"
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "6px",
+                          maxWidth: "100%",
+                        }}
+                      >
+                        {(() => {
+                          const rewardStr = mission.rewardText || "Không có";
+                          if (rewardStr === "Không có")
+                            return (
+                              <span className="text-muted-foreground text-sm">
+                                Không có
+                              </span>
+                            );
+
+                          const rewardsArray = rewardStr
+                            .split(/[,+]/)
+                            .map((item) => item.trim())
+                            .filter(Boolean);
+
+                          // GIỚI HẠN HIỂN THỊ: Chỉ lấy tối đa 2 item đầu tiên ra bảng
+                          const maxDisplay = 2;
+                          const visibleRewards = rewardsArray.slice(
+                            0,
+                            maxDisplay,
+                          );
+                          const hasMore = rewardsArray.length > maxDisplay;
+
+                          return (
+                            <>
+                              {visibleRewards.map((singleReward, index) => {
+                                const lowerReward = singleReward.toLowerCase();
+                                const isDew =
+                                  lowerReward.includes("giot suong") ||
+                                  lowerReward.includes("giọt sương");
+                                let displayText = singleReward;
+                                if (isDew) {
+                                  displayText = singleReward
+                                    .replace(/giot suong/i, "Giọt Sương")
+                                    .replace(/Giot Suong/i, "Giọt Sương");
+                                }
+
+                                return (
+                                  <span
+                                    key={index}
+                                    className="badge-reward"
+                                    style={{
+                                      backgroundColor: isDew
+                                        ? "rgba(118, 160, 132, 0.15)"
+                                        : "rgba(229, 154, 115, 0.15)", //
+                                      color: isDew
+                                        ? "var(--success)"
+                                        : "var(--accent)", //
+                                      border: isDew
+                                        ? "1px solid var(--success)"
+                                        : "1px solid var(--accent)",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px",
+                                      padding: "2px 10px",
+                                      borderRadius: "9999px",
+                                      fontSize: "0.8125rem",
+                                      fontWeight: 500,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {isDew ? (
+                                      <Droplets
+                                        className="w-3 h-3 shrink-0"
+                                        style={{ color: "var(--success)" }}
+                                      />
+                                    ) : (
+                                      <Package
+                                        className="w-3 h-3 shrink-0"
+                                        style={{ color: "var(--accent)" }}
+                                      />
+                                    )}
+                                    {displayText}
+                                  </span>
+                                );
+                              })}
+
+                              {/* Nếu còn nhiều item hơn, hiện thêm nút chỉ báo */}
+                              {hasMore && (
+                                <span
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "var(--muted-foreground)",
+                                    background: "var(--muted)",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    fontWeight: 500,
+                                  }}
+                                  title={rewardStr}
+                                >
+                                  +{rewardsArray.length - maxDisplay} quà khác
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </td>
+
+                    <td className="align-middle">
+                      <div
+                        className="status-container"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                        }}
+                      >
+                        {mission.isActive ? (
+                          /* TRẠNG THÁI HOẠT ĐỘNG: Màu xanh lá cây mờ */
+                          <span
+                            className="badge-status"
+                            style={{
+                              backgroundColor: "rgba(118, 160, 132, 0.15)", // Xanh lá mờ (--success)
+                              color: "var(--success)",
+                              border: "none",
+                              padding: "2px 8px",
+                              borderRadius: "9999px",
+                              fontSize: "0.75rem",
+                              fontWeight: 500,
+                              display: "inline-block",
+                              width: "fit-content",
+                            }}
+                          >
+                            Hoạt động
+                          </span>
+                        ) : (
+                          <span
+                            className="badge-status"
+                            style={{
+                              backgroundColor: "rgba(220, 107, 107, 0.15)",
+                              color: "var(--destructive)",
+                              border: "none",
+                              padding: "2px 8px",
+                              borderRadius: "9999px",
+                              fontSize: "0.75rem",
+                              fontWeight: 500,
+                              display: "inline-block",
+                              width: "fit-content",
+                            }}
+                          >
+                            Chưa kích hoạt
                           </span>
                         )}
                       </div>
                     </td>
+                    <td
+                      className="align-middle text-left"
+                      style={{ paddingLeft: "8px" }}
+                    >
+                      <div
+                        className="flex items-center justify-start"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "flex-start",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                          width: "100%",
+                        }}
+                      >
+                        {/* NÚT SỬA */}
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(mission)}
+                          className="mission-table-pill-btn edit"
+                          style={{
+                            whiteSpace: "nowrap",
+                            backgroundColor: "rgba(229, 154, 115, 0.15)",
+                            color: "var(--accent)",
+                            border: "1px solid rgba(229, 154, 115, 0.3)", // <--- VIỀN NHẠT HƠN (Độ mờ 0.3)
+                            padding: "4px 12px",
+                            borderRadius: "9999px",
+                            fontSize: "0.8125rem",
+                            fontWeight: 500,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                        >
+                          <Pencil size={14} />
+                          Sửa
+                        </button>
 
-                    <td className="align-middle text-right">
-                      <div className="action-buttons">
-                        <button className="action-btn edit" title="Chỉnh sửa">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button className="action-btn delete" title="Xóa">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <button className="action-btn more" title="Khác">
-                          <MoreVertical className="w-4 h-4" />
+                        {/* NÚT VÔ HIỆU HÓA / KÍCH HOẠT */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleToggleStatus(mission.id || mission.missionId)
+                          }
+                          className="mission-table-pill-btn"
+                          style={{
+                            whiteSpace: "nowrap",
+                            backgroundColor: mission.isActive
+                              ? "rgba(220, 107, 107, 0.15)"
+                              : "rgba(118, 160, 132, 0.15)",
+                            color: mission.isActive
+                              ? "var(--destructive)"
+                              : "var(--success)",
+                            border: mission.isActive
+                              ? "1px solid rgba(220, 107, 107, 0.3)" // <--- VIỀN ĐỎ NHẠT HƠN
+                              : "1px solid rgba(118, 160, 132, 0.3)", // <--- VIỀN XANH NHẠT HƠN
+                            padding: "4px 12px",
+                            borderRadius: "9999px",
+                            fontSize: "0.8125rem",
+                            fontWeight: 500,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                        >
+                          {mission.isActive ? (
+                            <>
+                              <Trash2 size={14} />
+                              Vô hiệu hóa
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={14} />
+                              Kích hoạt
+                            </>
+                          )}
                         </button>
                       </div>
                     </td>
@@ -278,7 +843,6 @@ export default function MissionsManagement() {
           </Table>
         </div>
 
-        {/* Footer chứa số lượng và Pagination */}
         <div className="mission-footer">
           <span>
             Hiển thị{" "}
@@ -289,7 +853,6 @@ export default function MissionsManagement() {
             </span>{" "}
             kết quả
           </span>
-
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -297,6 +860,561 @@ export default function MissionsManagement() {
           />
         </div>
       </div>
+
+      {showCreateModal && (
+        <div
+          className="mission-modal-overlay"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div className="mission-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mission-modal-header">
+              <div>
+                <h2>Tạo Nhiệm Vụ</h2>
+                <p>
+                  Cấu hình thông tin nhiệm vụ, phần thưởng và các điều kiện liên
+                  quan.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="mission-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              className="mission-create-form"
+              onSubmit={handleCreateOverallMission}
+            >
+              {/* ===================== KHỐI 1: THÔNG TIN NHIỆM VỤ ===================== */}
+              <section
+                className="mission-form-section"
+                style={{
+                  position: "relative",
+                  zIndex: 60,
+                  maxWidth: "700px",
+                  width: "100%",
+                }}
+              >
+                <h3>1. Thông tin nhiệm vụ</h3>
+                <div className="mission-form-grid">
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      position: "relative",
+                      zIndex: 60,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Tên nhiệm vụ <span className="text-destructive">*</span>
+                    </span>
+                    <input
+                      value={createForm.title}
+                      onChange={(e) => setCreateField("title", e.target.value)}
+                      placeholder="Ví dụ: Hoàn thành 10 nhiệm vụ..."
+                      style={{
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "0.5rem",
+                        border: "1px solid var(--border)",
+                        width: "100%",
+                      }}
+                    />
+                    {formErrors.title && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.title}
+                      </small>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      position: "relative",
+                      zIndex: 60,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Loại nhiệm vụ <span className="text-destructive">*</span>
+                    </span>
+                    <CustomSelect
+                      value={createForm.missionTypeCode}
+                      onChange={(val) => setCreateField("missionTypeCode", val)}
+                      options={MISSION_TYPES}
+                      valueKey="code"
+                      labelKey="label"
+                    />
+                    {formErrors.missionTypeCode && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.missionTypeCode}
+                      </small>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    marginTop: "1rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Mô tả
+                  </span>
+                  <textarea
+                    rows={3}
+                    value={createForm.description}
+                    onChange={(e) =>
+                      setCreateField("description", e.target.value)
+                    }
+                    placeholder="Mô tả chi tiết cách hoàn thành nhiệm vụ này..."
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "0.5rem",
+                      border: "1px solid var(--border)",
+                      width: "100%",
+                    }}
+                  />
+                  {formErrors.description && (
+                    <small className="text-destructive mt-1">
+                      {formErrors.description}
+                    </small>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    borderRadius: "8px",
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div>
+                    <label className="mission-checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={createForm.isActive}
+                        onChange={(e) =>
+                          setCreateField("isActive", e.target.checked)
+                        }
+                      />
+                      <span>Kích hoạt nhiệm vụ ngay lập tức</span>
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              {/* ===================== KHỐI 2: ĐIỀU KIỆN ===================== */}
+              <section
+                className="mission-form-section"
+                style={{ position: "relative", zIndex: 50 }}
+              >
+                <h3>2. Điều kiện</h3>
+                <div
+                  className="mission-form-grid"
+                  style={{ marginBottom: "1.5rem" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      position: "relative",
+                      zIndex: 50,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Điều kiện hoàn thành{" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                    <CustomSelect
+                      value={createForm.completionConditionCode}
+                      onChange={(val) =>
+                        setCreateField("completionConditionCode", val)
+                      }
+                      options={conditionCodes}
+                      valueKey="code"
+                      labelKey="label"
+                    />
+                    {formErrors.completionConditionCode && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.completionConditionCode}
+                      </small>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Mục tiêu hoàn thành{" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={createForm.completionTargetValue}
+                      onChange={(e) =>
+                        setCreateField("completionTargetValue", e.target.value)
+                      }
+                      placeholder="VD: Nhập số bước chân..."
+                      style={{
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "0.5rem",
+                        border: "1px solid var(--border)",
+                        width: "100%",
+                      }}
+                    />
+                    {formErrors.completionTargetValue && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.completionTargetValue}
+                      </small>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mission-form-grid">
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      position: "relative",
+                      zIndex: 40,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Điều kiện mở khóa / Gán (Tùy chọn)
+                    </span>
+                    <CustomSelect
+                      value={createForm.assignmentConditionCode}
+                      onChange={(val) =>
+                        setCreateField("assignmentConditionCode", val)
+                      }
+                      options={assignmentConditionCodes}
+                      valueKey="code"
+                      labelKey="label"
+                    />
+                    {formErrors.assignmentConditionCode && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.assignmentConditionCode}
+                      </small>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Mục tiêu mở khóa
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={createForm.assignmentTargetValue}
+                      onChange={(e) =>
+                        setCreateField("assignmentTargetValue", e.target.value)
+                      }
+                      placeholder="VD: Nhập cấp độ để mở khóa..."
+                      style={{
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "0.5rem",
+                        border: "1px solid var(--border)",
+                        width: "100%",
+                      }}
+                    />
+                    {formErrors.assignmentTargetValue && (
+                      <small className="text-destructive mt-1">
+                        {formErrors.assignmentTargetValue}
+                      </small>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* ===================== KHỐI 3: PHẦN THƯỞNG ===================== */}
+              <section
+                className="mission-form-section"
+                style={{ position: "relative", zIndex: 30 }}
+              >
+                <h3>3. Phần thưởng</h3>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Thưởng Giọt Sương
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={createForm.walletAmount}
+                    onChange={(e) =>
+                      setCreateField("walletAmount", e.target.value)
+                    }
+                    placeholder="Nhập số Giọt Sương thưởng (Tùy chọn)..."
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "0.5rem",
+                      border: "1px solid var(--border)",
+                      width: "100%",
+                    }}
+                  />
+                  {formErrors.walletAmount && (
+                    <small className="text-destructive mt-1">
+                      {formErrors.walletAmount}
+                    </small>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--muted)",
+                    padding: "1rem",
+                    borderRadius: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                      Vật phẩm thưởng thêm
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCreateField("rewardItemList", [
+                          ...(createForm.rewardItemList || []),
+                          { itemId: "", quantity: "" },
+                        ])
+                      }
+                      className="mission-table-pill-btn"
+                      style={{
+                        background: "var(--primary)",
+                        color: "#fff",
+                        border: "none",
+                      }}
+                    >
+                      <Plus size={14} /> Thêm vật phẩm
+                    </button>
+                  </div>
+
+                  {(createForm.rewardItemList || []).map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex gap-4 items-start"
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        marginBottom: "1rem",
+                        position: "relative",
+                        zIndex: 30 - index,
+                      }}
+                    >
+                      <div
+                        style={{
+                          flex: 2,
+                          position: "relative",
+                          zIndex: 30 - index,
+                        }}
+                      >
+                        <CustomSelect
+                          value={item.itemId}
+                          onChange={(val) => {
+                            const newList = [...createForm.rewardItemList];
+                            newList[index].itemId = val;
+                            setCreateField("rewardItemList", newList);
+                          }}
+                          options={rewardItems}
+                          valueKey="itemId"
+                          labelKey="itemName"
+                        />
+                        {formErrors[`rewardItem_${index}_id`] && (
+                          <small className="text-destructive mt-1">
+                            {formErrors[`rewardItem_${index}_id`]}
+                          </small>
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newList = [...createForm.rewardItemList];
+                            newList[index].quantity = e.target.value;
+                            setCreateField("rewardItemList", newList);
+                          }}
+                          placeholder="Số lượng"
+                          style={{
+                            padding: "0.5rem",
+                            borderRadius: "0.5rem",
+                            border: "1px solid var(--border)",
+                            width: "100%",
+                            height: "42px",
+                          }}
+                        />
+                        {formErrors[`rewardItem_${index}_qty`] && (
+                          <small className="text-destructive mt-1">
+                            {formErrors[`rewardItem_${index}_qty`]}
+                          </small>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newList = [...createForm.rewardItemList];
+                          newList.splice(index, 1);
+                          setCreateField("rewardItemList", newList);
+                        }}
+                        style={{
+                          padding: "0.5rem",
+                          color: "var(--destructive)",
+                          background: "rgba(220, 107, 107, 0.1)",
+                          borderRadius: "0.5rem",
+                          border: "none",
+                          cursor: "pointer",
+                          height: "42px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {(createForm.rewardItemList || []).length === 0 && (
+                    <p
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--muted-foreground)",
+                        textAlign: "center",
+                        margin: 0,
+                      }}
+                    >
+                      Chưa thêm vật phẩm nào.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <div
+                className="mission-modal-actions"
+                style={{
+                  marginTop: "2rem",
+                  display: "flex",
+                  gap: "12px",
+                  width: "100%", // Chiếm 100% cụm nội dung
+                  boxSizing: "border-box",
+                }}
+              >
+                <button
+                  type="button"
+                  className="mission-btn-secondary"
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1, // Ép nút Hủy chiếm đúng 50% không gian
+                    padding: "10px 0",
+                    borderRadius: "8px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "center",
+                  }}
+                >
+                  Hủy bỏ
+                </button>
+
+                <button
+                  type="submit"
+                  className="mission-btn-primary"
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1, // Ép nút Tạo chiếm đúng 50% không gian còn lại
+                    padding: "10px 0",
+                    borderRadius: "8px",
+                    fontWeight: 500,
+                    backgroundColor: "#76A084", // Sử dụng màu chủ đạo của theme bạn
+                    color: "#ffffff",
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Tạo nhiệm vụ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

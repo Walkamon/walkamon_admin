@@ -4,4 +4,15 @@ export const missionApi = {
   getOverallMissions: () => {
     return axiosClient.get("/api/admin/missions/overall");
   },
+
+  createOverallMission: (data) => {
+    return axiosClient.post("/api/admin/missions/overall", data);
+  },
+
+  // Lấy danh sách metric codes (GET /api/admin/metric-codes)
+  getMetricCodes: () => {
+    return axiosClient.get('/api/admin/metric-codes', {
+      headers: { 'accept': 'text/plain' }
+    });
+  },
 };
