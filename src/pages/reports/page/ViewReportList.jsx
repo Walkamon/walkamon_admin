@@ -71,6 +71,7 @@ export default function ReportListPage() {
 	const [replyReport, setReplyReport] = useState(null);
 	const [deleteReport, setDeleteReport] = useState(null);
 	const [replyText, setReplyText] = useState("");
+	const [replyStatus, setReplyStatus] = useState("pending");
 	const [statusOpen, setStatusOpen] = useState(false);
 	const statusRef = useRef(null);
 
@@ -122,13 +123,41 @@ export default function ReportListPage() {
 	}
 
 	function statusLabel(code) {
-		if (!code) return 'Chưa rõ';
-		return code === 'resolved' || code === 'Đã giải quyết' ? 'Đã giải quyết' : 'Đang chờ';
+		switch (code) {
+			case "pending":
+				return "Đang chờ";
+
+			case "in_progress":
+				return "Đang xử lý";
+
+			case "resolved":
+				return "Đã giải quyết";
+
+			case "rejected":
+				return "Từ chối";
+
+			default:
+				return "Chưa rõ";
+		}
 	}
 
 	function statusColor(code) {
-		if (!code) return 'bg-accent/10 text-accent';
-		return code === 'resolved' ? 'bg-secondary/10 text-secondary' : 'bg-accent/10 text-accent';
+		switch (code) {
+			case "pending":
+				return "bg-yellow-100 text-yellow-700";
+
+			case "in_progress":
+				return "bg-blue-100 text-blue-700";
+
+			case "resolved":
+				return "bg-green-100 text-green-700";
+
+			case "rejected":
+				return "bg-red-100 text-red-700";
+
+			default:
+				return "bg-gray-100 text-gray-700";
+		}
 	}
 
 	async function handleReplySubmit() {
@@ -136,10 +165,10 @@ export default function ReportListPage() {
 		const id = replyReport.feedbackId || replyReport.id;
 		try {
 			await reportApi.updateReportStatus(id, {
-				statusCode: 'resolved',
+				statusCode: replyStatus,
 				adminNote: replyText.trim(),
 			});
-			setReports((prev) => prev.map((r) => (r.feedbackId === id || r.id === id ? { ...r, statusCode: 'resolved', adminNote: replyText.trim() } : r)));
+			setReports((prev) => prev.map((r) => (r.feedbackId === id || r.id === id ? { ...r, statusCode: replyStatus, adminNote: replyText.trim() } : r)));
 			setReplyReport(null);
 			setReplyText("");
 		} catch (err) {
@@ -204,7 +233,7 @@ export default function ReportListPage() {
 							<tr className="border-b border-border">
 								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ID</th>
 								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Người báo cáo</th>
-								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Lý do</th>
+												<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Loại</th>
 								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Thời gian</th>
 								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Trạng thái</th>
 								<th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Thao tác</th>
@@ -219,7 +248,11 @@ export default function ReportListPage() {
 									<td className="py-4 px-4 text-xs text-muted-foreground">{(report.createdAt || report.date || '').replace ? (report.createdAt || report.date || '').replace('T',' ').substring(0,16) : (report.createdAt || report.date || '')}</td>
 									<td className="py-4 px-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(report.statusCode || report.status)} report-badge`}>{statusLabel(report.statusCode || report.status)}</span></td>
 									<td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
-										<ReportActionButtons onReply={() => { setReplyReport(report); setReplyText(report.adminNote || ''); }} onDelete={() => setDeleteReport(report)} />
+										<ReportActionButtons onReply={() => {
+											setReplyReport(report);
+											setReplyText(report.adminNote || "");
+											setReplyStatus(report.statusCode || "pending");
+										}} onDelete={() => setDeleteReport(report)} />
 									</td>
 								</tr>
 							))}
@@ -250,7 +283,7 @@ export default function ReportListPage() {
 						</div>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="p-4 bg-card border border-border rounded-xl">
-								<p className="text-sm font-semibold mb-2">Lý do báo cáo</p>
+								<p className="text-sm font-semibold mb-2">Loại báo cáo</p>
 								<p className="text-sm text-foreground">{detailReport.feedbackTypeCode || detailReport.reason || 'Không có thông tin'}</p>
 							</div>
 							<div className="p-4 bg-card border border-border rounded-xl">
@@ -267,10 +300,7 @@ export default function ReportListPage() {
 								<p className="text-xs text-muted-foreground mb-1">Thời gian</p>
 								<p className="text-sm">{(detailReport.createdAt || detailReport.date || '').replace ? (detailReport.createdAt || detailReport.date || '').replace('T',' ').substring(0,16) : (detailReport.createdAt || detailReport.date || '') || '-'}</p>
 							</div>
-							<div>
-								<p className="text-xs text-muted-foreground mb-1">Người xử lý</p>
-								<p className="text-sm text-foreground">{detailReport.adminNote ? 'Đã phản hồi' : 'Chưa xử lý'}</p>
-							</div>
+							
 						</div>
 						{detailReport.adminNote && (
 							<div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
@@ -289,6 +319,22 @@ export default function ReportListPage() {
 				{replyReport && (
 					<div className="space-y-4">
 						<p className="text-sm text-muted-foreground">Gửi phản hồi cho <span className="font-medium text-foreground">{replyReport.userId || replyReport.reporterName}</span> về báo cáo liên quan.</p>
+						<div>
+							<label className="block text-sm font-medium mb-2">
+								Trạng thái
+							</label>
+
+							<select
+								value={replyStatus}
+								onChange={(e) => setReplyStatus(e.target.value)}
+								className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+							>
+								<option value="pending">Đang chờ</option>
+								<option value="in_progress">Đang xử lý</option>
+								<option value="resolved">Đã giải quyết</option>
+								<option value="rejected">Từ chối</option>
+							</select>
+						</div>
 						<textarea placeholder="Nhập nội dung phản hồi..." rows={4} value={replyText} onChange={(e) => setReplyText(e.target.value)} className="w-full px-4 py-2 bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
 						<div className="flex gap-3">
 							<button onClick={handleReplySubmit} disabled={!replyText.trim()} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Gửi phản hồi</button>

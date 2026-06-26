@@ -35,6 +35,9 @@ const playerApi = {
     // Mở khóa tài khoản người dùng
     enableUser: (userId) =>
         axiosClient.patch(`/api/admin/user/${userId}/enable`).then((r) => r.data),
+
+    getUserAuditLogs: (userId) =>
+        axiosClient.get(`/api/audit-logs/user/${userId}`).then((r) => r.data),
 };
 
 export default playerApi;

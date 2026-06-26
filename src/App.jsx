@@ -4,7 +4,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout.jsx";
-import { DashboardPage } from "./pages/dashboard/page/DashboardPage.jsx";
+import { Dashboard } from "./pages/dashboard/page/DashboardPage.jsx";
 import { UsersManagement } from "./pages/players/page/ViewPlayerList.jsx";
 import { authRoutes } from "./routes/AuthenRoutes.jsx";
 import { ProtectedRoute } from "./routes/ProtectedRoute.jsx";
@@ -33,7 +33,7 @@ const router = createBrowserRouter([
           },
           {
             path: "dashboard",
-            element: <DashboardPage />,
+            element: <Dashboard />,
           },
           {
             path: "players",

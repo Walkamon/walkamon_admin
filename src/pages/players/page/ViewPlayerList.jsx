@@ -141,6 +141,8 @@ export function UsersManagement() {
 
     const [detailUser, setDetailUser] = useState(null);
     const [logsUser, setLogsUser] = useState(null);
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
     const [banConfirmUser, setBanConfirmUser] = useState(null);
     const [lockingUserId, setLockingUserId] = useState(null);
 
@@ -177,6 +179,24 @@ export function UsersManagement() {
             setLoading(false);
         }
     }, []);
+    const handleViewLog = async (user) => {
+        setLogsUser(user);
+        setLoadingLogs(true);
+
+        try {
+            const logs = await playerApi.getUserAuditLogs(
+                user.userId || user.id
+            );
+
+            setAuditLogs(logs || []);
+        } catch (err) {
+            console.error(err);
+            setAuditLogs([]);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
 
     useEffect(() => {
         // Defer initial fetch to avoid calling setState synchronously inside an effect
@@ -375,7 +395,7 @@ export function UsersManagement() {
                                                             ? toggleBan(uid)
                                                             : setBanConfirmUser(user)
                                                     }
-                                                    onViewLog={() => setLogsUser(user)}
+                                                    onViewLog={() => handleViewLog(user)}
                                                 />
                                             </td>
                                         </tr>
@@ -408,43 +428,167 @@ export function UsersManagement() {
             />
 
             {/* Modal log gian lận */}
-            {logsUser !== null && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-card border border-border rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-                            <h2 className="font-bold text-lg">
-                                Log gian lận – {getUsername(logsUser)}
+            {logsUser && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-5">
+                    <div className="bg-card rounded-xl border w-full max-w-5xl max-h-[90vh] overflow-hidden">
+
+                        <div className="flex items-center justify-between border-b px-6 py-4">
+                            <h2 className="text-xl font-bold">
+                                Audit Log - {getUsername(logsUser)}
                             </h2>
-                            <button
-                                onClick={() => setLogsUser(null)}
-                                className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            >
+
+                            <button onClick={() => setLogsUser(null)}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="p-6 space-y-3">
-                            {logsUser.fraudLogs && logsUser.fraudLogs.length > 0 ? (
-                                logsUser.fraudLogs.map((log, i) => (
-                                    <div
-                                        key={i}
-                                        className={`p-4 rounded-lg border ${log.severity === "high"
-                                            ? "bg-red-500/5 border-red-500/20"
-                                            : "bg-amber-500/5 border-amber-500/20"
-                                            }`}
-                                    >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <span className="text-sm font-semibold text-foreground">{log.type}</span>
-                                            <span className="text-xs text-muted-foreground">{log.date}</span>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">{log.description}</p>
-                                    </div>
-                                ))
+
+                        <div className="overflow-auto max-h-[75vh]">
+
+                            {loadingLogs ? (
+                                <div className="py-20 flex justify-center">
+                                    <Loader2 className="animate-spin w-8 h-8" />
+                                </div>
+                            ) : auditLogs.length === 0 ? (
+
+                                <div className="text-center py-20 text-muted-foreground">
+                                    Không có Audit Log
+                                </div>
+
                             ) : (
-                                <p className="text-center text-muted-foreground py-8 text-sm">
-                                    Người chơi này chưa có log gian lận nào được ghi nhận.
-                                </p>
+
+                                <table className="w-full text-sm">
+
+                                    <thead className="bg-muted sticky top-0">
+                                        <tr>
+
+                                            <th className="p-3 text-left">
+                                                Time
+                                            </th>
+
+                                            <th className="p-3 text-left">
+                                                Action
+                                            </th>
+
+                                            <th className="p-3 text-left">
+                                                Table
+                                            </th>
+
+                                            <th className="p-3 text-left">
+                                                Record
+                                            </th>
+
+                                            <th className="p-3 text-left">
+                                                Detail
+                                            </th>
+
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        {auditLogs.map(log => (
+
+                                            <tr
+                                                key={log.auditLogId}
+                                                className="border-b"
+                                            >
+
+                                                <td className="p-3 whitespace-nowrap">
+                                                    {formatDate(log.createdAt)}
+                                                </td>
+
+                                                <td className="p-3">
+
+                                                    <span
+                                                        className={`px-2 py-1 rounded text-xs font-semibold
+
+                                        ${log.action === "CREATE"
+                                                                ? "bg-green-100 text-green-700"
+
+                                                                : log.action === "UPDATE"
+                                                                    ? "bg-yellow-100 text-yellow-700"
+
+                                                                    : log.action === "DELETE"
+                                                                        ? "bg-red-100 text-red-700"
+
+                                                                        : "bg-gray-100"
+                                                            }
+
+                                        `}
+                                                    >
+                                                        {log.action}
+                                                    </span>
+
+                                                </td>
+
+                                                <td className="p-3">
+                                                    {log.tableName}
+                                                </td>
+
+                                                <td className="p-3 font-mono">
+                                                    {log.recordId.substring(0, 8)}
+                                                </td>
+
+                                                <td className="p-3">
+
+                                                    <details>
+
+                                                        <summary className="cursor-pointer text-blue-600">
+                                                            Xem thay đổi
+                                                        </summary>
+
+                                                        <div className="grid grid-cols-2 gap-3 mt-3">
+
+                                                            <div>
+
+                                                                <div className="font-semibold mb-2">
+                                                                    Old Values
+                                                                </div>
+
+                                                                <pre className="bg-muted rounded p-2 text-xs overflow-auto max-h-60">
+                                                                    {JSON.stringify(
+                                                                        JSON.parse(log.oldValues ?? "{}"),
+                                                                        null,
+                                                                        2
+                                                                    )}
+                                                                </pre>
+
+                                                            </div>
+
+                                                            <div>
+
+                                                                <div className="font-semibold mb-2">
+                                                                    New Values
+                                                                </div>
+
+                                                                <pre className="bg-muted rounded p-2 text-xs overflow-auto max-h-60">
+                                                                    {JSON.stringify(
+                                                                        JSON.parse(log.newValues ?? "{}"),
+                                                                        null,
+                                                                        2
+                                                                    )}
+                                                                </pre>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </details>
+
+                                                </td>
+
+                                            </tr>
+
+                                        ))}
+
+                                    </tbody>
+
+                                </table>
+
                             )}
+
                         </div>
+
                     </div>
                 </div>
             )}
