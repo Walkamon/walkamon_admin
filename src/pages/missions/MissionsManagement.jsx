@@ -519,8 +519,12 @@ export default function MissionsManagement() {
   const handleRowClick = async (missionId) => {
     try {
       setIsFetchingDetail(true);
-      // Gọi API GET chi tiết
-      const response = await missionApi.getOverallMissionDetail(missionId);
+
+      const response =
+        activeTab === "daily"
+          ? await missionApi.getDailyMissionDetail(missionId)
+          : await missionApi.getOverallMissionDetail(missionId);
+
       const detailData = response?.data?.data || response?.data || response;
 
       if (detailData) {
@@ -529,7 +533,11 @@ export default function MissionsManagement() {
       }
     } catch (err) {
       console.error("Lỗi khi tải chi tiết nhiệm vụ:", err);
-      setError("Không thể tải thông tin chi tiết nhiệm vụ. Vui lòng thử lại.");
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message: "Không thể tải thông tin chi tiết nhiệm vụ. Vui lòng thử lại.",
+      });
     } finally {
       setIsFetchingDetail(false);
     }
