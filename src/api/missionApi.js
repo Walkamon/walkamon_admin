@@ -30,6 +30,16 @@ export const missionApi = {
     );
   },
 
+  changeMissionDailyStatus: (missionId, newStatus) => {
+    return axiosClient.patch(
+      `/api/admin/missions/daily/${missionId}/status`,
+      {
+        isActive: newStatus,
+        status: newStatus,
+      },
+    );
+  },
+
   updateOverallMission: (missionId, data) => {
     return axiosClient.put(`/api/admin/missions/overall/${missionId}`, data);
   },
@@ -44,5 +54,9 @@ export const missionApi = {
 
   getDailyMissionDetail: (missionId) => {
     return axiosClient.get(`/api/admin/missions/daily/${missionId}`);
+  },
+
+  updateDailyMission: (missionId, data) => {
+    return axiosClient.put(`/api/admin/missions/daily/${missionId}`, data);
   },
 };

@@ -124,6 +124,9 @@ export default function MissionsManagement() {
   const [updateForm, setUpdateForm] = useState(null);
   const [currentUpdateMissionId, setCurrentUpdateMissionId] = useState(null);
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [missionToToggle, setMissionToToggle] = useState(null);
+
   const fetchOverallData = async (tab = activeTab) => {
     try {
       setIsLoading(true);
@@ -481,14 +484,22 @@ export default function MissionsManagement() {
     }
   };
 
-  const handleToggleStatus = async (missionId, currentStatus) => {
+  const handleConfirmToggle = async () => {
+    if (!missionToToggle) return;
+
     try {
-      const newStatus = !currentStatus; // Đảo ngược trạng thái hiện tại
+      setIsSubmitting(true);
+      const missionId = missionToToggle.missionId || missionToToggle.id;
+      const newStatus = !missionToToggle.isActive;
 
-      // 1. Gọi API gửi trạng thái mới lên
-      await missionApi.changeMissionStatus(missionId, newStatus);
+      // 1. CHẺ NHÁNH GỌI API DỰA VÀO TAB
+      if (activeTab === "daily") {
+        await missionApi.changeMissionDailyStatus(missionId, newStatus);
+      } else {
+        await missionApi.changeMissionStatus(missionId, newStatus);
+      }
 
-      // 2. CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Không cần đợi fetch)
+      // 2. CẬP NHẬT GIAO DIỆN
       setMissions((prevMissions) =>
         prevMissions.map((m) =>
           m.missionId === missionId || m.id === missionId
@@ -497,22 +508,25 @@ export default function MissionsManagement() {
         ),
       );
 
-      // 3. Hiện popup thành công
+      // 3. THÔNG BÁO VÀ ĐÓNG MODAL
       setDialogInfo({
         isOpen: true,
         type: "success",
         message: `Đã ${newStatus ? "kích hoạt" : "vô hiệu hóa"} nhiệm vụ thành công!`,
       });
 
-      // 4. Vẫn gọi lại fetchOverallData ngầm để đảm bảo đồng bộ hoàn toàn với server
-      fetchOverallData();
+      setShowConfirmModal(false);
+      setMissionToToggle(null);
     } catch (err) {
-      console.error("Lỗi khi cập nhật trạng thái nhiệm vụ:", err);
+      console.error("Lỗi khi cập nhật trạng thái:", err);
+      setShowConfirmModal(false);
       setDialogInfo({
         isOpen: true,
         type: "error",
-        message: "Không thể cập nhật trạng thái nhiệm vụ. Vui lòng thử lại.",
+        message: "Có lỗi xảy ra, không thể thực hiện hành động này!",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -875,7 +889,7 @@ export default function MissionsManagement() {
                             );
 
                           const rewardsArray = rewardStr
-                            .split(/[,+]/)
+                            .split(/,\s+/)
                             .map((item) => item.trim())
                             .filter(Boolean);
 
@@ -1056,12 +1070,11 @@ export default function MissionsManagement() {
                         {/* NÚT VÔ HIỆU HÓA / KÍCH HOẠT */}
                         <button
                           type="button"
-                          onClick={() =>
-                            handleToggleStatus(
-                              mission.id || mission.missionId,
-                              mission.isActive,
-                            )
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMissionToToggle(mission);
+                            setShowConfirmModal(true);
+                          }}
                           className="mission-table-pill-btn"
                           style={{
                             whiteSpace: "nowrap",
@@ -3105,6 +3118,91 @@ export default function MissionsManagement() {
           </div>
         </div>
       )}
+
+      {/* Modal Xác nhận Vô hiệu hoá / Kích hoạt */}
+      {showConfirmModal && missionToToggle && (
+        <div className="common-dialog-overlay">
+          <div
+            className="common-dialog-container"
+            style={{ maxWidth: "450px", textAlign: "left" }}
+          >
+            <h3
+              className="common-dialog-title"
+              style={{
+                fontSize: "1.125rem",
+                color: "var(--foreground)",
+                marginBottom: "12px",
+              }}
+            >
+              Xác nhận {missionToToggle.isActive ? "vô hiệu hóa" : "kích hoạt"}
+            </h3>
+
+            <p
+              style={{
+                color: "var(--muted-foreground)",
+                marginBottom: "24px",
+                fontSize: "0.9375rem",
+              }}
+            >
+              Bạn có chắc chắn muốn{" "}
+              {missionToToggle.isActive ? "vô hiệu hóa" : "kích hoạt"} nhiệm vụ{" "}
+              <strong style={{ color: "var(--foreground)" }}>
+                {missionToToggle.title}
+              </strong>{" "}
+              không?
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setMissionToToggle(null);
+                }}
+                disabled={isSubmitting}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  backgroundColor: "var(--muted)",
+                  color: "var(--muted-foreground)",
+                  fontWeight: 500,
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmToggle}
+                disabled={isSubmitting}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: 500,
+                  color: "white",
+                  backgroundColor: missionToToggle.isActive
+                    ? "var(--destructive)"
+                    : "var(--success)",
+                }}
+              >
+                {isSubmitting && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                {missionToToggle.isActive ? "Vô hiệu hoá" : "Kích hoạt"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dialog Thông báo (Success / Error) */}
       {dialogInfo.isOpen && (
         <div className="common-dialog-overlay">
