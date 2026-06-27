@@ -41,4 +41,8 @@ export const missionApi = {
   getDailyMissions: () => {
     return axiosClient.get("/api/admin/missions/daily");
   },
+
+  getDailyMissionDetail: (missionId) => {
+    return axiosClient.get(`/api/admin/missions/daily/${missionId}`);
+  },
 };
