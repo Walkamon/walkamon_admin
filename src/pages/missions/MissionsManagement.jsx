@@ -535,7 +535,8 @@ export default function MissionsManagement() {
     }
   };
 
-  const handleCreateOverallMission = async (e) => {
+  const handleCreateMission = async (e) => {
+    // Đổi tên hàm
     e.preventDefault();
     const errors = validateOverallMission();
     if (Object.keys(errors).length > 0) {
@@ -543,6 +544,7 @@ export default function MissionsManagement() {
       return;
     }
 
+    // Build payload giống hệt lúc trước
     const completionConditions = [
       {
         conditionCode: (createForm.completionConditionCode || "").trim(),
@@ -583,7 +585,14 @@ export default function MissionsManagement() {
     try {
       setIsSubmitting(true);
       setFormErrors({});
-      await missionApi.createOverallMission(payload);
+
+      // CHẺ NHÁNH GỌI API DỰA VÀO DROPDOWN LOẠI NHIỆM VỤ
+      if (createForm.missionTypeCode === "daily") {
+        await missionApi.createDailyMission(payload);
+      } else {
+        await missionApi.createOverallMission(payload);
+      }
+
       setDialogInfo({
         isOpen: true,
         type: "success",
@@ -594,8 +603,11 @@ export default function MissionsManagement() {
         ...emptyOverallMissionForm,
         completionConditionCode: conditionCodes[0]?.code || "steps",
       });
-      setActiveTab(createForm.missionTypeCode || "overall");
-      await fetchOverallData();
+
+      // Chuyển tab về đúng tab vừa tạo và tải lại dữ liệu của tab đó
+      const newTab = createForm.missionTypeCode || "overall";
+      setActiveTab(newTab);
+      await fetchOverallData(newTab);
 
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
@@ -2557,7 +2569,7 @@ export default function MissionsManagement() {
 
             <form
               className="mission-create-form"
-              onSubmit={handleCreateOverallMission}
+              onSubmit={handleCreateMission}
             >
               {/* ===================== KHỐI 1: THÔNG TIN NHIỆM VỤ ===================== */}
               <section

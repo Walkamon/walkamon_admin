@@ -11,8 +11,8 @@ export const missionApi = {
 
   // Lấy danh sách metric codes (GET /api/admin/metric-codes)
   getMetricCodes: () => {
-    return axiosClient.get('/api/admin/metric-codes', {
-      headers: { 'accept': 'text/plain' }
+    return axiosClient.get("/api/admin/metric-codes", {
+      headers: { accept: "text/plain" },
     });
   },
 
@@ -20,14 +20,21 @@ export const missionApi = {
     return axiosClient.get(`/api/admin/missions/overall/${missionId}`);
   },
 
-changeMissionStatus: (missionId, newStatus) => {
-    return axiosClient.patch(`/api/admin/missions/overall/${missionId}/status`, {
-      isActive: newStatus,
-      status: newStatus
-    });
+  changeMissionStatus: (missionId, newStatus) => {
+    return axiosClient.patch(
+      `/api/admin/missions/overall/${missionId}/status`,
+      {
+        isActive: newStatus,
+        status: newStatus,
+      },
+    );
   },
 
   updateOverallMission: (missionId, data) => {
     return axiosClient.put(`/api/admin/missions/overall/${missionId}`, data);
+  },
+
+  createDailyMission: (data) => {
+    return axiosClient.post("/api/admin/missions/daily", data);
   },
 };
