@@ -37,4 +37,8 @@ export const missionApi = {
   createDailyMission: (data) => {
     return axiosClient.post("/api/admin/missions/daily", data);
   },
+
+  getDailyMissions: () => {
+    return axiosClient.get("/api/admin/missions/daily");
+  },
 };
