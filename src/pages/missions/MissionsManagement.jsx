@@ -1104,281 +1104,379 @@ export default function MissionsManagement() {
         </div>
       </div>
 
-      {/* ===== DIALOG CẬP NHẬT NHIỆM VỤ (FIX DROPDOWN BỊ ẨN DO OVERFLOW) ===== */}
+      {/* ===== DIALOG CẬP NHẬT NHIỆM VỤ ===== */}
       {showUpdateModal && updateForm && (
         <div
           className="common-dialog-overlay"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            zIndex: 9999,
+          }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowUpdateModal(false);
           }}
         >
           <div
             className="common-dialog-container"
+            style={{
+              width: "100%",
+              maxWidth: "840px",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              margin: "0 auto",
+              overflow: "hidden",
+              borderRadius: "12px",
+              backgroundColor: "#ffffff",
+              boxShadow:
+                "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mission-dialog-header">
-              <h2 className="mission-dialog-title">
+            {/* Bộ CSS đặc trị sửa lỗi căn hàng, tràn chữ và đè nút X */}
+            <style>
+              {`
+                .no-scrollbar::-webkit-scrollbar {
+                  display: none;
+                }
+                
+                /* Ép tiêu đề chính luôn căn trái tuyệt đối */
+                .mission-dialog-title {
+                  text-align: left !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  float: none !important;
+                }
+
+                /* Chiều cao chuẩn 40px đồng bộ cho các ô nhập liệu */
+                .mission-dialog-input-aligned {
+                  width: 100% !important;
+                  height: 40px !important;
+                  padding: 0.625rem !important;
+                  border-radius: 8px !important;
+                  border: 1px solid #d1d5db !important;
+                  outline: none !important;
+                  box-sizing: border-box !important;
+                  background-color: #fff !important;
+                }
+
+                /* Chống tràn chữ và cấm tự động xuống dòng làm đẩy input xuống dưới */
+                .mission-dialog-body input,
+                .mission-dialog-body select,
+                .mission-dialog-body button,
+                .mission-dialog-body .custom-select-trigger,
+                .mission-dialog-body [class*="select"] {
+                  white-space: nowrap !important;
+                  text-overflow: ellipsis !important;
+                }
+
+                /* Ép chữ bên trong CustomSelect hiển thị trên 1 hàng đơn, tự thêm dấu ba chấm (...) nếu quá dài */
+                .mission-dialog-body [class*="select"] button,
+                .mission-dialog-body [class*="select"] div,
+                .mission-dialog-body [class*="select"] span {
+                  white-space: nowrap !important;
+                  overflow: hidden !important;
+                  text-overflow: ellipsis !important;
+                }
+
+                /* Vẫn cho phép danh sách dropdown bung dọc mượt mà */
+                .mission-dialog-body [class*="dropdown"],
+                .mission-dialog-body [class*="menu"],
+                .mission-dialog-body [class*="options"] {
+                  overflow-y: auto !important;
+                  overflow-x: hidden !important;
+                  white-space: nowrap !important;
+                }
+              `}
+            </style>
+
+            {/* Header chứa Title căn góc trái và nút đóng định vị tuyệt đối không bao giờ lệch */}
+            <div
+              className="mission-dialog-header"
+              style={{
+                padding: "1.25rem 1.5rem",
+                borderBottom: "1px solid #E5DCCF",
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                position: "relative",
+                width: "100%",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              <h2
+                className="mission-dialog-title"
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: "700",
+                  color: "#76A084",
+                }}
+              >
                 Cập nhật thông tin nhiệm vụ
               </h2>
               <button
                 type="button"
                 className="mission-dialog-close"
                 onClick={() => setShowUpdateModal(false)}
+                style={{
+                  position: "absolute",
+                  right: "1.5rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#9ca3af",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 10,
+                }}
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6 hover:text-gray-700" />
               </button>
             </div>
 
             <form
               className="mission-dialog-form"
               onSubmit={handleUpdateOverallMission}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                flex: 1,
+                width: "100%",
+                backgroundColor: "#ffffff",
+              }}
             >
               <div
-                className="mission-dialog-body"
-                style={{ overflow: "visible" }}
+                className="mission-dialog-body no-scrollbar"
+                style={{
+                  overflowY: "auto",
+                  overflowX: "visible",
+                  padding: "1.5rem",
+                  paddingBottom:
+                    "12rem" /* Không gian thoải mái mở dropdown quà tặng */,
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  flex: 1,
+                  width: "100%",
+                }}
               >
-                {" "}
-                {/* Bẻ khóa overflow tạm thời để dropdown bung ra ngoài tự do */}
-                <div className="mission-form-layout-wrapper">
-                  {/* KHỐI GRID CHIA TÊN/MÔ TẢ VÀ LOẠI/TIỀN */}
-                  <div className="mission-form-grid-two-thirds">
-                    {/* Cột trái: Tên & Mô tả */}
-                    <div className="mission-form-column-main">
-                      <div className="mission-form-group">
-                        <label className="mission-form-label">
-                          Tên nhiệm vụ <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className={`mission-form-input ${formErrors.title ? "error" : ""}`}
-                          value={updateForm.title || ""}
-                          onChange={(e) =>
-                            setUpdateField("title", e.target.value)
-                          }
-                          placeholder="Nhập tên nhiệm vụ..."
-                        />
-                        {formErrors.title && (
-                          <span className="mission-form-error">
-                            {formErrors.title}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mission-form-group">
-                        <label className="mission-form-label">
-                          Mô tả nhiệm vụ
-                        </label>
-                        <textarea
-                          className="mission-form-textarea"
-                          value={updateForm.description || ""}
-                          onChange={(e) =>
-                            setUpdateField("description", e.target.value)
-                          }
-                          placeholder="Nhập nội dung hướng dẫn..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Cột phải: Loại & Phần thưởng */}
-                    <div className="mission-form-column-side">
-                      <div className="mission-form-group">
-                        <label className="mission-form-label">
-                          Loại nhiệm vụ <span className="text-red-500">*</span>
-                        </label>
-                        <div style={{ position: "relative", zIndex: 50 }}>
-                          <CustomSelect
-                            options={[
-                              {
-                                value: "overall",
-                                label: "Nhiệm vụ Tổng",
-                              },
-                              {
-                                value: "daily",
-                                label: "Nhiệm vụ Ngày",
-                              },
-                            ]}
-                            value={updateForm.missionTypeCode || ""}
-                            valueKey="value"
-                            onChange={(val) =>
-                              setUpdateField("missionTypeCode", val)
-                            }
-                            placeholder="Chọn loại nhiệm vụ"
-                            error={formErrors.missionTypeCode}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mission-form-group">
-                        <label className="mission-form-label">
-                          Phần thưởng Giọt Sương
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Droplets className="h-5 w-5 text-sky-500" />
-                          </div>
-                          <input
-                            type="number"
-                            className={`mission-form-input pl-10 ${formErrors.walletAmount ? "error" : ""}`}
-                            value={
-                              updateForm.walletAmount !== undefined
-                                ? updateForm.walletAmount
-                                : ""
-                            }
-                            onChange={(e) =>
-                              setUpdateField("walletAmount", e.target.value)
-                            }
-                            placeholder="Số lượng..."
-                            min="0"
-                          />
-                        </div>
-                        {formErrors.walletAmount && (
-                          <span className="mission-form-error">
-                            {formErrors.walletAmount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* VẬT PHẨM PHẦN THƯỞNG KÈM THEO */}
+                {/* LƯỚI GRID KHÓA HÀNG NGANG: ĐẢM BẢO CÁC TRƯỜNG THẲNG HÀNG TUYỆT ĐỐI */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1.5rem",
+                    alignItems: "start",
+                  }}
+                >
+                  {/* HÀNG 1 - TRÁI: Tên nhiệm vụ */}
                   <div className="mission-form-group">
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="mission-form-label mb-0">
-                        Vật phẩm phần thưởng kèm theo
-                      </label>
-                      <button
-                        type="button"
-                        className="text-sm text-sky-600 hover:text-sky-700 flex items-center gap-1 font-medium bg-transparent border-none cursor-pointer"
-                        onClick={() => {
-                          const currentItems = Array.isArray(
-                            updateForm.rewardItemList,
-                          )
-                            ? updateForm.rewardItemList
-                            : [];
-                          setUpdateField("rewardItemList", [
-                            ...currentItems,
-                            { itemId: "", quantity: 1 },
-                          ]);
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
+                    >
+                      Tên nhiệm vụ <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`mission-dialog-input-aligned ${formErrors.title ? "error" : ""}`}
+                      value={updateForm.title || ""}
+                      onChange={(e) => setUpdateField("title", e.target.value)}
+                      placeholder="Nhập tên nhiệm vụ..."
+                    />
+                    {formErrors.title && (
+                      <span
+                        style={{
+                          color: "#ef4444",
+                          fontSize: "0.75rem",
+                          marginTop: "4px",
+                          display: "block",
                         }}
                       >
-                        <Plus className="w-4 h-4" /> Thêm quà tặng
-                      </button>
-                    </div>
-
-                    {!updateForm.rewardItemList ||
-                    !Array.isArray(updateForm.rewardItemList) ||
-                    updateForm.rewardItemList.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-lg border border-dashed text-center m-0">
-                        Chưa cấu hình vật phẩm quà tặng kèm theo cho nhiệm vụ
-                        này.
-                      </p>
-                    ) : (
-                      <div
-                        className="space-y-3"
-                        style={{ overflow: "visible" }}
-                      >
-                        {updateForm.rewardItemList.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex gap-3 items-center bg-gray-50 p-2 rounded-lg border"
-                            style={{ overflow: "visible" }}
-                          >
-                            {/* Bọc relative cấp cao z-index tăng dần để không bị đè lên nhau */}
-                            <div
-                              className="flex-1"
-                              style={{
-                                position: "relative",
-                                zIndex: 40 - index,
-                              }}
-                            >
-                              <CustomSelect
-                                options={rewardItems || []}
-                                value={item.itemId || ""}
-                                valueKey="itemId"
-                                labelKey="itemName"
-                                onChange={(val) => {
-                                  const newList = [
-                                    ...updateForm.rewardItemList,
-                                  ];
-                                  newList[index].itemId = val;
-                                  setUpdateField("rewardItemList", newList);
-                                }}
-                                placeholder="Chọn vật phẩm"
-                                error={formErrors[`rewardItem_${index}_id`]}
-                              />
-                            </div>
-
-                            <div className="w-32">
-                              <input
-                                type="number"
-                                className={`mission-form-input ${formErrors[`rewardItem_${index}_qty`] ? "error" : ""}`}
-                                value={
-                                  item.quantity !== undefined
-                                    ? item.quantity
-                                    : 1
-                                }
-                                onChange={(e) => {
-                                  const newList = [
-                                    ...updateForm.rewardItemList,
-                                  ];
-                                  newList[index].quantity = e.target.value;
-                                  setUpdateField("rewardItemList", newList);
-                                }}
-                                placeholder="Số lượng"
-                                min="1"
-                              />
-                              {formErrors[`rewardItem_${index}_qty`] && (
-                                <span className="mission-form-error">
-                                  {formErrors[`rewardItem_${index}_qty`]}
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded border-none bg-transparent cursor-pointer"
-                              onClick={() => {
-                                const newList =
-                                  updateForm.rewardItemList.filter(
-                                    (_, i) => i !== index,
-                                  );
-                                setUpdateField("rewardItemList", newList);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                        {formErrors.title}
+                      </span>
                     )}
                   </div>
 
-                  {/* KHỐI HAI ĐIỀU KIỆN FIELDSET */}
-                  <div
-                    className="mission-fieldset-row"
-                    style={{ overflow: "visible" }}
-                  >
-                    {/* Điều kiện hoàn thành */}
-                    <fieldset
-                      className="mission-fieldset completion"
-                      style={{ overflow: "visible" }}
+                  {/* HÀNG 1 - PHẢI: Loại nhiệm vụ */}
+                  <div className="mission-form-group">
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
                     >
-                      <legend className="mission-legend">
-                        <Package className="w-4 h-4 text-sky-600" /> Điều kiện
-                        hoàn thành mục tiêu{" "}
-                        <span className="text-red-500">*</span>
-                      </legend>
+                      Loại nhiệm vụ <span className="text-red-500">*</span>
+                    </label>
+                    <div style={{ height: "40px" }}>
+                      <CustomSelect
+                        options={[
+                          { value: "overall", label: "Nhiệm vụ Tổng" },
+                          { value: "daily", label: "Nhiệm vụ Ngày" },
+                        ]}
+                        value={updateForm.missionTypeCode || ""}
+                        valueKey="value"
+                        labelKey="label"
+                        onChange={(val) =>
+                          setUpdateField("missionTypeCode", val)
+                        }
+                        placeholder="Chọn phân loại..."
+                        error={formErrors.missionTypeCode}
+                      />
+                    </div>
+                  </div>
+
+                  {/* HÀNG 2 - TRÁI: Mô tả nhiệm vụ */}
+                  <div className="mission-form-group">
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
+                    >
+                      Mô tả nhiệm vụ
+                    </label>
+                    <textarea
+                      style={{
+                        width: "100%",
+                        height: "80px",
+                        padding: "0.625rem",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        resize: "none",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        backgroundColor: "#fff",
+                      }}
+                      value={updateForm.description || ""}
+                      onChange={(e) =>
+                        setUpdateField("description", e.target.value)
+                      }
+                      placeholder="Nhập nội dung hướng dẫn..."
+                    />
+                  </div>
+
+                  {/* HÀNG 2 - PHẢI: Phần thưởng Giọt Sương */}
+                  <div className="mission-form-group">
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
+                    >
+                      Phần thưởng Giọt Sương
+                    </label>
+                    <div style={{ position: "relative", height: "40px" }}>
                       <div
-                        className="mission-fieldset-inner"
-                        style={{ overflow: "visible" }}
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          left: "0.75rem",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
                       >
-                        <div
-                          className="mission-form-group flex-1"
-                          style={{ position: "relative", zIndex: 20 }}
+                        <span
+                          className="h-5 w-5"
+                          style={{ color: "#76A084" }}
+                        />
+                      </div>
+                      <input
+                        type="number"
+                        className="mission-dialog-input-aligned"
+                        style={{ paddingLeft: "2.5rem" }}
+                        value={
+                          updateForm.walletAmount !== undefined
+                            ? updateForm.walletAmount
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setUpdateField("walletAmount", e.target.value)
+                        }
+                        placeholder="Nhập số lượng sương..."
+                        min="0"
+                      />
+                    </div>
+                    {formErrors.walletAmount && (
+                      <span
+                        style={{
+                          color: "#ef4444",
+                          fontSize: "0.75rem",
+                          marginTop: "4px",
+                          display: "block",
+                        }}
+                      >
+                        {formErrors.walletAmount}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* HÀNG 3 - TRÁI: Điều kiện hoàn thành */}
+                  {/* Sử dụng minmax(0, 1fr) để ngăn chữ của dropdown ép co cụm hay làm sập layout của ô input kế bên */}
+                  <fieldset
+                    style={{
+                      border: "1px solid #E5DCCF",
+                      borderRadius: "8px",
+                      padding: "1.25rem 1rem",
+                      backgroundColor: "#fff",
+                      margin: 0,
+                      height: "100%",
+                    }}
+                  >
+                    <legend
+                      style={{
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                        padding: "0 0.5rem",
+                      }}
+                    >
+                      Điều kiện hoàn thành{" "}
+                      <span className="text-red-500">*</span>
+                    </legend>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                        gap: "1rem",
+                        alignItems: "start",
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            fontSize: "0.75rem",
+                            marginBottom: "0.4rem",
+                            display: "block",
+                            color: "#6b7280",
+                          }}
                         >
-                          <label className="mission-form-label">
-                            Loại điều kiện thực hiện
-                          </label>
+                          Loại điều kiện
+                        </label>
+                        <div style={{ height: "40px" }}>
                           <CustomSelect
                             options={conditionCodes || []}
                             value={updateForm.completionConditionCode || ""}
@@ -1387,60 +1485,97 @@ export default function MissionsManagement() {
                             onChange={(val) =>
                               setUpdateField("completionConditionCode", val)
                             }
-                            placeholder="Chọn điều kiện"
+                            placeholder="Chọn ĐK"
                             error={formErrors.completionConditionCode}
                           />
                         </div>
-                        <div className="mission-form-group flex-1">
-                          <label className="mission-form-label">
-                            Giá trị mục tiêu
-                          </label>
-                          <input
-                            type="number"
-                            className={`mission-form-input ${formErrors.completionTargetValue ? "error" : ""}`}
-                            value={
-                              updateForm.completionTargetValue !== undefined
-                                ? updateForm.completionTargetValue
-                                : ""
-                            }
-                            onChange={(e) =>
-                              setUpdateField(
-                                "completionTargetValue",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Ví dụ: 5000..."
-                            min="1"
-                          />
-                          {formErrors.completionTargetValue && (
-                            <span className="mission-form-error">
-                              {formErrors.completionTargetValue}
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </fieldset>
-
-                    {/* Điều kiện mở khóa */}
-                    <fieldset
-                      className="mission-fieldset assignment"
-                      style={{ overflow: "visible" }}
-                    >
-                      <legend className="mission-legend">
-                        <AlertCircle className="w-4 h-4 text-amber-600" /> Điều
-                        kiện mở khóa (Tùy chọn)
-                      </legend>
-                      <div
-                        className="mission-fieldset-inner"
-                        style={{ overflow: "visible" }}
-                      >
-                        <div
-                          className="mission-form-group flex-1"
-                          style={{ position: "relative", zIndex: 20 }}
+                      <div>
+                        <label
+                          style={{
+                            fontSize: "0.75rem",
+                            marginBottom: "0.4rem",
+                            display: "block",
+                            color: "#6b7280",
+                          }}
                         >
-                          <label className="mission-form-label">
-                            Loại điều kiện mở khóa
-                          </label>
+                          Giá trị mục tiêu
+                        </label>
+                        <input
+                          type="number"
+                          className="mission-dialog-input-aligned"
+                          value={
+                            updateForm.completionTargetValue !== undefined
+                              ? updateForm.completionTargetValue
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setUpdateField(
+                              "completionTargetValue",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="VD: 5000"
+                          min="1"
+                        />
+                        {formErrors.completionTargetValue && (
+                          <span
+                            style={{
+                              color: "#ef4444",
+                              fontSize: "0.75rem",
+                              marginTop: "4px",
+                              display: "block",
+                            }}
+                          >
+                            {formErrors.completionTargetValue}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  {/* HÀNG 3 - PHẢI: Điều kiện mở khóa */}
+                  {/* Áp dụng minmax(0, 1fr) tương tự để khóa chặt tỉ lệ cột */}
+                  <fieldset
+                    style={{
+                      border: "1px solid #E5DCCF",
+                      borderRadius: "8px",
+                      padding: "1.25rem 1rem",
+                      backgroundColor: "#fff",
+                      margin: 0,
+                      height: "100%",
+                    }}
+                  >
+                    <legend
+                      style={{
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                        padding: "0 0.5rem",
+                      }}
+                    >
+                      Điều kiện mở khóa (Tùy chọn)
+                    </legend>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                        gap: "1rem",
+                        alignItems: "start",
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            fontSize: "0.75rem",
+                            marginBottom: "0.4rem",
+                            display: "block",
+                            color: "#6b7280",
+                          }}
+                        >
+                          Loại điều kiện
+                        </label>
+                        <div style={{ height: "40px" }}>
                           <CustomSelect
                             options={[
                               { code: "", label: "MẶC ĐỊNH MỞ KHOÁ" },
@@ -1454,60 +1589,284 @@ export default function MissionsManagement() {
                               if (!val)
                                 setUpdateField("assignmentTargetValue", "");
                             }}
-                            placeholder="Chọn điều kiện mở khóa"
+                            placeholder="Chọn ĐK"
                             error={formErrors.assignmentConditionCode}
                           />
                         </div>
-                        <div className="mission-form-group flex-1">
-                          <label className="mission-form-label">
-                            Giá trị mở khóa
-                          </label>
-                          <input
-                            type="number"
-                            className={`mission-form-input ${formErrors.assignmentTargetValue ? "error" : ""}`}
-                            value={
-                              updateForm.assignmentTargetValue !== undefined
-                                ? updateForm.assignmentTargetValue
-                                : ""
-                            }
-                            onChange={(e) =>
-                              setUpdateField(
-                                "assignmentTargetValue",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Ví dụ: 10..."
-                            disabled={!updateForm.assignmentConditionCode}
-                            min="1"
-                          />
-                          {formErrors.assignmentTargetValue && (
-                            <span className="mission-form-error">
-                              {formErrors.assignmentTargetValue}
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </fieldset>
+                      <div>
+                        <label
+                          style={{
+                            fontSize: "0.75rem",
+                            marginBottom: "0.4rem",
+                            display: "block",
+                            color: "#6b7280",
+                          }}
+                        >
+                          Giá trị mở khóa
+                        </label>
+                        <input
+                          type="number"
+                          className="mission-dialog-input-aligned"
+                          style={{
+                            backgroundColor: !updateForm.assignmentConditionCode
+                              ? "#f9fafb"
+                              : "#fff",
+                          }}
+                          value={
+                            updateForm.assignmentTargetValue !== undefined
+                              ? updateForm.assignmentTargetValue
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setUpdateField(
+                              "assignmentTargetValue",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="VD: 10"
+                          disabled={!updateForm.assignmentConditionCode}
+                          min="1"
+                        />
+                        {formErrors.assignmentTargetValue && (
+                          <span
+                            style={{
+                              color: "#ef4444",
+                              fontSize: "0.75rem",
+                              marginTop: "4px",
+                              display: "block",
+                            }}
+                          >
+                            {formErrors.assignmentTargetValue}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+
+                {/* --- KHỐI VẬT PHẨM QUÀ TẶNG --- */}
+                <div
+                  style={{
+                    marginTop: "1.5rem",
+                    backgroundColor: "#fff",
+                    padding: "1.25rem",
+                    borderRadius: "8px",
+                    border: "1px solid #E5DCCF",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontWeight: "700",
+                        fontSize: "0.875rem",
+                        color: "#E59A73",
+                        margin: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <Package className="w-4 h-4" /> Vật phẩm phần thưởng kèm
+                      theo
+                    </label>
+                    {/* Cập nhật nút bấm: Nền xanh lá chữ trắng đồng bộ hệ thống */}
+                    <button
+                      type="button"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        fontSize: "0.8125rem",
+                        color: "#ffffff",
+                        backgroundColor: "#76A084",
+                        border: "none",
+                        borderRadius: "9999px",
+                        padding: "0.45rem 1.25rem",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#638971";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#76A084";
+                      }}
+                      onClick={() => {
+                        const currentItems = Array.isArray(
+                          updateForm.rewardItemList,
+                        )
+                          ? updateForm.rewardItemList
+                          : [];
+                        setUpdateField("rewardItemList", [
+                          ...currentItems,
+                          { itemId: "", quantity: 1 },
+                        ]);
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Thêm quà tặng
+                    </button>
                   </div>
+
+                  {!updateForm.rewardItemList ||
+                  updateForm.rewardItemList.length === 0 ? (
+                    <p
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "#9ca3af",
+                        fontStyle: "italic",
+                        backgroundColor: "#f9fafb",
+                        padding: "1rem",
+                        borderRadius: "8px",
+                        border: "1px dashed #d1d5db",
+                        textAlign: "center",
+                        margin: 0,
+                      }}
+                    >
+                      Chưa cấu hình vật phẩm quà tặng kèm theo cho nhiệm vụ này.
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.75rem",
+                      }}
+                    >
+                      {updateForm.rewardItemList.map((item, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: "flex",
+                            gap: "1rem",
+                            alignItems: "center",
+                            backgroundColor: "#ffffff",
+                            padding: "0.75rem 1rem",
+                            borderRadius: "8px",
+                            border: "1px solid #e5e7eb",
+                          }}
+                        >
+                          <div style={{ flex: 1, height: "40px" }}>
+                            <CustomSelect
+                              options={rewardItems || []}
+                              value={item.itemId || ""}
+                              valueKey="itemId"
+                              labelKey="itemName"
+                              onChange={(val) => {
+                                const newList = [...updateForm.rewardItemList];
+                                newList[index].itemId = val;
+                                setUpdateField("rewardItemList", newList);
+                              }}
+                              placeholder="-- Chọn vật phẩm --"
+                              error={formErrors[`rewardItem_${index}_id`]}
+                            />
+                          </div>
+
+                          <div style={{ width: "100px" }}>
+                            <input
+                              type="number"
+                              className={`mission-dialog-input-aligned ${formErrors[`rewardItem_${index}_qty`] ? "error" : ""}`}
+                              style={{ textAlign: "center" }}
+                              value={
+                                item.quantity !== undefined ? item.quantity : 1
+                              }
+                              onChange={(e) => {
+                                const newList = [...updateForm.rewardItemList];
+                                newList[index].quantity = e.target.value;
+                                setUpdateField("rewardItemList", newList);
+                              }}
+                              placeholder="SL"
+                              min="1"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            title="Xóa vật phẩm"
+                            style={{
+                              padding: "0.5rem",
+                              color: "#ef4444",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                            onClick={() => {
+                              const newList = updateForm.rewardItemList.filter(
+                                (_, i) => i !== index,
+                              );
+                              setUpdateField("rewardItemList", newList);
+                            }}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="mission-dialog-footer">
+              {/* FOOTER */}
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderTop: "1px solid #E5DCCF",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "1rem",
+                  backgroundColor: "#ffffff",
+                }}
+              >
                 <button
                   type="button"
-                  className="mission-btn-secondary"
+                  style={{
+                    padding: "0.625rem 1.25rem",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                    backgroundColor: "#fff",
+                    color: "#374151",
+                    cursor: "pointer",
+                    fontWeight: "500",
+                    fontSize: "0.875rem",
+                  }}
                   onClick={() => setShowUpdateModal(false)}
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="mission-btn-primary"
                   disabled={isSubmitting}
+                  style={{
+                    padding: "0.625rem 1.25rem",
+                    borderRadius: "8px",
+                    border: "none",
+                    backgroundColor: "#76A084",
+                    color: "#fff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontWeight: "500",
+                    fontSize: "0.875rem",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#638971";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#76A084";
+                  }}
                 >
-                  {isSubmitting && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Cập nhật nhiệm vụ
                 </button>
               </div>
@@ -2535,8 +2894,7 @@ export default function MissionsManagement() {
 
                 <div
                   style={{
-                    background: "var(--muted)",
-                    padding: "1rem",
+                    background: "#ffffff",
                     borderRadius: "0.5rem",
                   }}
                 >
