@@ -102,11 +102,11 @@
 }
 
 .mission-stat-value.primary {
-    color: #3A5140;
+    color: var(--foreground);
 }
 
 .mission-stat-value.secondary {
-    color: #3A5140;
+    color: var(--foreground);
 }
 
 .mission-stat-value.accent {
