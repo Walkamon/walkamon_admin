@@ -1831,7 +1831,7 @@ export default function MissionsManagement() {
                 {updateForm.missionTypeCode === "daily" && (
                   <div
                     className="mt-4"
-                    style={{ position: "relative", zIndex: 50 }}
+                    style={{ position: "relative", zIndex: 1 }}
                   >
                     <label
                       style={{
@@ -2191,7 +2191,7 @@ export default function MissionsManagement() {
                     style={{
                       fontSize: "0.875rem",
                       fontWeight: 700,
-                      color: "var(--primary)",
+                      color: "var(--foreground)",
                       margin: "4px 0 12px 0",
                       lineHeight: "1.4",
                     }}
@@ -2331,6 +2331,79 @@ export default function MissionsManagement() {
                     )}
                   </div>
                 </div>
+
+                {selectedDetail.missionTypeCode === "daily" && (
+                  <div
+                    style={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "12px",
+                      padding: "1.25rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.75rem",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color: "var(--muted-foreground)",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      THỜI GIAN ÁP DỤNG
+                    </span>
+
+                    <div
+                      style={{
+                        height: "1px",
+                        backgroundColor: "var(--border)",
+                      }}
+                    ></div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      <span>Ngày bắt đầu:</span>
+                      <span
+                        style={{ fontWeight: 600, color: "var(--foreground)" }}
+                      >
+                        {selectedDetail.startAt
+                          ? new Date(selectedDetail.startAt).toLocaleString(
+                              "vi-VN",
+                            )
+                          : "---"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      <span>Ngày kết thúc:</span>
+                      <span
+                        style={{ fontWeight: 600, color: "var(--foreground)" }}
+                      >
+                        {selectedDetail.endAt
+                          ? new Date(selectedDetail.endAt).toLocaleString(
+                              "vi-VN",
+                            )
+                          : "---"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {/* ========================================================================= */}
+                {/* KẾT THÚC KHU VỰC THÊM MỚI                                                 */}
+                {/* ========================================================================= */}
               </div>
 
               {/* ================= CỘT PHẢI: QUY TẮC & PHẦN THƯỞNG ================= */}
@@ -2419,7 +2492,7 @@ export default function MissionsManagement() {
                               <span
                                 style={{
                                   fontSize: "1rem", // Đẩy hẳn lên cỡ 16px cho rõ ràng
-                                  fontWeight: 800, // Độ đậm tối đa
+                                  fontWeight: 600, // Độ đậm tối đa
                                   color: "var(--foreground)", // Ép về màu đậm, đập ngay vào mắt người nhìn
                                 }}
                               >
@@ -2487,7 +2560,7 @@ export default function MissionsManagement() {
                                 style={{
                                   fontSize: "0.875rem",
                                   fontWeight: 600, // Tăng độ đậm để chữ sắc nét
-                                  color: "var(--primary)", // Sử dụng tông màu olive đậm nhất của hệ thống
+                                  color: "var(--foreground)", // Sử dụng tông màu olive đậm nhất của hệ thống
                                 }}
                               >
                                 {METRIC_TRANSLATIONS[cond.conditionCode] ||
@@ -2572,7 +2645,7 @@ export default function MissionsManagement() {
                         style={{
                           fontSize: "0.75rem",
                           fontWeight: 700,
-                          color: "var(--primary)",
+                          color: "var(--foreground)",
                           display: "block",
                           letterSpacing: "0.05em",
                           marginBottom: "2px",
@@ -2587,7 +2660,7 @@ export default function MissionsManagement() {
                           alignItems: "center",
                           justifyContent: "space-between",
                           fontSize: "0.875rem",
-                          color: "var(--primary)",
+                          color: "var(--foreground)",
                           fontWeight: 600,
                         }}
                       >
@@ -2600,7 +2673,7 @@ export default function MissionsManagement() {
                         >
                           <Droplets
                             size={16}
-                            style={{ color: "var(--primary)" }}
+                            style={{ color: "var(--foreground)" }}
                           />
                           <span>Giọt sương cơ bản</span>
                         </div>
