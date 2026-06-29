@@ -345,18 +345,25 @@ export default function MissionsManagement() {
     setFormErrors({});
     setError(null);
     try {
-      const response = await missionApi.getOverallMissionDetail(
-        mission.missionId || mission.id,
-      );
+      // 1. Tự động rẽ nhánh gọi API dựa theo tab đang chọn
+      const response =
+        activeTab === "daily"
+          ? await missionApi.getDailyMissionDetail(
+              mission.missionId || mission.id,
+            )
+          : await missionApi.getOverallMissionDetail(
+              mission.missionId || mission.id,
+            );
+
       const detail = response?.data?.data || response?.data || response;
 
+      // 2. Gán dữ liệu vào Form Update
       const formState = {
         title: detail.title || "",
         description: detail.description || "",
-        missionTypeCode: detail.missionTypeCode || "",
+        missionTypeCode: detail.missionTypeCode || activeTab,
         isActive: detail.isActive !== undefined ? detail.isActive : true,
         walletAmount: detail.walletAmount || "",
-        // Ép mảng an toàn tuyệt đối chống lỗi map()
         rewardItemList: Array.isArray(detail.rewardItems)
           ? detail.rewardItems.map((item) => ({
               itemId: item.itemId,
@@ -372,6 +379,9 @@ export default function MissionsManagement() {
           detail.assignmentConditions?.[0]?.conditionCode || "",
         assignmentTargetValue:
           detail.assignmentConditions?.[0]?.targetValue || "",
+
+        // Dữ liệu ngày (chỉ dành cho daily)
+        startAt: detail.startAt || "",
       };
 
       setUpdateForm(formState);
@@ -475,10 +485,51 @@ export default function MissionsManagement() {
       assignmentConditions: assignmentConditions,
     };
 
+    // KIỂM TRA LỖI NGÀY & GÓI THỜI GIAN CHO DAILY MISSION
+    if (updateForm.missionTypeCode === "daily") {
+      if (!updateForm.startAt) {
+        setFormErrors({
+          ...errors,
+          startAt: "Vui lòng chọn ngày thực hiện nhiệm vụ.",
+        });
+        return;
+      }
+
+      const selectedDate = new Date(updateForm.startAt);
+      const startOfDay = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        0,
+        0,
+        0,
+      );
+      const endOfDay = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+
+      payload.startAt = startOfDay.toISOString();
+      payload.endAt = endOfDay.toISOString();
+    } else {
+      payload.startAt = null;
+      payload.endAt = null;
+    }
+
     try {
       setIsSubmitting(true);
       setFormErrors({});
-      await missionApi.updateOverallMission(currentUpdateMissionId, payload);
+      // CHỌN ĐÚNG API ĐỂ CẬP NHẬT
+      if (updateForm.missionTypeCode === "daily") {
+        await missionApi.updateDailyMission(currentUpdateMissionId, payload);
+      } else {
+        await missionApi.updateOverallMission(currentUpdateMissionId, payload);
+      }
       setDialogInfo({
         isOpen: true,
         type: "success",
@@ -1739,6 +1790,38 @@ export default function MissionsManagement() {
                     </div>
                   </fieldset>
                 </div>
+
+                {/* Ô CHỌN NGÀY DÀNH CHO DAILY MISSION TRONG FORM CẬP NHẬT */}
+                {updateForm.missionTypeCode === "daily" && (
+                  <div
+                    className="mt-4"
+                    style={{ position: "relative", zIndex: 50 }}
+                  >
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.4rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
+                    >
+                      Ngày thực hiện <span className="text-red-500">*</span>
+                    </label>
+                    <CustomDatePicker
+                      value={updateForm.startAt}
+                      onChange={(e) =>
+                        setUpdateField("startAt", e.target.value)
+                      }
+                      placeholder="Chọn ngày thực hiện"
+                    />
+                    {formErrors.startAt && (
+                      <small className="text-red-500 block mt-1">
+                        {formErrors.startAt}
+                      </small>
+                    )}
+                  </div>
+                )}
 
                 {/* --- KHỐI VẬT PHẨM QUÀ TẶNG --- */}
                 <div
