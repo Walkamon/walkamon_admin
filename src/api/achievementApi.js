@@ -5,6 +5,10 @@ export const achievementApi = {
   getAll: (params) => {
     return axiosClient.get("/api/admin/achievements", { params });
   },
+  // GET /api/admin/achievements/{achievementId}
+  getById: (id) => {
+    return axiosClient.get(`/api/admin/achievements/${id}`);
+  },
   // POST /api/admin/achievements
   create: (payload) => {
     const config = payload instanceof FormData
@@ -12,6 +16,7 @@ export const achievementApi = {
       : {};
     return axiosClient.post("/api/admin/achievements", payload, config);
   },
+
 };
 
 export default achievementApi;
