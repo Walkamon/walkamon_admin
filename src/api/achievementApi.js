@@ -5,6 +5,13 @@ export const achievementApi = {
   getAll: (params) => {
     return axiosClient.get("/api/admin/achievements", { params });
   },
+  // POST /api/admin/achievements
+  create: (payload) => {
+    const config = payload instanceof FormData
+      ? { headers: { "Content-Type": "multipart/form-data" } }
+      : {};
+    return axiosClient.post("/api/admin/achievements", payload, config);
+  },
 };
 
 export default achievementApi;
