@@ -913,33 +913,44 @@ export default function MissionsManagement() {
           >
             <thead>
               <tr>
+                {/* Điều chỉnh lại độ rộng cột động theo từng tab */}
                 <th
-                  style={{ width: "24%" }}
+                  style={{ width: activeTab === "daily" ? "20%" : "24%" }}
                   className="text-left tracking-wide"
                 >
                   Tên nhiệm vụ
                 </th>
                 <th
-                  style={{ width: "16%" }}
+                  style={{ width: activeTab === "daily" ? "14%" : "16%" }}
                   className="text-left tracking-wide"
                 >
                   Điều kiện
                 </th>
                 <th
-                  style={{ width: "23%" }}
+                  style={{ width: activeTab === "daily" ? "18%" : "23%" }}
                   className="text-left tracking-wide"
                 >
                   Phần thưởng
                 </th>
+
+                {/* CHÈN ĐỘNG TIÊU ĐỀ CỘT THỜI GIAN KHI LÀ TAB DAILY */}
+                {activeTab === "daily" && (
+                  <th
+                    style={{ width: "15%" }}
+                    className="text-left tracking-wide"
+                  >
+                    Thời gian áp dụng
+                  </th>
+                )}
+
                 <th
-                  style={{ width: "15%" }}
+                  style={{ width: activeTab === "daily" ? "13%" : "15%" }}
                   className="text-left tracking-wide"
                 >
                   Trạng thái
                 </th>
-                {/* Tăng từ 15% lên 22% để có dư dả không gian chứa 2 nút bấm */}
                 <th
-                  style={{ width: "22%" }}
+                  style={{ width: activeTab === "daily" ? "20%" : "22%" }}
                   className="text-left tracking-wide"
                 >
                   Thao tác
@@ -950,14 +961,18 @@ export default function MissionsManagement() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="mission-loading-cell">
+                  {/* Tăng colSpan lên 6 nếu ở tab daily để không bị lệch hàng */}
+                  <td
+                    colSpan={activeTab === "daily" ? 6 : 5}
+                    className="mission-loading-cell"
+                  >
                     <Loader2 className="mission-loading-spinner" />
                     <p className="mission-loading-text">Đang tải dữ liệu...</p>
                   </td>
                 </tr>
               ) : currentMissions.length === 0 ? (
                 <TableEmpty
-                  colSpan={5}
+                  colSpan={activeTab === "daily" ? 6 : 5}
                   message="Không tìm thấy nhiệm vụ nào phù hợp."
                 />
               ) : (
@@ -1006,7 +1021,6 @@ export default function MissionsManagement() {
                             .map((item) => item.trim())
                             .filter(Boolean);
 
-                          // GIỚI HẠN HIỂN THỊ: Chỉ lấy tối đa 2 item đầu tiên ra bảng
                           const maxDisplay = 2;
                           const visibleRewards = rewardsArray.slice(
                             0,
@@ -1035,10 +1049,10 @@ export default function MissionsManagement() {
                                     style={{
                                       backgroundColor: isDew
                                         ? "rgba(118, 160, 132, 0.15)"
-                                        : "rgba(229, 154, 115, 0.15)", //
+                                        : "rgba(229, 154, 115, 0.15)",
                                       color: isDew
                                         ? "var(--success)"
-                                        : "var(--accent)", //
+                                        : "var(--accent)",
                                       border: isDew
                                         ? "1px solid var(--success)"
                                         : "1px solid var(--accent)",
@@ -1068,7 +1082,6 @@ export default function MissionsManagement() {
                                 );
                               })}
 
-                              {/* Nếu còn nhiều item hơn, hiện thêm nút chỉ báo */}
                               {hasMore && (
                                 <span
                                   style={{
@@ -1092,6 +1105,32 @@ export default function MissionsManagement() {
                       </div>
                     </td>
 
+                    {/* CHÈN ĐỘNG DỮ LIỆU CỘT THỜI GIAN KHI LÀ TAB DAILY */}
+                    {activeTab === "daily" && (
+                      <td className="align-middle">
+                        <span
+                          className="text-muted-foreground text-sm font-medium"
+                          style={{ color: "#4A5D23" }}
+                        >
+                          {(() => {
+                            if (!mission.startAt) return "---";
+                            try {
+                              const d = new Date(mission.startAt);
+                              const day = String(d.getDate()).padStart(2, "0");
+                              const month = String(d.getMonth() + 1).padStart(
+                                2,
+                                "0",
+                              );
+                              const year = d.getFullYear();
+                              return `${day}/${month}/${year}`;
+                            } catch (e) {
+                              return "---";
+                            }
+                          })()}
+                        </span>
+                      </td>
+                    )}
+
                     <td className="align-middle">
                       <div
                         className="status-container"
@@ -1102,11 +1141,10 @@ export default function MissionsManagement() {
                         }}
                       >
                         {mission.isActive ? (
-                          /* TRẠNG THÁI HOẠT ĐỘNG: Màu xanh lá cây mờ */
                           <span
                             className="badge-status"
                             style={{
-                              backgroundColor: "rgba(118, 160, 132, 0.15)", // Xanh lá mờ (--success)
+                              backgroundColor: "rgba(118, 160, 132, 0.15)",
                               color: "var(--success)",
                               border: "none",
                               padding: "2px 8px",
@@ -1149,13 +1187,12 @@ export default function MissionsManagement() {
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          justifyContent: "flex-start",
+                          justify: "flex-start",
                           gap: "8px",
                           flexWrap: "wrap",
                           width: "100%",
                         }}
                       >
-                        {/* NÚT SỬA */}
                         <button
                           type="button"
                           onClick={() => handleEdit(mission)}
@@ -1164,7 +1201,7 @@ export default function MissionsManagement() {
                             whiteSpace: "nowrap",
                             backgroundColor: "rgba(229, 154, 115, 0.15)",
                             color: "var(--accent)",
-                            border: "1px solid rgba(229, 154, 115, 0.3)", // <--- VIỀN NHẠT HƠN (Độ mờ 0.3)
+                            border: "1px solid rgba(229, 154, 115, 0.3)",
                             padding: "4px 12px",
                             borderRadius: "9999px",
                             fontSize: "0.8125rem",
@@ -1180,7 +1217,6 @@ export default function MissionsManagement() {
                           Sửa
                         </button>
 
-                        {/* NÚT VÔ HIỆU HÓA / KÍCH HOẠT */}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1198,8 +1234,8 @@ export default function MissionsManagement() {
                               ? "var(--destructive)"
                               : "var(--success)",
                             border: mission.isActive
-                              ? "1px solid rgba(220, 107, 107, 0.3)" // <--- VIỀN ĐỎ NHẠT HƠN
-                              : "1px solid rgba(118, 160, 132, 0.3)", // <--- VIỀN XANH NHẠT HƠN
+                              ? "1px solid rgba(220, 107, 107, 0.3)"
+                              : "1px solid rgba(118, 160, 132, 0.3)",
                             padding: "4px 12px",
                             borderRadius: "9999px",
                             fontSize: "0.8125rem",
