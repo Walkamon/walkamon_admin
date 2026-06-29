@@ -19,6 +19,7 @@ import { Button } from "../../components/common/button.jsx";
 import { SearchFilter } from "../../components/common/SearchFilter";
 import { Pagination } from "../../components/common/pagination.jsx";
 import CustomSelect from "../../components/common/CustomSelect";
+import CustomDatePicker from "../../components/common/CustomDatePicker";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -51,6 +52,8 @@ const emptyOverallMissionForm = {
   completionTargetValue: "",
   assignmentConditionCode: "",
   assignmentTargetValue: "",
+  startAt: "",
+  endAt: "",
 };
 
 const MISSION_TYPES = [
@@ -308,6 +311,21 @@ export default function MissionsManagement() {
       }
     });
 
+    const hasWalletReward = Number(createForm.walletAmount) > 0;
+    const hasItemReward =
+      createForm.rewardItemList && createForm.rewardItemList.length > 0;
+
+    // Nếu cả 2 đều không có -> Báo lỗi
+    if (!hasWalletReward && !hasItemReward) {
+      errors.reward = "Vui lòng thêm ít nhất một phần thưởng.";
+    }
+
+    if (createForm.missionTypeCode === "daily") {
+      if (!createForm.startAt) {
+        errors.startAt = "Vui lòng chọn ngày thực hiện nhiệm vụ.";
+      }
+    }
+
     if (!(createForm.completionConditionCode || "").trim())
       errors.completionConditionCode = "Vui lòng chọn điều kiện hoàn thành.";
     if (completionTarget <= 0)
@@ -558,99 +576,143 @@ export default function MissionsManagement() {
   };
 
   const handleCreateMission = async (e) => {
-    // Đổi tên hàm
     e.preventDefault();
+
+    // 1. Kiểm tra lỗi trước khi gửi
     const errors = validateOverallMission();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
 
-    // Build payload giống hệt lúc trước
-    const completionConditions = [
-      {
-        conditionCode: (createForm.completionConditionCode || "").trim(),
-        targetValue: Number(createForm.completionTargetValue),
-        referenceMissionId: null,
-      },
-    ];
-
-    const assignmentConditions = [];
-    if (createForm.assignmentConditionCode) {
-      assignmentConditions.push({
-        conditionCode: (createForm.assignmentConditionCode || "").trim(),
-        targetValue: Number(createForm.assignmentTargetValue || 0),
-        referenceMissionId: null,
-      });
-    }
-
-    const rewardItemsPayload = (createForm.rewardItemList || []).map(
-      (item) => ({
-        itemId: item.itemId,
-        quantity: Number(item.quantity),
-      }),
-    );
-
-    const payload = {
-      title: (createForm.title || "").trim(),
-      description: (createForm.description || "").trim(),
-      missionTypeCode: (createForm.missionTypeCode || "").trim(),
-      metricCode: (createForm.completionConditionCode || "").trim(),
-      targetValue: Number(createForm.completionTargetValue || 0),
-      isActive: createForm.isActive,
-      walletAmount: Number(createForm.walletAmount || 0),
-      rewardItems: rewardItemsPayload,
-      completionConditions,
-      assignmentConditions,
-    };
-
     try {
       setIsSubmitting(true);
-      setFormErrors({});
 
-      // CHẺ NHÁNH GỌI API DỰA VÀO DROPDOWN LOẠI NHIỆM VỤ
-      if (createForm.missionTypeCode === "daily") {
-        await missionApi.createDailyMission(payload);
-      } else {
-        await missionApi.createOverallMission(payload);
+      const walletAmount = Number(createForm.walletAmount || 0);
+      const completionTarget = Number(createForm.completionTargetValue || 0);
+      const assignmentTarget = Number(createForm.assignmentTargetValue || 0);
+
+      // 2. Gom dữ liệu Điều kiện hoàn thành
+      const completionConditions = [
+        {
+          conditionCode: (createForm.completionConditionCode || "").trim(),
+          targetValue: completionTarget,
+          referenceMissionId: null,
+        },
+      ];
+
+      // 3. Gom dữ liệu Điều kiện mở khóa
+      const assignmentConditions = [];
+      if (createForm.assignmentConditionCode) {
+        assignmentConditions.push({
+          conditionCode: (createForm.assignmentConditionCode || "").trim(),
+          targetValue: assignmentTarget,
+          referenceMissionId: null,
+        });
       }
 
-      setDialogInfo({
-        isOpen: true,
-        type: "success",
-        message: "Chúc mừng! Bạn đã tạo nhiệm vụ mới thành công.",
-      });
-      setShowCreateModal(false);
-      setCreateForm({
-        ...emptyOverallMissionForm,
-        completionConditionCode: conditionCodes[0]?.code || "steps",
-      });
+      // 4. Gom dữ liệu Vật phẩm thưởng
+      const rewardItemsPayload = (createForm.rewardItemList || []).map(
+        (item) => ({
+          itemId: item.itemId,
+          quantity: Number(item.quantity),
+        }),
+      );
 
-      // Chuyển tab về đúng tab vừa tạo và tải lại dữ liệu của tab đó
-      const newTab = createForm.missionTypeCode || "overall";
-      setActiveTab(newTab);
-      await fetchOverallData(newTab);
+      // 5. GÓI DỮ LIỆU ĐẦY ĐỦ ĐỂ GỬI LÊN BACKEND (Đã sửa lỗi thiếu data)
+      const payload = {
+        title: (createForm.title || "").trim(),
+        description: (createForm.description || "").trim(),
+        missionTypeCode: (createForm.missionTypeCode || "").trim(),
+        isActive:
+          createForm.isActive !== undefined ? createForm.isActive : true,
+        walletAmount: walletAmount,
+        rewardItems: rewardItemsPayload,
+        completionConditions: completionConditions,
+        assignmentConditions: assignmentConditions, // Thêm các điều kiện vào payload
+      };
 
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      const backendErrors = err.response?.data?.errors;
-      if (backendErrors) {
-        const nextErrors = {};
-        Object.entries(backendErrors).forEach(([key, messages]) => {
-          nextErrors[missionErrorFieldMap[key] || key] = translateMissionError(
-            messages?.[0],
+      // 6. Xử lý Thời gian 24h tự động (Nếu là Daily)
+      if (createForm.missionTypeCode === "daily") {
+        if (createForm.startAt) {
+          const selectedDate = new Date(createForm.startAt);
+
+          const startOfDay = new Date(
+            selectedDate.getFullYear(),
+            selectedDate.getMonth(),
+            selectedDate.getDate(),
+            0,
+            0,
+            0,
           );
-        });
-        setFormErrors(nextErrors);
+
+          const endOfDay = new Date(
+            selectedDate.getFullYear(),
+            selectedDate.getMonth(),
+            selectedDate.getDate(),
+            23,
+            59,
+            59,
+            999,
+          );
+
+          payload.startAt = startOfDay.toISOString();
+          payload.endAt = endOfDay.toISOString();
+        } else {
+          payload.startAt = null;
+          payload.endAt = null;
+        }
       } else {
+        payload.startAt = null;
+        payload.endAt = null;
+      }
+
+      // 7. Gọi API
+      let response;
+      if (createForm.missionTypeCode === "daily") {
+        response = await missionApi.createDailyMission(payload);
+      } else {
+        response = await missionApi.createOverallMission(payload);
+      }
+
+      if (response) {
+        setShowCreateModal(false);
+
+        // Cập nhật lại form sạch sẽ sau khi tạo thành công
+        setCreateForm({
+          title: "",
+          description: "",
+          missionTypeCode: "overall",
+          isActive: true,
+          walletAmount: 0,
+          rewardItemList: [],
+          completionConditionCode: "",
+          completionTargetValue: 0,
+          assignmentConditionCode: "",
+          assignmentTargetValue: 0,
+          startAt: "",
+          endAt: "",
+        });
+
         setDialogInfo({
           isOpen: true,
-          type: "error",
-          message:
-            err.response?.data?.message ||
-            "Không thể tạo nhiệm vụ. Vui lòng kiểm tra lại kết nối.",
+          type: "success",
+          message: "Tạo nhiệm vụ thành công!",
         });
+
+        // Tải lại danh sách (đảm bảo hàm này đúng tên hàm bạn dùng để load lại data)
+        if (typeof fetchOverallData === "function") {
+          await fetchOverallData();
+        }
       }
+    } catch (error) {
+      console.error("Lỗi tạo nhiệm vụ:", error);
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message:
+          error.response?.data?.message || "Có lỗi xảy ra khi tạo nhiệm vụ.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -2671,6 +2733,41 @@ export default function MissionsManagement() {
                   </div>
                 </div>
 
+                {/* ========================================================= */}
+                {createForm.missionTypeCode === "daily" && (
+                  <div
+                    className="mt-4"
+                    style={{ position: "relative", zIndex: 50 }}
+                  >
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: "600",
+                        fontSize: "0.875rem",
+                        color: "#4A5D23",
+                      }}
+                    >
+                      Ngày thực hiện <span className="text-red-500">*</span>
+                    </label>
+
+                    <CustomDatePicker
+                      value={createForm.startAt}
+                      onChange={(e) =>
+                        setCreateField("startAt", e.target.value)
+                      }
+                      placeholder="Chọn ngày thực hiện"
+                    />
+
+                    {formErrors.startAt && (
+                      <small className="text-red-500 block mt-1">
+                        {formErrors.startAt}
+                      </small>
+                    )}
+                  </div>
+                )}
+                {/* ========================================================= */}
+
                 <div
                   style={{
                     display: "flex",
@@ -2886,7 +2983,30 @@ export default function MissionsManagement() {
                 className="mission-form-section"
                 style={{ position: "relative", zIndex: 30 }}
               >
-                <h3>3. Phần thưởng</h3>
+                <h3
+                  style={{
+                    margin: 0, // Xóa sạch toàn bộ margin mặc định của thẻ h3
+                    // Nếu có lỗi thì chỉ cách 0.15rem (sát rạt), nếu không có lỗi thì cách 1rem như cũ
+                    marginBottom: formErrors.reward ? "0.15rem" : "1rem",
+                    fontWeight: "600",
+                    fontSize: "1.125rem",
+                    color: "#4A5D23",
+                  }}
+                >
+                  3. Phần thưởng <span className="text-red-500">*</span>
+                </h3>
+
+                {formErrors.reward && (
+                  <small
+                    className="text-red-500 block"
+                    style={{
+                      marginTop: 0,
+                      marginBottom: "0.85rem", // Thằng này sẽ chịu trách nhiệm đẩy các ô nhập bên dưới xuống
+                    }}
+                  >
+                    {formErrors.reward}
+                  </small>
+                )}
                 <div
                   style={{
                     display: "flex",
