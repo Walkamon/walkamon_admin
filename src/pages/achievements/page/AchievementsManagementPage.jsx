@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Pencil, CheckCircle } from "lucide-react";
 import CustomSelect from "../../../components/common/CustomSelect.jsx";
 import { Table, TableEmpty } from "../../../components/common/table.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
@@ -9,6 +9,7 @@ import { achievementApi } from "../../../api/achievementApi";
 import { itemApi } from "../../../api/itemApi";
 import { missionApi } from "../../../api/missionApi";
 import "../../missions/css/missionsManagement.css";
+import "../css/AchievementsManagementPage.css";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -47,6 +48,8 @@ export function AchievementsManagementPage() {
     rewardItemList: [],
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDisableTarget, setConfirmDisableTarget] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const loadAchievements = async () => {
     setLoading(true);
@@ -118,9 +121,21 @@ export function AchievementsManagementPage() {
 
   const statusOptions = [
     { id: "", label: "Tất cả trạng thái" },
-    { id: "Hoat dong", label: "Hoạt động" },
-    { id: "Tam dung", label: "Vô hiệu" },
+    { id: "Hoạt động", label: "Hoạt động" },
+    { id: "Chưa kích hoạt", label: "Chưa kích hoạt" },
+    { id: "Vô hiệu", label: "Vô hiệu" },
   ];
+
+  const normalizeStatusName = (achievement) => {
+    const rawStatus = achievement?.statusName || achievement?.status || "";
+    if (rawStatus === "Hoat dong") return "Hoạt động";
+    if (rawStatus === "Tam dung") return "Chưa kích hoạt";
+    if (rawStatus === "Hoạt động") return "Hoạt động";
+    if (rawStatus === "Chưa kích hoạt") return "Chưa kích hoạt";
+    if (rawStatus === "Vô hiệu") return "Vô hiệu";
+    if (rawStatus === "Vô hiệu hóa") return "Vô hiệu";
+    return getAchievementActive(achievement) ? "Hoạt động" : "Vô hiệu";
+  };
 
   const filtered = useMemo(() => {
     return achievements.filter((a) => {
@@ -132,7 +147,7 @@ export function AchievementsManagementPage() {
 
       // status filter
       if (statusFilter) {
-        const statusName = a?.statusName || (a?.isActive ? "Hoạt động" : "Vô hiệu");
+        const statusName = normalizeStatusName(a);
         if (statusFilter !== statusName) return false;
       }
 
@@ -326,6 +341,40 @@ export function AchievementsManagementPage() {
     return metric?.label || metric?.valueLabel || metricCode;
   };
 
+  const getAchievementActive = (achievement) => {
+    if (achievement?.isActive !== undefined && achievement?.isActive !== null) {
+      return achievement.isActive;
+    }
+    if (achievement?.statusName) {
+      return achievement.statusName === "Hoạt động";
+    }
+    if (achievement?.status) {
+      return achievement.status === "Hoạt động";
+    }
+    return false;
+  };
+
+  const handleRequestToggleStatus = async (achievement) => {
+    const isActive = getAchievementActive(achievement);
+    if (isActive) {
+      setConfirmDisableTarget(achievement);
+      return;
+    }
+    await handleToggleStatus(achievement);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!confirmDisableTarget) return;
+
+    setConfirmLoading(true);
+    try {
+      await handleToggleStatus(confirmDisableTarget);
+    } finally {
+      setConfirmLoading(false);
+      setConfirmDisableTarget(null);
+    }
+  };
+
   const formatCondition = (a) => {
     const directTargetCandidates = [
       a?.completionTargetValue,
@@ -397,9 +446,9 @@ export function AchievementsManagementPage() {
 
   const handleToggleStatus = async (achievement) => {
     try {
-      const newStatus = achievement?.isActive ? "Vô hiệu" : "Hoạt động";
-      await achievementApi.update(achievement?.achievementId || achievement?.id, {
-        status: newStatus,
+      const isActive = getAchievementActive(achievement);
+      await achievementApi.patchStatus(achievement?.achievementId || achievement?.id, {
+        isActive: !isActive,
       });
       // refresh list
       await loadAchievements();
@@ -592,28 +641,41 @@ export function AchievementsManagementPage() {
                 <td className="py-4 text-sm">{a?.conditionText || formatCondition(a)}</td>
                 <td className="py-4 text-sm">{a?.rewardText || formatReward(a)}</td>
                 <td className="py-4 text-sm">
-                  <span className={a?.isActive ? "badge-active" : "badge-inactive"}>
-                    {a?.statusName || (a?.isActive ? "Hoạt động" : "Vô hiệu")}
+                  <span className={getAchievementActive(a) ? "badge-active" : "badge-inactive"}>
+                    {normalizeStatusName(a)}
                   </span>
                 </td>
                 <td className="py-4 text-sm">
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button 
-                      size="sm" 
+                    <button
+                      type="button"
                       onClick={() => handleEditAchievement(a)}
+                      className="mission-table-pill-btn edit"
                       disabled={formLoading}
                       style={{ cursor: "pointer" }}
                     >
+                      <Pencil size={14} />
                       Sửa
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={a?.isActive ? "destructive" : "primary"}
-                      onClick={() => handleToggleStatus(a)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestToggleStatus(a)}
+                      className={`mission-table-pill-btn ${getAchievementActive(a) ? "disable" : "enable"}`}
+                      disabled={formLoading}
                       style={{ cursor: "pointer" }}
                     >
-                      {a?.isActive ? "Vô hiệu hóa" : "Hoạt động"}
-                    </Button>
+                      {getAchievementActive(a) ? (
+                        <>
+                          <Trash2 size={14} />
+                          Vô hiệu hóa
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={14} />
+                          Kích hoạt
+                        </>
+                      )}
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -959,6 +1021,39 @@ export function AchievementsManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm disable modal */}
+      {confirmDisableTarget && (
+        <div className="common-dialog-overlay">
+          <div className="common-dialog-container" style={{ maxWidth: "450px", textAlign: "left" }}>
+            <h3 className="common-dialog-title" style={{ fontSize: "1.125rem", color: "var(--foreground)", marginBottom: "12px" }}>
+              Xác nhận vô hiệu hóa
+            </h3>
+            <p style={{ color: "var(--muted-foreground)", marginBottom: "24px", fontSize: "0.9375rem" }}>
+              Bạn có chắc chắn muốn vô hiệu hóa thành tựu <strong style={{ color: "var(--foreground)" }}>{getAchievementTitle(confirmDisableTarget)}</strong> không?
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setConfirmDisableTarget(null)}
+                disabled={confirmLoading}
+                style={{ padding: "8px 16px", borderRadius: "8px", backgroundColor: "var(--muted)", color: "var(--muted-foreground)", fontWeight: 500 }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmToggleStatus}
+                disabled={confirmLoading}
+                style={{ display: "flex", alignItems: "center", padding: "8px 16px", borderRadius: "8px", fontWeight: 500, color: "white", backgroundColor: "var(--destructive)" }}
+              >
+                {confirmLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Vô hiệu hóa
+              </button>
+            </div>
           </div>
         </div>
       )}
