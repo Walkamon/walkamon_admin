@@ -54,7 +54,7 @@ const menuItems = [
     { id: 'players',        label: 'Quản Lý Người Dùng',    icon: Users,           path: '/players' },
     { id: 'spirits',      label: 'Quản Lý Tinh Linh (!)',     icon: Heart,           path: '/spirits' },
     { id: 'missions',     label: 'Quản Lý Nhiệm Vụ',      icon: Target,          path: '/missions' },
-    { id: 'achievements', label: 'Quản Lý Thành Tựu (!)',     icon: Award,           path: '/achievements' },
+    { id: 'achievements', label: 'Quản Lý Thành Tựu ',     icon: Award,           path: '/achievements' },
     { id: 'shop',         label: 'Quản Lý Cửa Hàng',      icon: ShoppingBag,     path: '/shop' },
     { id: 'items',        label: 'Quản Lý Vật Phẩm',      icon: Package,         path: '/items' },
     { id: 'item-types',   label: 'Quản Lý Loại Vật Phẩm',  icon: Tag,             path: '/item-types' },
