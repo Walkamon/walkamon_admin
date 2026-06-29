@@ -16,6 +16,13 @@ export const achievementApi = {
       : {};
     return axiosClient.post("/api/admin/achievements", payload, config);
   },
+  // PUT /api/admin/achievements/{achievementId}
+  update: (id, payload) => {
+    const config = payload instanceof FormData
+      ? { headers: { "Content-Type": "multipart/form-data" } }
+      : {};
+    return axiosClient.put(`/api/admin/achievements/${id}`, payload, config);
+  },
 
 };
 
