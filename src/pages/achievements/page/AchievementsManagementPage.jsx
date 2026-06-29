@@ -19,6 +19,7 @@ export function AchievementsManagementPage() {
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
   const [achievements, setAchievements] = useState([]);
@@ -45,6 +46,7 @@ export function AchievementsManagementPage() {
     assignmentTargetValue: "",
     rewardItemList: [],
   });
+  const [isEditing, setIsEditing] = useState(false);
 
   const loadAchievements = async () => {
     setLoading(true);
@@ -184,6 +186,136 @@ export function AchievementsManagementPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const normalizeRewardItems = (achievement) => {
+    const rewardItems = Array.isArray(achievement?.rewardItems)
+      ? achievement.rewardItems
+      : Array.isArray(achievement?.rewardItemList)
+        ? achievement.rewardItemList
+        : Array.isArray(achievement?.reward?.items)
+          ? achievement.reward.items
+          : Array.isArray(achievement?.rewards?.items)
+            ? achievement.rewards.items
+            : [];
+
+    return rewardItems.map((item) => ({
+      itemId: item?.itemId || item?.id || "",
+      quantity: item?.quantity ?? item?.qty ?? 0,
+    }));
+  };
+
+  const populateFormFromAchievement = (achievement) => {
+    if (!achievement) return;
+
+    const completionCondition = Array.isArray(achievement?.completionConditions)
+      ? achievement.completionConditions[0]
+      : null;
+    const assignmentCondition = Array.isArray(achievement?.assignmentConditions)
+      ? achievement.assignmentConditions[0]
+      : null;
+
+    setForm({
+      title: achievement.title || achievement.achievementName || achievement.name || achievement.missionName || "",
+      description: achievement.description || "",
+      iconUrl: achievement.iconUrl || achievement.icon || "",
+      iconFile: null,
+      isActive: achievement.isActive ?? (achievement.statusName === "Hoạt động"),
+      status: achievement.statusName || (achievement.isActive ? "Hoạt động" : "Vô hiệu"),
+      walletAmount: achievement.walletAmount ?? achievement.rewardWalletAmount ?? 0,
+      rewardWalletAmount: achievement.rewardWalletAmount ?? achievement.walletAmount ?? 0,
+      metricCode: achievement.metricCode || achievement.metric?.code || completionCondition?.conditionCode || "",
+      targetValue: achievement.targetValue ?? achievement.target ?? "",
+      completionConditionCode:
+        completionCondition?.conditionCode || completionCondition?.code || achievement.completionConditionCode || achievement.metricCode || "",
+      completionTargetValue:
+        String(completionCondition?.targetValue ?? completionCondition?.target ?? completionCondition?.value ?? achievement.completionTargetValue ?? achievement.targetValue ?? ""),
+      assignmentConditionCode:
+        assignmentCondition?.conditionCode || assignmentCondition?.code || achievement.assignmentConditionCode || "",
+      assignmentTargetValue:
+        assignmentCondition?.targetValue ?? assignmentCondition?.target ?? achievement.assignmentTargetValue ?? "",
+      rewardItemList: normalizeRewardItems(achievement),
+    });
+  };
+
+  const buildAchievementFormData = () => {
+    const selectedRewards = (form.rewardItemList || [])
+      .filter((reward) => reward.itemId && Number(reward.quantity) > 0)
+      .map((reward) => ({
+        itemId: reward.itemId,
+        quantity: Number(reward.quantity) || 0,
+      }));
+
+    const infoWallet = Number(form.walletAmount) || 0;
+    const rewardWallet = Number(form.rewardWalletAmount) || 0;
+    const finalWalletAmount = rewardWallet > 0 ? rewardWallet : infoWallet;
+
+    const completionConditions = [
+      {
+        conditionCode: form.completionConditionCode,
+        targetValue: Number(form.completionTargetValue) || 0,
+      },
+    ];
+
+    const assignmentConditions = [];
+    if (form.assignmentConditionCode) {
+      assignmentConditions.push({
+        conditionCode: form.assignmentConditionCode,
+        targetValue: Number(form.assignmentTargetValue) || 0,
+        referenceAchievementId: "",
+      });
+    }
+
+    const formData = new FormData();
+    formData.append("Title", form.title.trim());
+    formData.append("Description", form.description || "");
+    formData.append("IsActive", String(form.status === "Hoạt động"));
+    formData.append("Status", form.status);
+    formData.append("WalletAmount", String(finalWalletAmount));
+    formData.append("MetricCode", String(form.metricCode || ""));
+    formData.append("TargetValue", String(Number(form.targetValue) || 0));
+
+    if (form.iconFile) {
+      formData.append("Icon", form.iconFile);
+    }
+
+    selectedRewards.forEach((reward, index) => {
+      formData.append(`RewardItems[${index}].ItemId`, reward.itemId);
+      formData.append(`RewardItems[${index}].Quantity`, String(reward.quantity));
+    });
+
+    completionConditions.forEach((condition, index) => {
+      formData.append(`CompletionConditions[${index}].ConditionCode`, condition.conditionCode || "");
+      formData.append(`CompletionConditions[${index}].TargetValue`, String(Number(condition.targetValue) || 0));
+    });
+
+    assignmentConditions.forEach((condition, index) => {
+      formData.append(`AssignmentConditions[${index}].ConditionCode`, condition.conditionCode || "");
+      formData.append(`AssignmentConditions[${index}].TargetValue`, String(Number(condition.targetValue) || 0));
+      formData.append(`AssignmentConditions[${index}].ReferenceAchievementId`, condition.referenceAchievementId || "");
+    });
+
+    return formData;
+  };
+
+  const handleEditAchievement = async (achievement) => {
+    if (!achievement) return;
+
+    setFormLoading(true);
+    try {
+      const achievementId = achievement?.achievementId || achievement?.id;
+      const resp = await achievementApi.getById(achievementId);
+      const data = resp?.data || resp;
+      setSelectedAchievement(data);
+      populateFormFromAchievement(data);
+      setIsEditing(true);
+      setShowCreate(true);
+    } catch (err) {
+      console.error("Error loading achievement for edit:", err);
+      alert(err?.response?.data?.message || err?.message || "Lỗi khi tải thông tin chỉnh sửa");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const getAchievementTitle = (a) => {
     return a?.title || a?.achievementName || a?.name || a?.missionName || "-";
   };
@@ -308,11 +440,23 @@ export function AchievementsManagementPage() {
         alert("Loại thành tựu (Metric code) là bắt buộc.");
         return;
       }
+      const achievementId = selectedAchievement?.achievementId || selectedAchievement?.id;
+      const achievementIdStr = String(achievementId ?? "");
+      const normalizedTitle = form.title.trim().toLowerCase();
+      const duplicateTitle = achievements.some((a) => {
+        const aId = String(a?.achievementId ?? a?.id ?? "");
+        const title = (a?.title || a?.achievementName || a?.name || "").toLowerCase();
+        return aId !== achievementIdStr && title === normalizedTitle;
+      });
+      if (duplicateTitle) {
+        alert("Tên thành tựu đã tồn tại. Vui lòng chọn tên khác.");
+        return;
+      }
       if (!form.targetValue || Number(form.targetValue) <= 0) {
         alert("Mục tiêu cần đạt phải lớn hơn 0.");
         return;
       }
-      if (!form.completionTargetValue?.trim() || Number(form.completionTargetValue) <= 0) {
+      if (String(form.completionTargetValue ?? "").trim() === "" || Number(form.completionTargetValue) <= 0) {
         alert("Mục tiêu hoàn thành không được để trống và phải lớn hơn 0.");
         return;
       }
@@ -320,75 +464,21 @@ export function AchievementsManagementPage() {
         alert("Thưởng Giọt Sương phải lớn hơn 0.");
         return;
       }
-      if (achievements.some(a => (a?.title || a?.achievementName || a?.name || "").toLowerCase() === form.title.toLowerCase())) {
-        alert("Tên thành tựu đã tồn tại. Vui lòng chọn tên khác.");
-        return;
+      // (duplicate check removed — use `duplicateTitle` above which excludes the current editing item)
+
+      const formData = buildAchievementFormData();
+
+      if (isEditing && achievementId) {
+        await achievementApi.update(achievementId, formData);
+      } else {
+        await achievementApi.create(formData);
       }
-
-      const selectedRewards = (form.rewardItemList || [])
-        .filter((reward) => reward.itemId && Number(reward.quantity) > 0)
-        .map((reward) => ({
-          itemId: reward.itemId,
-          quantity: Number(reward.quantity) || 0,
-        }));
-
-      const infoWallet = Number(form.walletAmount) || 0;
-      const rewardWallet = Number(form.rewardWalletAmount) || 0;
-      const finalWalletAmount = rewardWallet > 0 ? rewardWallet : infoWallet;
-
-      const completionConditions = [
-        {
-          conditionCode: form.completionConditionCode,
-          targetValue: Number(form.completionTargetValue) || 0,
-        },
-      ];
-
-      const assignmentConditions = [];
-      if (form.assignmentConditionCode) {
-        assignmentConditions.push({
-          conditionCode: form.assignmentConditionCode,
-          targetValue: Number(form.assignmentTargetValue) || 0,
-          referenceAchievementId: "",
-        });
-      }
-
-      const formData = new FormData();
-      formData.append("Title", form.title.trim());
-      formData.append("Description", form.description || "");
-      formData.append("IsActive", String(form.status === "Hoạt động"));
-      formData.append("Status", form.status);
-      formData.append("WalletAmount", String(finalWalletAmount));
-      formData.append("MetricCode", String(form.metricCode || ""));
-      formData.append("TargetValue", String(Number(form.targetValue) || 0));
-
-      if (form.iconFile) {
-        formData.append("Icon", form.iconFile);
-      }
-
-      selectedRewards.forEach((reward, index) => {
-        formData.append(`RewardItems[${index}].ItemId`, reward.itemId);
-        formData.append(`RewardItems[${index}].Quantity`, String(reward.quantity));
-      });
-
-      completionConditions.forEach((condition, index) => {
-        formData.append(`CompletionConditions[${index}].ConditionCode`, condition.conditionCode || "");
-        formData.append(`CompletionConditions[${index}].TargetValue`, String(Number(condition.targetValue) || 0));
-      });
-
-      assignmentConditions.forEach((condition, index) => {
-        formData.append(`AssignmentConditions[${index}].ConditionCode`, condition.conditionCode || "");
-        formData.append(`AssignmentConditions[${index}].TargetValue`, String(Number(condition.targetValue) || 0));
-        formData.append(
-          `AssignmentConditions[${index}].ReferenceAchievementId`,
-          condition.referenceAchievementId || "",
-        );
-      });
-
-      await achievementApi.create(formData);
       // refresh list
       await loadAchievements();
       resetForm();
       setShowCreate(false);
+      setIsEditing(false);
+      setSelectedAchievement(null);
     } catch (err) {
       console.error(err);
       const backendMessage =
@@ -409,7 +499,17 @@ export function AchievementsManagementPage() {
           <h1 className="text-2xl font-bold mb-1 text-foreground">Quản lý thành tựu</h1>
           <p className="text-sm text-muted-foreground">Tạo và quản lý hệ thống thành tựu</p>
         </div>
-        <Button variant="primary" onClick={() => setShowCreate(true)}>+ Tạo thành tựu mới</Button>
+        <Button
+          variant="primary"
+          onClick={() => {
+            resetForm();
+            setIsEditing(false);
+            setSelectedAchievement(null);
+            setShowCreate(true);
+          }}
+        >
+          + Tạo thành tựu mới
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -500,7 +600,8 @@ export function AchievementsManagementPage() {
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button 
                       size="sm" 
-                      onClick={() => handleViewDetail(a)}
+                      onClick={() => handleEditAchievement(a)}
+                      disabled={formLoading}
                       style={{ cursor: "pointer" }}
                     >
                       Sửa
@@ -527,14 +628,25 @@ export function AchievementsManagementPage() {
 
       {/* Create modal */}
       {showCreate && (
-        <div className="mission-modal-overlay" onClick={() => setShowCreate(false)}>
+        <div
+          className="mission-modal-overlay"
+          onClick={() => {
+            setShowCreate(false);
+            setIsEditing(false);
+            setSelectedAchievement(null);
+          }}
+        >
           <div className="mission-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mission-modal-header">
               <div>
-                <h2>Tạo thành tựu mới</h2>
-                <p>Thiết lập mục tiêu, điều kiện và phần thưởng cho thành tựu.</p>
+                <h2>{isEditing ? "Chỉnh sửa thành tựu" : "Tạo thành tựu mới"}</h2>
+                <p>{isEditing ? "Cập nhật mục tiêu, điều kiện và phần thưởng." : "Thiết lập mục tiêu, điều kiện và phần thưởng cho thành tựu."}</p>
               </div>
-              <button type="button" className="mission-modal-close" onClick={() => setShowCreate(false)}>
+              <button type="button" className="mission-modal-close" onClick={() => {
+                setShowCreate(false);
+                setIsEditing(false);
+                setSelectedAchievement(null);
+              }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -839,10 +951,10 @@ export function AchievementsManagementPage() {
                   {creating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Đang tạo...
+                      {isEditing ? "Đang lưu..." : "Đang tạo..."}
                     </>
                   ) : (
-                    "Tạo thành tựu"
+                    isEditing ? "Lưu thay đổi" : "Tạo thành tựu"
                   )}
                 </button>
               </div>
