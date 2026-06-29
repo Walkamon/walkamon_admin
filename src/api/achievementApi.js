@@ -23,6 +23,10 @@ export const achievementApi = {
       : {};
     return axiosClient.put(`/api/admin/achievements/${id}`, payload, config);
   },
+  // PATCH /api/admin/achievements/{achievementId}/status
+  patchStatus: (id, payload) => {
+    return axiosClient.patch(`/api/admin/achievements/${id}/status`, payload);
+  },
 
 };
 
