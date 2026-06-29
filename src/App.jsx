@@ -14,6 +14,7 @@ import ReportListPage from "./pages/reports/page/ViewReportList.jsx";
 import ChallengesManagementPage from "./pages/challenges/page/ChallengesManagementPage.jsx";
 import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
+import AchievementsManagementPage from "./pages/achievements/page/AchievementsManagementPage.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
           {
             path: "items",
             element: <ItemManagerPage />,
+          },
+          {
+            path: "achievements",
+            element: <AchievementsManagementPage />,
           },
           {
             path: "challenges",
