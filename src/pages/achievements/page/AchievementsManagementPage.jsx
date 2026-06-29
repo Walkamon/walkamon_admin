@@ -4,6 +4,7 @@ import CustomSelect from "../../../components/common/CustomSelect.jsx";
 import { Table, TableEmpty } from "../../../components/common/table.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
 import { Button } from "../../../components/common/button.jsx";
+import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
 import { achievementApi } from "../../../api/achievementApi";
 import { itemApi } from "../../../api/itemApi";
 import { missionApi } from "../../../api/missionApi";
@@ -13,14 +14,17 @@ const ITEMS_PER_PAGE = 5;
 
 export function AchievementsManagementPage() {
   const [showCreate, setShowCreate] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState(null);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [items, setItems] = useState([]);
   const [metricCodes, setMetricCodes] = useState([]);
-  const [typeFilter, setTypeFilter] = useState("");
+  const [searchName, setSearchName] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
 
@@ -30,7 +34,7 @@ export function AchievementsManagementPage() {
     iconUrl: "",
     iconFile: null,
     isActive: true,
-    status: "active",
+    status: "Hoạt động",
     walletAmount: 0,
     rewardWalletAmount: 0,
     metricCode: "",
@@ -110,37 +114,29 @@ export function AchievementsManagementPage() {
     }));
   }, [metricCodes]);
 
-  const typeOptions = useMemo(() => {
-    return [
-      { id: "", label: "Tất cả loại" },
-      ...metricCodeOptions,
-    ];
-  }, [metricCodeOptions]);
-
   const statusOptions = [
     { id: "", label: "Tất cả trạng thái" },
-    { id: "active", label: "Hoạt động" },
-    { id: "inactive", label: "Vô hiệu" },
+    { id: "Hoat dong", label: "Hoạt động" },
+    { id: "Tam dung", label: "Vô hiệu" },
   ];
 
   const filtered = useMemo(() => {
     return achievements.filter((a) => {
-      // type/metricCode filter
-      if (typeFilter) {
-        const code = (a?.metricCode || a?.type || a?.achievementType || "").toString();
-        if (code.toLowerCase() !== typeFilter.toString().toLowerCase()) return false;
+      // search by name
+      if (searchName) {
+        const title = (a?.title || a?.achievementName || a?.name || "").toString();
+        if (!title.toLowerCase().includes(searchName.toLowerCase())) return false;
       }
 
       // status filter
       if (statusFilter) {
-        const active = !!a?.isActive;
-        if (statusFilter === "active" && !active) return false;
-        if (statusFilter === "inactive" && active) return false;
+        const statusName = a?.statusName || (a?.isActive ? "Hoạt động" : "Vô hiệu");
+        if (statusFilter !== statusName) return false;
       }
 
       return true;
     });
-  }, [achievements, typeFilter, statusFilter]);
+  }, [achievements, searchName, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
 
@@ -172,7 +168,7 @@ export function AchievementsManagementPage() {
       iconUrl: "",
       iconFile: null,
       isActive: true,
-      status: "active",
+      status: "Hoạt động",
       walletAmount: 0,
       rewardWalletAmount: 0,
       metricCode: "",
@@ -192,10 +188,10 @@ export function AchievementsManagementPage() {
     return a?.title || a?.achievementName || a?.name || a?.missionName || "-";
   };
 
-  const isAchievementActive = (a) => {
-    if (typeof a?.isActive === "boolean") return a.isActive;
-    if (typeof a?.status === "string") return a.status.toLowerCase() === "active";
-    return false;
+  const getMetricLabel = (metricCode) => {
+    if (!metricCode) return "";
+    const metric = metricCodes.find((m) => m.code === metricCode || m.id === metricCode);
+    return metric?.label || metric?.valueLabel || metricCode;
   };
 
   const formatCondition = (a) => {
@@ -267,6 +263,39 @@ export function AchievementsManagementPage() {
     setForm((f) => ({ ...f, iconFile: file, iconUrl: file.name }));
   };
 
+  const handleToggleStatus = async (achievement) => {
+    try {
+      const newStatus = achievement?.isActive ? "Vô hiệu" : "Hoạt động";
+      await achievementApi.update(achievement?.achievementId || achievement?.id, {
+        status: newStatus,
+      });
+      // refresh list
+      await loadAchievements();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || err?.message || "Lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const handleViewDetail = async (achievement) => {
+    try {
+      setDetailLoading(true);
+      setShowDetail(true);
+      setSelectedAchievement(achievement);
+      
+      const achievementId = achievement?.achievementId || achievement?.id;
+      const resp = await achievementApi.getById(achievementId);
+      const data = resp?.data || resp;
+      setSelectedAchievement(data);
+    } catch (err) {
+      console.error("Error loading detail:", err);
+      alert(err?.response?.data?.message || err?.message || "Lỗi khi tải chi tiết thành tựu");
+      setShowDetail(false);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
@@ -279,8 +308,20 @@ export function AchievementsManagementPage() {
         alert("Loại thành tựu (Metric code) là bắt buộc.");
         return;
       }
-      if (Number(form.targetValue) <= 0) {
-        alert("Mục tiêu thành tựu phải lớn hơn 0.");
+      if (!form.targetValue || Number(form.targetValue) <= 0) {
+        alert("Mục tiêu cần đạt phải lớn hơn 0.");
+        return;
+      }
+      if (!form.completionTargetValue?.trim() || Number(form.completionTargetValue) <= 0) {
+        alert("Mục tiêu hoàn thành không được để trống và phải lớn hơn 0.");
+        return;
+      }
+      if (Number(form.rewardWalletAmount) <= 0) {
+        alert("Thưởng Giọt Sương phải lớn hơn 0.");
+        return;
+      }
+      if (achievements.some(a => (a?.title || a?.achievementName || a?.name || "").toLowerCase() === form.title.toLowerCase())) {
+        alert("Tên thành tựu đã tồn tại. Vui lòng chọn tên khác.");
         return;
       }
 
@@ -294,11 +335,6 @@ export function AchievementsManagementPage() {
       const infoWallet = Number(form.walletAmount) || 0;
       const rewardWallet = Number(form.rewardWalletAmount) || 0;
       const finalWalletAmount = rewardWallet > 0 ? rewardWallet : infoWallet;
-
-      if (finalWalletAmount <= 0 && selectedRewards.length === 0) {
-        alert("Thành tựu phải có ít nhất một phần thưởng.");
-        return;
-      }
 
       const completionConditions = [
         {
@@ -319,7 +355,8 @@ export function AchievementsManagementPage() {
       const formData = new FormData();
       formData.append("Title", form.title.trim());
       formData.append("Description", form.description || "");
-      formData.append("IsActive", String(form.status === "active"));
+      formData.append("IsActive", String(form.status === "Hoạt động"));
+      formData.append("Status", form.status);
       formData.append("WalletAmount", String(finalWalletAmount));
       formData.append("MetricCode", String(form.metricCode || ""));
       formData.append("TargetValue", String(Number(form.targetValue) || 0));
@@ -367,9 +404,12 @@ export function AchievementsManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold mb-1 text-foreground">Quản lý thành tựu</h1>
-        <p className="text-sm text-muted-foreground">Tạo và quản lý hệ thống thành tựu</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold mb-1 text-foreground">Quản lý thành tựu</h1>
+          <p className="text-sm text-muted-foreground">Tạo và quản lý hệ thống thành tựu</p>
+        </div>
+        <Button variant="primary" onClick={() => setShowCreate(true)}>+ Tạo thành tựu mới</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -392,42 +432,31 @@ export function AchievementsManagementPage() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3 items-center flex-wrap">
-            <div className="w-56">
-              <CustomSelect
-                value={typeFilter}
-                onChange={(v) => { setTypeFilter(v); setPage(1); }}
-                options={typeOptions}
-                valueKey="id"
-                labelKey="label"
-                placeholder="Tất cả loại"
-              />
-            </div>
-
-            <div className="w-48">
-              <CustomSelect
-                value={statusFilter}
-                onChange={(v) => { setStatusFilter(v); setPage(1); }}
-                options={statusOptions}
-                valueKey="id"
-                labelKey="label"
-                placeholder="Tất cả trạng thái"
-              />
-            </div>
-
-            {/* search removed per request */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex-1">
+            <SearchFilter
+              value={searchName}
+              onChange={(e) => { setSearchName(e.target.value); setPage(1); }}
+              placeholder="Tìm kiếm tên thành tựu..."
+            />
           </div>
 
-          <div className="ml-4">
-            <Button variant="primary" onClick={() => setShowCreate(true)}>+ Tạo thành tựu mới</Button>
+          <div className="w-48">
+            <CustomSelect
+              value={statusFilter}
+              onChange={(v) => { setStatusFilter(v); setPage(1); }}
+              options={statusOptions}
+              valueKey="id"
+              labelKey="label"
+              placeholder="Tất cả trạng thái"
+            />
           </div>
         </div>
 
         <Table>
           <thead>
             <tr className="text-left text-sm text-muted-foreground border-b border-border">
-              <th className="py-3">Tên nhiệm vụ</th>
+              <th className="py-3">Tên thành tựu</th>
               <th className="py-3">Điều kiện</th>
               <th className="py-3">Phần thưởng</th>
               <th className="py-3">Trạng thái</th>
@@ -446,24 +475,44 @@ export function AchievementsManagementPage() {
             )}
 
             {!loading && pageItems.map((a) => (
-              <tr key={a?.achievementId || a?.id} className="border-b border-border">
+              <tr 
+                key={a?.achievementId || a?.id} 
+                className="border-b border-border" 
+                style={{ cursor: "pointer", transition: "background-color 0.2s" }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.05)"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                onClick={() => handleViewDetail(a)}
+              >
                 <td className="py-4">
                   <div className="font-medium">{getAchievementTitle(a)}</div>
                   <div className="text-xs text-muted-foreground">
                     ID: {a?.achievementId ?? a?.id ?? "-"}
                   </div>
                 </td>
-                <td className="py-4 text-sm">{formatCondition(a)}</td>
-                <td className="py-4 text-sm">{formatReward(a)}</td>
+                <td className="py-4 text-sm">{a?.conditionText || formatCondition(a)}</td>
+                <td className="py-4 text-sm">{a?.rewardText || formatReward(a)}</td>
                 <td className="py-4 text-sm">
-                  <span className={isAchievementActive(a) ? "badge-active" : "badge-inactive"}>
-                    {isAchievementActive(a) ? "Hoạt động" : "Vô hiệu"}
+                  <span className={a?.isActive ? "badge-active" : "badge-inactive"}>
+                    {a?.statusName || (a?.isActive ? "Hoạt động" : "Vô hiệu")}
                   </span>
                 </td>
                 <td className="py-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Button size="sm">Sửa</Button>
-                    <Button size="sm" variant="destructive">Vô hiệu hóa</Button>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleViewDetail(a)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      Sửa
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={a?.isActive ? "destructive" : "primary"}
+                      onClick={() => handleToggleStatus(a)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {a?.isActive ? "Vô hiệu hóa" : "Hoạt động"}
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -498,7 +547,7 @@ export function AchievementsManagementPage() {
                 <h3>1. Thông tin thành tựu</h3>
                 <div className="mission-form-grid">
                   <label>
-                    Tên thành tựu <span className="text-destructive">*</span>
+                    Tên thành tựu
                     <input
                       value={form.title}
                       onChange={(e) => setFormField("title", e.target.value)}
@@ -538,7 +587,7 @@ export function AchievementsManagementPage() {
 
                 <div className="mission-form-grid">
                   <label>
-                    Mục tiêu thành tựu
+                    Yêu cầu cần đạt
                     <input
                       type="number"
                       min="0"
@@ -549,7 +598,7 @@ export function AchievementsManagementPage() {
                   </label>
 
                   <label>
-                    Giọt Sương thành tựu
+                    Xu được thưởng
                     <input
                       type="number"
                       min="0"
@@ -558,23 +607,6 @@ export function AchievementsManagementPage() {
                       placeholder="Ví dụ: 1000"
                     />
                   </label>
-                </div>
-
-                <div className="mission-form-grid">
-                  <label>
-                    Trạng thái hiển thị
-                    <CustomSelect
-                      value={form.status}
-                      onChange={(v) => {
-                        setFormField("status", v);
-                        setFormField("isActive", v === "active");
-                      }}
-                      options={statusOptions}
-                      valueKey="id"
-                      labelKey="label"
-                    />
-                  </label>
-                  <div />
                 </div>
 
                 <div
@@ -594,7 +626,7 @@ export function AchievementsManagementPage() {
                       checked={form.isActive}
                       onChange={(e) => {
                         setFormField("isActive", e.target.checked);
-                        setFormField("status", e.target.checked ? "active" : "inactive");
+                        setFormField("status", e.target.checked ? "Hoạt động" : "Vô hiệu");
                       }}
                     />
                     <span>Kích hoạt ngay lập tức</span>
@@ -815,6 +847,163 @@ export function AchievementsManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Detail modal */}
+      {showDetail && selectedAchievement && (
+        <div className="mission-modal-overlay" onClick={() => setShowDetail(false)}>
+          <div className="mission-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mission-modal-header">
+              <div>
+                <h2>Chi tiết thành tựu</h2>
+                <p>Xem thông tin chi tiết của thành tựu.</p>
+              </div>
+              <button type="button" className="mission-modal-close" onClick={() => setShowDetail(false)}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="mission-create-form" style={{ maxHeight: "600px", overflowY: "auto" }}>
+              {detailLoading ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <section className="mission-form-section">
+                    <h3>Thông tin cơ bản</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Tên thành tựu
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={selectedAchievement?.title || ""}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Mô tả
+                        </label>
+                        <textarea
+                          disabled
+                          value={selectedAchievement?.description || ""}
+                          rows={3}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                      {selectedAchievement?.iconUrl && (
+                        <div>
+                          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                            Icon
+                          </label>
+                          <img 
+                            src={selectedAchievement.iconUrl} 
+                            alt="Achievement icon" 
+                            style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "0.5rem" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="mission-form-section">
+                    <h3>Yêu cầu & Phần thưởng</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Loại thành tựu
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={getMetricLabel(selectedAchievement?.metricCode)}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Mục tiêu cần đạt
+                        </label>
+                        <input
+                          type="number"
+                          disabled
+                          value={selectedAchievement?.targetValue || 0}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Xu được thưởng
+                        </label>
+                        <input
+                          type="number"
+                          disabled
+                          value={selectedAchievement?.walletAmount || 0}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Trạng thái
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={selectedAchievement?.statusName || (selectedAchievement?.isActive ? "Hoạt động" : "Vô hiệu")}
+                          style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="mission-form-section">
+                    <h3>Vật phẩm thưởng</h3>
+                    {Array.isArray(selectedAchievement?.rewardItems) && selectedAchievement.rewardItems.length > 0 ? (
+                      <ul style={{ fontSize: "0.875rem", paddingLeft: "1.5rem" }}>
+                        {selectedAchievement.rewardItems.map((item, idx) => (
+                          <li key={idx}>
+                            {item?.itemName || item?.name || "Vật phẩm"} x{item?.quantity || 0}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p style={{ fontSize: "0.875rem", color: "var(--muted-foreground)" }}>
+                        Không có vật phẩm thưởng.
+                      </p>
+                    )}
+                  </section>
+
+                  {Array.isArray(selectedAchievement?.assignmentConditions) && selectedAchievement.assignmentConditions.length > 0 && (
+                    <section className="mission-form-section">
+                      <h3>Điều kiện gán</h3>
+                      <ul style={{ fontSize: "0.875rem", paddingLeft: "1.5rem" }}>
+                        {selectedAchievement.assignmentConditions.map((cond, idx) => (
+                          <li key={idx}>
+                            {cond?.conditionCode}: {cond?.targetValue || 0}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="mission-modal-actions">
+              <button
+                type="button"
+                className="mission-btn-secondary"
+                onClick={() => setShowDetail(false)}
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
