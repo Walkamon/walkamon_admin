@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { notificationApi } from "../../api/notificationApi";
 
-// Import các shared components chung của hệ thống đúng đường dẫn gốc
 import { Button } from "../../components/common/button";
 import CustomDatePicker from "../../components/common/CustomDatePicker";
 import CustomSelect from "../../components/common/CustomSelect";
@@ -27,11 +26,55 @@ const statusOptions = [
   { id: "failed", label: "Thất bại" },
 ];
 
+const typeOptions = [
+  // Nhóm Thông tin Hệ thống & Vận hành
+  { id: "server_announcement", label: "Thông báo server" },
+  { id: "maintenance", label: "Bảo trì" },
+  { id: "patch_notes", label: "Ghi chú cập nhật" },
+  { id: "news", label: "Tin mới" },
+  { id: "event", label: "Sự kiện" },
+  { id: "compensation", label: "Quà đền bù" },
+
+  // Nhóm Hoạt động & Phần thưởng
+  { id: "daily_reward", label: "Quà đăng nhập hàng ngày" },
+  { id: "streak_reward", label: "Quà streak" },
+  { id: "mission_complete", label: "Hoàn thành nhiệm vụ" },
+  { id: "achievement_complete", label: "Hoàn thành achievement" },
+  { id: "item_purchased", label: "Mua sản phẩm" },
+
+  // Nhóm Trạng thái Pet (Lumina/Spirit)
+  { id: "spirit_hungry", label: "Lumina đói" },
+  { id: "spirit_bond_low", label: "Sinh mệnh thấp" },
+  { id: "spirit_energy_full", label: "Năng lượng đầy" },
+  { id: "spirit_ready_evolution", label: "Đủ điều kiện tiến hóa" },
+  { id: "spirit_level_up", label: "Lên cấp" },
+
+  // Nhóm Tương tác người chơi (Social & PVP)
+  { id: "challenge_invite", label: "Mời tham gia thử thách" },
+  { id: "pvp_invite", label: "Mời đấu PVP" },
+  { id: "pvp_result", label: "Kết quả PVP" },
+  { id: "friend_request", label: "Kết bạn" },
+  { id: "friend_accepted", label: "Chấp nhận kết bạn" },
+  { id: "friend_removed", label: "Hủy kết bạn" },
+];
+
 const emptyForm = {
+  typeCode: "server_announcement",
   title: "",
   content: "",
   targetAudienceCode: "all_users",
-  sendTime: "",
+  scheduleTime: "",
+  sendNow: true,
+  imageUrl: "",
+};
+
+const formatUTCToLocalInput = (utcString) => {
+  if (!utcString) return "";
+  const safeUtcString = utcString.endsWith("Z") ? utcString : utcString + "Z";
+  const date = new Date(safeUtcString);
+  const tzOffsetMs = date.getTimezoneOffset() * 60000;
+  const localDate = new Date(date.getTime() - tzOffsetMs);
+  return localDate.toISOString().slice(0, 16);
 };
 
 export function NotificationsManagement() {
@@ -98,17 +141,30 @@ export function NotificationsManagement() {
 
   const openEditModal = (notif) => {
     setSelectedId(notif.notificationId);
+
     setFormData({
+      typeCode: notif.typeCode || "server_announcement",
       title: notif.title,
-      content: notif.message || "",
+      content: notif.content || notif.message || "",
       targetAudienceCode: notif.targetAudienceCode,
-      sendTime: notif.sendTime ? notif.sendTime.slice(0, 16) : "",
+      scheduleTime: notif.sendTime ? formatUTCToLocalInput(notif.sendTime) : "",
+      sendNow: notif.statusCode === "sent",
+      imageUrl: notif.imageUrl || "",
     });
     setIsEditMode(true);
     setIsModalOpen(true);
   };
 
-  const handleSaveForm = (e) => {
+  const handleDelete = (id) => {
+    triggerDialog(
+      "success",
+      "Đã xóa",
+      "Xóa bản ghi thông báo thành công khỏi hệ thống.",
+    );
+    fetchNotifications(currentPage);
+  };
+
+  const handleSaveForm = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       triggerDialog(
@@ -119,24 +175,69 @@ export function NotificationsManagement() {
       return;
     }
 
-    setIsModalOpen(false);
-    triggerDialog(
-      "success",
-      isEditMode ? "Cập nhật thành công" : "Tạo mới thành công",
-      isEditMode
-        ? "Thông tin thông báo thay đổi đã được ghi nhận."
-        : "Thông báo mới đã được lên lịch gửi đi thành công.",
-    );
-    fetchNotifications(currentPage);
-  };
+    if (!formData.content.trim()) {
+      triggerDialog(
+        "error",
+        "Thiếu thông tin",
+        "Vui lòng nhập nội dung chi tiết thông báo.",
+      );
+      return;
+    }
 
-  const handleDelete = (id) => {
-    triggerDialog(
-      "success",
-      "Đã xóa",
-      "Xóa bản ghi thông báo thành công khỏi hệ thống.",
-    );
-    fetchNotifications(currentPage);
+    if (!formData.sendNow && !formData.scheduleTime) {
+      triggerDialog(
+        "error",
+        "Thiếu thông tin",
+        "Vui lòng chọn thời gian lên lịch.",
+      );
+      return;
+    }
+
+    const payload = {
+      typeCode: formData.typeCode,
+      title: formData.title.trim(),
+
+      content: formData.content.trim(),
+      message: formData.content.trim(),
+
+      targetAudienceCode: formData.targetAudienceCode,
+
+      scheduleTime: formData.sendNow
+        ? null
+        : new Date(formData.scheduleTime).toISOString(),
+      sendNow: formData.sendNow,
+
+      imageUrl: formData.imageUrl.trim() ? formData.imageUrl.trim() : null,
+    };
+
+    try {
+      setIsLoading(true);
+      if (isEditMode) {
+      } else {
+        const res = await notificationApi.createNotification(payload);
+        if (res && res.success === false) {
+          throw new Error(res.message || "Không thể tạo thông báo mới");
+        }
+      }
+
+      setIsModalOpen(false);
+      triggerDialog(
+        "success",
+        isEditMode ? "Cập nhật thành công" : "Tạo mới thành công",
+        isEditMode
+          ? "Thông tin thông báo thay đổi đã được ghi nhận."
+          : "Thông báo mới đã được tạo thành công.",
+      );
+      fetchNotifications(currentPage);
+    } catch (error) {
+      triggerDialog(
+        "error",
+        "Lỗi hệ thống",
+        error.message || "Đã xảy ra sự cố khi lưu thông báo.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredNotifications = notifications.filter((n) => {
@@ -164,7 +265,7 @@ export function NotificationsManagement() {
       <div className="noti-header">
         <div className="noti-title-block">
           <h1>Quản lý thông báo</h1>
-          <p>Quản lý các chiến dịch Push Notification và thông điệp hệ thống</p>
+          <p>Quản lý các chiến dịch thông báo đẩy và thông điệp hệ thống</p>
         </div>
         <Button
           variant="primary"
@@ -270,7 +371,15 @@ export function NotificationsManagement() {
                     </span>
                   </td>
                   <td className="noti-td noti-td-time">
-                    {new Date(notif.sendTime).toLocaleString("vi-VN")}
+                    {notif.sendTime
+                      ? new Date(
+                          notif.sendTime.endsWith("Z")
+                            ? notif.sendTime
+                            : notif.sendTime + "Z",
+                        ).toLocaleString("vi-VN", {
+                          timeZone: "Asia/Ho_Chi_Minh",
+                        })
+                      : "---"}
                   </td>
                   <td className="noti-td-actions">
                     <div className="action-btn-group">
@@ -354,6 +463,32 @@ export function NotificationsManagement() {
 
             <form onSubmit={handleSaveForm}>
               <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Loại thông báo</label>
+                    <CustomSelect
+                      value={formData.typeCode}
+                      onChange={(val) =>
+                        setFormData({ ...formData, typeCode: val })
+                      }
+                      options={typeOptions}
+                      placeholder="Chọn loại thông báo..."
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Nhóm đối tượng nhận</label>
+                    <CustomSelect
+                      value={formData.targetAudienceCode}
+                      onChange={(val) =>
+                        setFormData({ ...formData, targetAudienceCode: val })
+                      }
+                      options={audienceOptions}
+                      placeholder="Lựa chọn đối tượng..."
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">
                     Tiêu đề thông báo <span className="required-star">*</span>
@@ -371,41 +506,83 @@ export function NotificationsManagement() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Nội dung chi tiết</label>
+                  <label className="form-label">
+                    Nội dung chi tiết <span className="required-star">*</span>
+                  </label>
                   <textarea
                     rows={3}
                     className="form-textarea"
-                    placeholder="Nội dung thông điệp chi tiết gửi đến thiết bị..."
+                    placeholder="Nội dung thông điệp chi tiết..."
                     value={formData.content}
                     onChange={(e) =>
                       setFormData({ ...formData, content: e.target.value })
                     }
+                    required
                   />
                 </div>
 
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Nhóm đối tượng nhận</label>
-                    <CustomSelect
-                      value={formData.targetAudienceCode}
-                      onChange={(val) =>
-                        setFormData({ ...formData, targetAudienceCode: val })
+                <div className="form-group">
+                  <label className="form-label">Đường dẫn hình ảnh (URL)</label>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="https://example.com/image.png"
+                    value={formData.imageUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, imageUrl: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="form-grid" style={{ alignItems: "flex-start" }}>
+                  <div
+                    className="form-group"
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: "8px",
+                      paddingTop: "8px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="sendNowCheckbox"
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "var(--primary)",
+                      }}
+                      checked={formData.sendNow}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sendNow: e.target.checked })
                       }
-                      options={audienceOptions}
-                      placeholder="Lựa chọn đối tượng..."
                     />
+                    <label
+                      htmlFor="sendNowCheckbox"
+                      className="form-label"
+                      style={{ cursor: "pointer", margin: 0 }}
+                    >
+                      Gửi ngay (Bỏ qua lịch gửi)
+                    </label>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Lịch gửi (Ngày & Giờ)</label>
-                    <CustomDatePicker
-                      value={formData.sendTime}
-                      onChange={(e) =>
-                        setFormData({ ...formData, sendTime: e.target.value })
-                      }
-                      placeholder="Chọn ngày giờ gửi đi"
-                    />
-                  </div>
+                  {!formData.sendNow && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        Lịch gửi (Ngày & Giờ)
+                      </label>
+                      <CustomDatePicker
+                        value={formData.scheduleTime}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            scheduleTime: e.target.value,
+                          })
+                        }
+                        placeholder="Chọn ngày giờ gửi đi"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

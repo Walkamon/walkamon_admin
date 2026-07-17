@@ -6,4 +6,8 @@ export const notificationApi = {
       `/api/admin/notifications?page=${page}&pageSize=${pageSize}`,
     );
   },
+
+  createNotification: (data) => {
+    return axiosClient.post("/api/admin/notifications", data);
+  },
 };
