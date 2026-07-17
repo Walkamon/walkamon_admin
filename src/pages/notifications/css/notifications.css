@@ -1,0 +1,444 @@
+/* Layout chính */
+.noti-container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.noti-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.noti-title-block h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--foreground);
+}
+
+.noti-title-block p {
+    font-size: 14px;
+    color: var(--muted-foreground);
+    margin: 0;
+}
+
+.noti-card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 12px);
+    padding: 24px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.noti-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 640px) {
+    .noti-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.noti-search-filter {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .noti-search-filter {
+        max-width: 24rem;
+    }
+}
+
+.noti-counter {
+    font-size: 14px;
+    color: var(--muted-foreground);
+}
+
+.noti-counter span {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* Định hình rộng cột cho table-fixed */
+.col-id {
+    width: 12%;
+}
+
+.col-title {
+    width: 30%;
+}
+
+.col-target {
+    width: 15%;
+}
+
+.col-status {
+    width: 13%;
+}
+
+.col-time {
+    width: 18%;
+}
+
+.col-actions {
+    width: 12%;
+}
+
+/* Bảng dữ liệu (Table Styles) */
+.noti-th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+    background-color: var(--muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.noti-tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s ease;
+}
+
+.noti-tr:hover {
+    background-color: rgba(0, 0, 0, 0.015);
+}
+
+.dark .noti-tr:hover {
+    background-color: rgba(255, 255, 255, 0.015);
+}
+
+.noti-td {
+    padding: 16px;
+    font-size: 14px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.noti-td-id {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.noti-td-title {
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.noti-td-target {
+    color: var(--muted-foreground);
+}
+
+.target-badge {
+    background-color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.noti-td-time {
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.noti-td-actions {
+    padding: 16px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.action-btn-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-edit-action {
+    border-radius: 8px !important;
+    padding: 6px !important;
+    color: #d97706 !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.btn-edit-action:hover {
+    background-color: rgba(234, 179, 8, 0.1) !important;
+}
+
+.btn-delete-action {
+    border-radius: 8px !important;
+    padding: 6px !important;
+    border: none !important;
+}
+
+.noti-table-loading {
+    padding: 48px 0;
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted-foreground);
+}
+
+/* Trạng thái danh mục (Status Badges) */
+.badge-status {
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge-sent {
+    background-color: rgba(118, 160, 132, 0.15);
+    color: var(--secondary);
+}
+
+.badge-failed {
+    background-color: rgba(220, 107, 107, 0.15);
+    color: var(--destructive);
+}
+
+.badge-scheduled {
+    background-color: rgba(229, 154, 115, 0.15);
+    color: var(--accent);
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+/* Cửa sổ Modal Form mẫu biểu */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-content {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 12px);
+    max-width: 512px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    position: sticky;
+    top: 0;
+    background-color: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0;
+}
+
+.modal-close-btn {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+    background-color: var(--muted);
+}
+
+.modal-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.required-star {
+    color: var(--destructive);
+}
+
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--foreground);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--foreground);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+    box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+@media (min-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.modal-footer {
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+.btn-edit-action {
+    border-radius: 9999px !important;
+    /* Dạng viên thuốc giống ảnh mẫu */
+    padding: 6px 14px !important;
+    color: var(--warning) !important;
+    /* Dùng màu cam/vàng từ theme */
+    background-color: rgba(229, 154, 115, 0.08) !important;
+    /* Nền trong suốt siêu nhẹ */
+    border: 1px solid rgba(229, 154, 115, 0.3) !important;
+    /* Viền mỏng đồng màu */
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-edit-action:hover {
+    background-color: rgba(229, 154, 115, 0.15) !important;
+    border-color: rgba(229, 154, 115, 0.6) !important;
+}
+
+.btn-delete-action {
+    border-radius: 9999px !important;
+    padding: 6px 14px !important;
+    color: var(--danger) !important;
+    /* Dùng màu đỏ nguy hiểm từ theme */
+    background-color: rgba(220, 107, 107, 0.08) !important;
+    border: 1px solid rgba(220, 107, 107, 0.3) !important;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-delete-action:hover {
+    background-color: rgba(220, 107, 107, 0.15) !important;
+    border-color: rgba(220, 107, 107, 0.6) !important;
+}
+
+
+.badge-status {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge-sent {
+    background-color: rgba(118, 160, 132, 0.12);
+    /* Đồng bộ token --success */
+    color: var(--success);
+}
+
+.badge-failed {
+    background-color: rgba(220, 107, 107, 0.12);
+    /* Đồng bộ token --danger */
+    color: var(--danger);
+}
+
+.badge-scheduled {
+    background-color: rgba(229, 154, 115, 0.12);
+    /* Đồng bộ token --warning */
+    color: var(--warning);
+}
+
+.btn-create-noti {
+    /* Sử dụng biến radius (12px) của theme hoặc điền cố định 8px để bo nhẹ */
+    border-radius: var(--radius, 12px) !important;
+    padding: 10px 20px !important;
+    /* Tăng nhẹ padding cho nút chính nhìn phóng khoáng hơn */
+    font-size: 14px;
+    font-weight: 500;
+}

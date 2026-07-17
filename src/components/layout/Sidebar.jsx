@@ -60,7 +60,7 @@ const menuItems = [
     { id: 'item-types',   label: 'Quản Lý Loại Vật Phẩm',  icon: Tag,             path: '/item-types' },
     { id: 'challenges',   label: 'Quản Lý Thử Thách',     icon: Trophy,          path: '/challenges' },
     { id: 'reports',      label: 'Quản Lý Báo Cáo',       icon: Flag,            path: '/reports' },
-    { id: 'notifications',label: 'Quản Lý Thông Báo (!)',     icon: Bell,            path: '/notifications' },
+    { id: 'notifications',label: 'Quản Lý Thông Báo',     icon: Bell,            path: '/notifications' },
     { id: 'spiritnews',   label: 'Tin Tức Tinh Linh (!)',      icon: Newspaper,       path: '/spiritnews' },
     { id: 'pvp',          label: 'Quản Lý PvP (!)'  ,            icon: Swords,          path: '/pvp' },
     { id: 'systemconfig', label: 'Cấu Hình Hệ Thống (!)',     icon: Settings2,       path: '/systemconfig' },

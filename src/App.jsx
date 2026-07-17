@@ -15,6 +15,7 @@ import ChallengesManagementPage from "./pages/challenges/page/ChallengesManageme
 import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
 import AchievementsManagementPage from "./pages/achievements/page/AchievementsManagementPage.jsx";
+import { NotificationsManagement } from "./pages/notifications/NotificationsManagement.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -64,13 +65,17 @@ const router = createBrowserRouter([
             path: "missions",
             element: <MissionsManagement />,
           },
-           {
+          {
             path: "shop",
             element: <ShopPage />,
           },
+          {
+            path: "notifications",
+            element: <NotificationsManagement />,
+          },
         ],
       },
-    ],  
+    ],
   },
 
   {
