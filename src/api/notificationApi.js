@@ -8,6 +8,10 @@ export const notificationApi = {
   },
 
   createNotification: (data) => {
-    return axiosClient.post("/api/admin/notifications", data);
+    return axiosClient.post("/api/admin/notifications", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   },
 };
