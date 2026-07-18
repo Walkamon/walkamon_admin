@@ -14,4 +14,16 @@ export const notificationApi = {
       },
     });
   },
+
+  updateNotification: (id, data) => {
+    return axiosClient.put(`/api/admin/notifications/${id}`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  getNotificationById: (id) => {
+    return axiosClient.get(`/api/admin/notifications/${id}`);
+  },
 };
