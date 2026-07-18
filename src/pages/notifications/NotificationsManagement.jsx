@@ -72,9 +72,13 @@ export function NotificationsManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const pageSize = 20;
 
+  // States cho modal thêm/sửa
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+
+  // States cho modal xem chi tiết
+  const [detailData, setDetailData] = useState(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState({
     isOpen: false,
@@ -131,6 +135,33 @@ export function NotificationsManagement() {
     setIsModalOpen(true);
   };
 
+  const openDetailModal = async (notif) => {
+    try {
+      setIsLoading(true);
+      const res = await notificationApi.getNotificationById(
+        notif.notificationId,
+      );
+      if (res && res.success && res.data) {
+        setDetailData(res.data);
+      } else {
+        triggerDialog(
+          "error",
+          "Lỗi dữ liệu",
+          "Không thể tải chi tiết thông báo này từ máy chủ.",
+        );
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết thông báo:", error);
+      triggerDialog(
+        "error",
+        "Lỗi dữ liệu",
+        "Hệ thống gặp sự cố khi lấy chi tiết thông báo.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openEditModal = async (notif) => {
     try {
       setIsLoading(true);
@@ -179,8 +210,8 @@ export function NotificationsManagement() {
         if (safeImageUrl) {
           const isValidImage = await new Promise((resolve) => {
             const img = new window.Image();
-            img.onload = () => resolve(true); // Ảnh tải thành công
-            img.onerror = () => resolve(false); // Link hỏng
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
             img.src = safeImageUrl;
           });
 
@@ -209,11 +240,11 @@ export function NotificationsManagement() {
         throw new Error("Dữ liệu trả về không hợp lệ");
       }
     } catch (error) {
-      console.error("Lỗi khi lấy chi tiết thông báo:", error);
+      console.error("Lỗi khi lấy dữ liệu cập nhật:", error);
       triggerDialog(
         "error",
         "Lỗi dữ liệu",
-        "Không thể tải chi tiết thông báo này từ máy chủ.",
+        "Không thể tải chi tiết để chỉnh sửa.",
       );
     } finally {
       setIsLoading(false);
@@ -297,7 +328,7 @@ export function NotificationsManagement() {
       );
     } finally {
       setIsLoading(false);
-      setDeleteConfirm({ isOpen: false, id: null }); // Đóng modal sau khi xong
+      setDeleteConfirm({ isOpen: false, id: null });
     }
   };
 
@@ -516,7 +547,11 @@ export function NotificationsManagement() {
               />
             ) : (
               filteredNotifications.map((notif) => (
-                <tr key={notif.notificationId} className="noti-tr">
+                <tr
+                  key={notif.notificationId}
+                  className="noti-tr"
+                  onClick={() => openDetailModal(notif)}
+                >
                   <td
                     className="noti-td noti-td-id"
                     title={notif.notificationId}
@@ -555,13 +590,12 @@ export function NotificationsManagement() {
                         variant="default"
                         size="sm"
                         disabled={notif.statusCode === "sent"}
-                        onClick={() => openEditModal(notif)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Ngăn sự kiện click bọt khí lên thẻ <tr>
+                          openEditModal(notif);
+                        }}
                         className="btn-edit-action"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 12px",
                           opacity: notif.statusCode === "sent" ? 0.5 : 1,
                           cursor:
                             notif.statusCode === "sent"
@@ -571,17 +605,15 @@ export function NotificationsManagement() {
                       >
                         <Pencil className="w-3.5 h-3.5" /> Sửa
                       </Button>
+
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDelete(notif.notificationId)}
-                        className="btn-delete-action"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 12px",
+                        onClick={(e) => {
+                          e.stopPropagation(); // Ngăn sự kiện click bọt khí lên thẻ <tr>
+                          handleDelete(notif.notificationId);
                         }}
+                        className="btn-delete-action"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Xóa
                       </Button>
@@ -619,6 +651,160 @@ export function NotificationsManagement() {
         </div>
       </div>
 
+      {detailData && (
+        <div className="modal-overlay" onClick={() => setDetailData(null)}>
+          <div
+            className="modal-content detail-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Chi tiết thông báo</h2>
+              <button
+                onClick={() => setDetailData(null)}
+                className="modal-close-btn"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="modal-body detail-modal-body">
+              {/* CỘT TRÁI - Giao diện phẳng, không hộp */}
+              <div className="detail-col-left">
+                <div className="detail-info-row">
+                  <span className="detail-section-title">
+                    Mã định danh (ID)
+                  </span>
+                  <span className="detail-id-badge">
+                    {detailData.notificationId}
+                  </span>
+                </div>
+
+                <div className="detail-info-row">
+                  <span className="detail-section-title">
+                    Tiêu đề thông báo
+                  </span>
+                  <span className="detail-title">{detailData.title}</span>
+                </div>
+
+                <div className="detail-section">
+                  <span className="detail-section-title">
+                    Nội dung chi tiết
+                  </span>
+                  <div className="detail-content-text">
+                    {detailData.content}
+                  </div>
+                </div>
+
+                {/* Khối Metadata */}
+                <div className="detail-metadata-grid">
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">Loại thông báo</span>
+                    <span className="detail-meta-value">
+                      {typeOptions.find((t) => t.id === detailData.typeCode)
+                        ?.label || detailData.typeCode}
+                    </span>
+                  </div>
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">Người tạo</span>
+                    <span className="detail-meta-value">
+                      {detailData.createdBy || "Hệ thống"}
+                    </span>
+                  </div>
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">Đối tượng nhận</span>
+                    <span className="detail-meta-value highlight-primary">
+                      {getTargetLabel(detailData.targetAudienceCode)}
+                    </span>
+                  </div>
+                  <div className="detail-meta-item">
+                    <span className="detail-meta-label">Trạng thái</span>
+                    <span
+                      className={`detail-meta-value ${detailData.statusCode === "sent" ? "text-success" : detailData.statusCode === "failed" ? "text-danger" : "text-warning"}`}
+                    >
+                      {getStatusLabel(detailData.statusCode)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Khối Thời gian - Phẳng hoá */}
+                <div className="detail-timestamp-row">
+                  <div className="detail-time-item">
+                    <span className="detail-time-label">Lịch gửi</span>
+                    <span className="detail-time-value">
+                      {detailData.scheduleTime
+                        ? new Date(detailData.scheduleTime).toLocaleString(
+                            "vi-VN",
+                          )
+                        : "---"}
+                    </span>
+                  </div>
+                  <div className="detail-time-item">
+                    <span className="detail-time-label">Ngày gửi thực tế</span>
+                    <span className="detail-time-value">
+                      {detailData.sentAt
+                        ? new Date(detailData.sentAt).toLocaleString("vi-VN")
+                        : "---"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CỘT PHẢI */}
+              <div className="detail-col-right">
+                <div className="detail-section">
+                  <span className="detail-section-title">Thống kê gửi</span>
+                  <div className="detail-stats-stack">
+                    <div className="detail-stat-card border-default">
+                      <span className="detail-stat-label">Tổng đối tượng</span>
+                      <span className="detail-stat-number">
+                        {detailData.recipientCount || 0}
+                      </span>
+                    </div>
+                    <div className="detail-stat-card border-success">
+                      <span className="detail-stat-label text-success">
+                        Thành công
+                      </span>
+                      <span className="detail-stat-number text-success">
+                        {detailData.deliverySuccessCount || 0}
+                      </span>
+                    </div>
+                    <div className="detail-stat-card border-danger">
+                      <span className="detail-stat-label text-danger">
+                        Thất bại
+                      </span>
+                      <span className="detail-stat-number text-danger">
+                        {detailData.deliveryFailureCount || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {detailData.imageUrl && detailData.imageUrl !== "null" && (
+                  <div
+                    className="detail-section"
+                    style={{ flex: 1, marginTop: "8px" }}
+                  >
+                    <span className="detail-section-title">
+                      Hình ảnh đính kèm
+                    </span>
+                    <div className="detail-img-container">
+                      <img src={detailData.imageUrl} alt="Notification Cover" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer detail-modal-footer">
+              <Button variant="secondary" onClick={() => setDetailData(null)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL THÊM / SỬA ================= */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -878,6 +1064,7 @@ export function NotificationsManagement() {
         </div>
       )}
 
+      {/* ================= MODAL XÓA ================= */}
       {deleteConfirm.isOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: "400px" }}>
