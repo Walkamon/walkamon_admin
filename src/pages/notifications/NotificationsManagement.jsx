@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { notificationApi } from "../../api/notificationApi";
 
 import { Button } from "../../components/common/button";
@@ -27,29 +27,22 @@ const statusOptions = [
 ];
 
 const typeOptions = [
-  // Nhóm Thông tin Hệ thống & Vận hành
   { id: "server_announcement", label: "Thông báo server" },
   { id: "maintenance", label: "Bảo trì" },
   { id: "patch_notes", label: "Ghi chú cập nhật" },
   { id: "news", label: "Tin mới" },
   { id: "event", label: "Sự kiện" },
   { id: "compensation", label: "Quà đền bù" },
-
-  // Nhóm Hoạt động & Phần thưởng
   { id: "daily_reward", label: "Quà đăng nhập hàng ngày" },
   { id: "streak_reward", label: "Quà streak" },
   { id: "mission_complete", label: "Hoàn thành nhiệm vụ" },
   { id: "achievement_complete", label: "Hoàn thành achievement" },
   { id: "item_purchased", label: "Mua sản phẩm" },
-
-  // Nhóm Trạng thái Pet (Lumina/Spirit)
   { id: "spirit_hungry", label: "Lumina đói" },
   { id: "spirit_bond_low", label: "Sinh mệnh thấp" },
   { id: "spirit_energy_full", label: "Năng lượng đầy" },
   { id: "spirit_ready_evolution", label: "Đủ điều kiện tiến hóa" },
   { id: "spirit_level_up", label: "Lên cấp" },
-
-  // Nhóm Tương tác người chơi (Social & PVP)
   { id: "challenge_invite", label: "Mời tham gia thử thách" },
   { id: "pvp_invite", label: "Mời đấu PVP" },
   { id: "pvp_result", label: "Kết quả PVP" },
@@ -66,15 +59,7 @@ const emptyForm = {
   scheduleTime: "",
   sendNow: true,
   imageUrl: "",
-};
-
-const formatUTCToLocalInput = (utcString) => {
-  if (!utcString) return "";
-  const safeUtcString = utcString.endsWith("Z") ? utcString : utcString + "Z";
-  const date = new Date(safeUtcString);
-  const tzOffsetMs = date.getTimezoneOffset() * 60000;
-  const localDate = new Date(date.getTime() - tzOffsetMs);
-  return localDate.toISOString().slice(0, 16);
+  imageFile: null,
 };
 
 export function NotificationsManagement() {
@@ -88,9 +73,10 @@ export function NotificationsManagement() {
   const pageSize = 20;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
-  const [selectedId, setSelectedId] = useState(null);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -135,24 +121,51 @@ export function NotificationsManagement() {
 
   const openCreateModal = () => {
     setFormData(emptyForm);
-    setIsEditMode(false);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (notif) => {
-    setSelectedId(notif.notificationId);
+  const uploadImageFile = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      triggerDialog(
+        "error",
+        "Sai định dạng",
+        "Vui lòng chỉ chọn tệp tin hình ảnh.",
+      );
+      return;
+    }
 
-    setFormData({
-      typeCode: notif.typeCode || "server_announcement",
-      title: notif.title,
-      content: notif.content || notif.message || "",
-      targetAudienceCode: notif.targetAudienceCode,
-      scheduleTime: notif.sendTime ? formatUTCToLocalInput(notif.sendTime) : "",
-      sendNow: notif.statusCode === "sent",
-      imageUrl: notif.imageUrl || "",
-    });
-    setIsEditMode(true);
-    setIsModalOpen(true);
+    const previewUrl = URL.createObjectURL(file);
+    setFormData((prev) => ({
+      ...prev,
+      imageUrl: previewUrl,
+      imageFile: file,
+    }));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      uploadImageFile(files[0]);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      uploadImageFile(files[0]);
+    }
   };
 
   const handleDelete = (id) => {
@@ -193,48 +206,57 @@ export function NotificationsManagement() {
       return;
     }
 
-    const payload = {
-      typeCode: formData.typeCode,
-      title: formData.title.trim(),
+    // CHỈ ĐÓNG GÓI DỮ LIỆU ĐỂ TẠO MỚI (CREATE)
+    const payload = new FormData();
+    payload.append("TypeCode", formData.typeCode);
+    payload.append("Title", formData.title.trim());
+    payload.append("Content", formData.content.trim());
+    payload.append("TargetAudienceCode", formData.targetAudienceCode);
+    payload.append("SendNow", formData.sendNow);
 
-      content: formData.content.trim(),
-      message: formData.content.trim(),
+    if (!formData.sendNow && formData.scheduleTime) {
+      payload.append(
+        "ScheduleTime",
+        new Date(formData.scheduleTime).toISOString(),
+      );
+    }
 
-      targetAudienceCode: formData.targetAudienceCode,
-
-      scheduleTime: formData.sendNow
-        ? null
-        : new Date(formData.scheduleTime).toISOString(),
-      sendNow: formData.sendNow,
-
-      imageUrl: formData.imageUrl.trim() ? formData.imageUrl.trim() : null,
-    };
+    if (formData.imageFile) {
+      payload.append("Image", formData.imageFile);
+    }
 
     try {
       setIsLoading(true);
-      if (isEditMode) {
-      } else {
-        const res = await notificationApi.createNotification(payload);
-        if (res && res.success === false) {
-          throw new Error(res.message || "Không thể tạo thông báo mới");
-        }
+
+      const res = await notificationApi.createNotification(payload);
+      if (res && res.success === false) {
+        throw new Error(res.message || "Không thể tạo thông báo mới");
       }
 
       setIsModalOpen(false);
       triggerDialog(
         "success",
-        isEditMode ? "Cập nhật thành công" : "Tạo mới thành công",
-        isEditMode
-          ? "Thông tin thông báo thay đổi đã được ghi nhận."
-          : "Thông báo mới đã được tạo thành công.",
+        "Tạo mới thành công",
+        "Thông báo mới đã được tạo thành công.",
       );
       fetchNotifications(currentPage);
     } catch (error) {
-      triggerDialog(
-        "error",
-        "Lỗi hệ thống",
-        error.message || "Đã xảy ra sự cố khi lưu thông báo.",
-      );
+      console.error("Lỗi chi tiết từ hệ thống:", error);
+
+      let backendMsg = "Đã xảy ra sự cố khi lưu thông báo.";
+      const errorData = error.response?.data;
+
+      if (errorData?.errors) {
+        backendMsg = Object.entries(errorData.errors)
+          .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+          .join(" | ");
+      } else if (errorData?.title) {
+        backendMsg = errorData.title;
+      } else {
+        backendMsg = error.message || backendMsg;
+      }
+
+      triggerDialog("error", "Lỗi Xác Thực Hệ Thống", backendMsg);
     } finally {
       setIsLoading(false);
     }
@@ -329,7 +351,7 @@ export function NotificationsManagement() {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
+            {isLoading && notifications.length === 0 ? (
               <tr>
                 <td colSpan={6} className="noti-table-loading">
                   Đang tải dữ liệu thông báo...
@@ -359,13 +381,7 @@ export function NotificationsManagement() {
                   </td>
                   <td className="noti-td">
                     <span
-                      className={`badge-status ${
-                        notif.statusCode === "sent"
-                          ? "badge-sent"
-                          : notif.statusCode === "failed"
-                            ? "badge-failed"
-                            : "badge-scheduled"
-                      }`}
+                      className={`badge-status ${notif.statusCode === "sent" ? "badge-sent" : notif.statusCode === "failed" ? "badge-failed" : "badge-scheduled"}`}
                     >
                       {getStatusLabel(notif.statusCode)}
                     </span>
@@ -386,13 +402,15 @@ export function NotificationsManagement() {
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => openEditModal(notif)}
+                        disabled={true}
                         className="btn-edit-action"
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: "6px",
                           padding: "6px 12px",
+                          opacity: 0.5,
+                          cursor: "not-allowed",
                         }}
                       >
                         <Pencil className="w-3.5 h-3.5" /> Sửa
@@ -433,7 +451,6 @@ export function NotificationsManagement() {
             Hiển thị <span>{filteredNotifications.length}</span> trên tổng số{" "}
             {totalCount}
           </div>
-
           {totalPages > 1 && (
             <div className="pagination-wrapper" style={{ marginTop: 0 }}>
               <Pagination
@@ -450,12 +467,11 @@ export function NotificationsManagement() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>
-                {isEditMode ? "Chỉnh sửa thông báo" : "Soạn thông báo mới"}
-              </h2>
+              <h2>Soạn thông báo mới</h2>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => !isLoading && setIsModalOpen(false)}
                 className="modal-close-btn"
+                disabled={isLoading}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -475,7 +491,6 @@ export function NotificationsManagement() {
                       placeholder="Chọn loại thông báo..."
                     />
                   </div>
-
                   <div className="form-group">
                     <label className="form-label">Nhóm đối tượng nhận</label>
                     <CustomSelect
@@ -522,16 +537,101 @@ export function NotificationsManagement() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Đường dẫn hình ảnh (URL)</label>
+                  <label className="form-label">Hình ảnh đính kèm</label>
                   <input
-                    type="url"
-                    className="form-input"
-                    placeholder="https://example.com/image.png"
-                    value={formData.imageUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, imageUrl: e.target.value })
-                    }
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    style={{ display: "none" }}
                   />
+                  <div
+                    className={`image-dropzone ${isDragging ? "dragging" : ""} ${formData.imageUrl ? "has-image" : ""}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() =>
+                      !formData.imageUrl && fileInputRef.current?.click()
+                    }
+                    style={{
+                      border: "2px dashed #ced4da",
+                      borderRadius: "8px",
+                      padding: "20px",
+                      textAlign: "center",
+                      backgroundColor: isDragging ? "#e9ecef" : "#f8f9fa",
+                      cursor: formData.imageUrl ? "default" : "pointer",
+                      position: "relative",
+                      minHeight: "140px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    {formData.imageUrl ? (
+                      <div style={{ position: "relative", maxWidth: "100%" }}>
+                        <img
+                          src={formData.imageUrl}
+                          alt="Preview"
+                          style={{
+                            maxHeight: "150px",
+                            borderRadius: "6px",
+                            maxWidth: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormData({
+                              ...formData,
+                              imageUrl: "",
+                              imageFile: null,
+                            });
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: "-10px",
+                            right: "-10px",
+                            backgroundColor: "#dc3545",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: "24px",
+                            height: "24px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          color: "#6c757d",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <Upload
+                          className="w-8 h-8"
+                          style={{ marginBottom: "4px", color: "#495057" }}
+                        />
+                        <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                          Kéo thả file ảnh vào đây hoặc nhấn để chọn tệp
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#adb5bd" }}>
+                          Hỗ trợ định dạng PNG, JPG, WEBP
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-grid" style={{ alignItems: "flex-start" }}>
@@ -590,11 +690,24 @@ export function NotificationsManagement() {
                 <Button
                   variant="secondary"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={isLoading}
                 >
                   Hủy
                 </Button>
-                <Button variant="primary" type="submit">
-                  {isEditMode ? "Lưu cập nhật" : "Lên lịch / Gửi ngay"}
+                <Button variant="primary" type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý...
+                    </span>
+                  ) : (
+                    "Lên lịch / Gửi ngay"
+                  )}
                 </Button>
               </div>
             </form>
