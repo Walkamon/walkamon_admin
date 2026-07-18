@@ -73,6 +73,7 @@ export function NotificationsManagement() {
   const pageSize = 20;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -120,8 +121,98 @@ export function NotificationsManagement() {
   };
 
   const openCreateModal = () => {
+    setEditId(null);
     setFormData(emptyForm);
     setIsModalOpen(true);
+  };
+
+  const openEditModal = async (notif) => {
+    try {
+      setIsLoading(true);
+
+      const res = await notificationApi.getNotificationById(
+        notif.notificationId,
+      );
+
+      if (res && res.success && res.data) {
+        const detailData = res.data;
+
+        setEditId(detailData.notificationId);
+
+        let formattedTime = "";
+        const rawTime =
+          detailData.scheduleTime ||
+          detailData.sendTime ||
+          notif.scheduleTime ||
+          notif.sendTime;
+
+        if (rawTime) {
+          const utcString = rawTime.endsWith("Z") ? rawTime : rawTime + "Z";
+          const dateObj = new Date(utcString);
+
+          if (!isNaN(dateObj.getTime())) {
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const dd = String(dateObj.getDate()).padStart(2, "0");
+            const hh = String(dateObj.getHours()).padStart(2, "0");
+            const min = String(dateObj.getMinutes()).padStart(2, "0");
+
+            formattedTime = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+          }
+        }
+
+        let safeImageUrl = detailData.imageUrl || notif.imageUrl || "";
+        if (
+          !safeImageUrl ||
+          safeImageUrl === "null" ||
+          safeImageUrl === "undefined" ||
+          safeImageUrl.trim() === ""
+        ) {
+          safeImageUrl = "";
+        }
+
+        if (safeImageUrl) {
+          const isValidImage = await new Promise((resolve) => {
+            const img = new window.Image();
+            img.onload = () => resolve(true); // Ảnh tải thành công
+            img.onerror = () => resolve(false); // Link hỏng
+            img.src = safeImageUrl;
+          });
+
+          if (!isValidImage) {
+            safeImageUrl = "";
+          }
+        }
+
+        setFormData({
+          typeCode:
+            detailData.typeCode || notif.typeCode || "server_announcement",
+          title: detailData.title || notif.title || "",
+          content: detailData.content || "",
+          targetAudienceCode:
+            detailData.targetAudienceCode ||
+            notif.targetAudienceCode ||
+            "all_users",
+          scheduleTime: formattedTime,
+          sendNow: false,
+          imageUrl: safeImageUrl,
+          imageFile: null,
+        });
+
+        setIsModalOpen(true);
+      } else {
+        throw new Error("Dữ liệu trả về không hợp lệ");
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết thông báo:", error);
+      triggerDialog(
+        "error",
+        "Lỗi dữ liệu",
+        "Không thể tải chi tiết thông báo này từ máy chủ.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const uploadImageFile = (file) => {
@@ -206,19 +297,39 @@ export function NotificationsManagement() {
       return;
     }
 
-    // CHỈ ĐÓNG GÓI DỮ LIỆU ĐỂ TẠO MỚI (CREATE)
+    if (!formData.sendNow && formData.scheduleTime) {
+      const selectedTime = new Date(formData.scheduleTime).getTime();
+      const currentTime = new Date().getTime();
+
+      if (selectedTime <= currentTime) {
+        triggerDialog(
+          "error",
+          "Thời gian không hợp lệ",
+          "Thời gian lên lịch gửi thông báo phải lớn hơn thời gian hiện tại.",
+        );
+        return;
+      }
+    }
+
     const payload = new FormData();
     payload.append("TypeCode", formData.typeCode);
     payload.append("Title", formData.title.trim());
     payload.append("Content", formData.content.trim());
     payload.append("TargetAudienceCode", formData.targetAudienceCode);
-    payload.append("SendNow", formData.sendNow);
+
+    if (!editId) {
+      payload.append("SendNow", formData.sendNow);
+    }
 
     if (!formData.sendNow && formData.scheduleTime) {
       payload.append(
         "ScheduleTime",
         new Date(formData.scheduleTime).toISOString(),
       );
+    }
+
+    if (editId && formData.imageUrl && !formData.imageFile) {
+      payload.append("ImageUrl", formData.imageUrl);
     }
 
     if (formData.imageFile) {
@@ -228,16 +339,24 @@ export function NotificationsManagement() {
     try {
       setIsLoading(true);
 
-      const res = await notificationApi.createNotification(payload);
+      let res;
+      if (editId) {
+        res = await notificationApi.updateNotification(editId, payload);
+      } else {
+        res = await notificationApi.createNotification(payload);
+      }
+
       if (res && res.success === false) {
-        throw new Error(res.message || "Không thể tạo thông báo mới");
+        throw new Error(
+          res.message || `Không thể ${editId ? "cập nhật" : "tạo"} thông báo`,
+        );
       }
 
       setIsModalOpen(false);
       triggerDialog(
         "success",
-        "Tạo mới thành công",
-        "Thông báo mới đã được tạo thành công.",
+        `Thành công`,
+        `Thông báo đã được ${editId ? "cập nhật" : "tạo mới"} thành công.`,
       );
       fetchNotifications(currentPage);
     } catch (error) {
@@ -402,15 +521,19 @@ export function NotificationsManagement() {
                       <Button
                         variant="default"
                         size="sm"
-                        disabled={true}
+                        disabled={notif.statusCode === "sent"}
+                        onClick={() => openEditModal(notif)}
                         className="btn-edit-action"
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: "6px",
                           padding: "6px 12px",
-                          opacity: 0.5,
-                          cursor: "not-allowed",
+                          opacity: notif.statusCode === "sent" ? 0.5 : 1,
+                          cursor:
+                            notif.statusCode === "sent"
+                              ? "not-allowed"
+                              : "pointer",
                         }}
                       >
                         <Pencil className="w-3.5 h-3.5" /> Sửa
@@ -467,7 +590,7 @@ export function NotificationsManagement() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>Soạn thông báo mới</h2>
+              <h2>{editId ? "Cập nhật thông báo" : "Soạn thông báo mới"}</h2>
               <button
                 onClick={() => !isLoading && setIsModalOpen(false)}
                 className="modal-close-btn"
@@ -635,38 +758,43 @@ export function NotificationsManagement() {
                 </div>
 
                 <div className="form-grid" style={{ alignItems: "flex-start" }}>
-                  <div
-                    className="form-group"
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: "8px",
-                      paddingTop: "8px",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      id="sendNowCheckbox"
+                  {!editId && (
+                    <div
+                      className="form-group"
                       style={{
-                        width: "16px",
-                        height: "16px",
-                        accentColor: "var(--primary)",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: "8px",
+                        paddingTop: "8px",
                       }}
-                      checked={formData.sendNow}
-                      onChange={(e) =>
-                        setFormData({ ...formData, sendNow: e.target.checked })
-                      }
-                    />
-                    <label
-                      htmlFor="sendNowCheckbox"
-                      className="form-label"
-                      style={{ cursor: "pointer", margin: 0 }}
                     >
-                      Gửi ngay (Bỏ qua lịch gửi)
-                    </label>
-                  </div>
+                      <input
+                        type="checkbox"
+                        id="sendNowCheckbox"
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "var(--primary)",
+                        }}
+                        checked={formData.sendNow}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            sendNow: e.target.checked,
+                          })
+                        }
+                      />
+                      <label
+                        htmlFor="sendNowCheckbox"
+                        className="form-label"
+                        style={{ cursor: "pointer", margin: 0 }}
+                      >
+                        Gửi ngay (Bỏ qua lịch gửi)
+                      </label>
+                    </div>
+                  )}
 
-                  {!formData.sendNow && (
+                  {(!formData.sendNow || editId) && (
                     <div className="form-group">
                       <label className="form-label">
                         Lịch gửi (Ngày & Giờ)
@@ -705,6 +833,8 @@ export function NotificationsManagement() {
                     >
                       <Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý...
                     </span>
+                  ) : editId ? (
+                    "Lưu thay đổi"
                   ) : (
                     "Lên lịch / Gửi ngay"
                   )}
