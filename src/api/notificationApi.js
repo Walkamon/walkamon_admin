@@ -26,4 +26,8 @@ export const notificationApi = {
   getNotificationById: (id) => {
     return axiosClient.get(`/api/admin/notifications/${id}`);
   },
+
+  deleteNotification: (id) => {
+    return axiosClient.delete(`/api/admin/notifications/${id}`);
+  },
 };
