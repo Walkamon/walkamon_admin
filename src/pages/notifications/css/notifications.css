@@ -244,7 +244,8 @@
     max-width: 512px;
     width: 100%;
     max-height: 90vh;
-    overflow-y: auto;
+    /* KHÓA cuộn tổng để tránh vỡ layout */
+    overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
@@ -291,6 +292,9 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    /* DI CHUYỂN thanh cuộn vào bên trong thân modal */
+    overflow-y: auto;
+    flex: 1;
 }
 
 .form-group {
@@ -366,14 +370,10 @@
 
 .btn-edit-action {
     border-radius: 9999px !important;
-    /* Dạng viên thuốc giống ảnh mẫu */
     padding: 6px 14px !important;
     color: var(--warning) !important;
-    /* Dùng màu cam/vàng từ theme */
     background-color: rgba(229, 154, 115, 0.08) !important;
-    /* Nền trong suốt siêu nhẹ */
     border: 1px solid rgba(229, 154, 115, 0.3) !important;
-    /* Viền mỏng đồng màu */
     font-size: 13px;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -391,7 +391,6 @@
     border-radius: 9999px !important;
     padding: 6px 14px !important;
     color: var(--danger) !important;
-    /* Dùng màu đỏ nguy hiểm từ theme */
     background-color: rgba(220, 107, 107, 0.08) !important;
     border: 1px solid rgba(220, 107, 107, 0.3) !important;
     font-size: 13px;
@@ -418,27 +417,288 @@
 
 .badge-sent {
     background-color: rgba(118, 160, 132, 0.12);
-    /* Đồng bộ token --success */
     color: var(--success);
 }
 
 .badge-failed {
     background-color: rgba(220, 107, 107, 0.12);
-    /* Đồng bộ token --danger */
     color: var(--danger);
 }
 
 .badge-scheduled {
     background-color: rgba(229, 154, 115, 0.12);
-    /* Đồng bộ token --warning */
     color: var(--warning);
 }
 
 .btn-create-noti {
-    /* Sử dụng biến radius (12px) của theme hoặc điền cố định 8px để bo nhẹ */
     border-radius: var(--radius, 12px) !important;
     padding: 10px 20px !important;
-    /* Tăng nhẹ padding cho nút chính nhìn phóng khoáng hơn */
     font-size: 14px;
     font-weight: 500;
+}
+
+/* ================= MODAL CHI TIẾT (CLEAN & FLAT DESIGN VỚI PASTEL) ================= */
+.detail-modal-dialog {
+    max-width: 800px;
+    width: 100%;
+}
+
+.detail-modal-body {
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
+    padding: 24px;
+    align-items: stretch;
+}
+
+/* CỘT TRÁI */
+.detail-col-left {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+/* CỘT PHẢI */
+.detail-col-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+    border-left: 1px solid var(--border);
+    padding-left: 32px;
+}
+
+/* Labels chung */
+.detail-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.detail-section {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Các hàng dữ liệu có nền Pastel */
+.detail-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-id-badge {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    word-break: break-all;
+}
+
+.detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--foreground);
+    line-height: 1.4;
+    margin-top: 2px;
+
+    /* Ép rớt dòng */
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
+
+    /* KHỐNG CHẾ chiều cao để xuất hiện thanh cuộn riêng */
+    max-height: 112px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Nội dung dạng text thuần (bỏ viền) */
+.detail-content-text {
+    font-size: 14px;
+    color: var(--foreground);
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+    padding-right: 8px;
+
+    /* Dọn dẹp code bị lặp và ép rớt dòng */
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+
+/* Lưới Metadata */
+.detail-metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-meta-label {
+    font-size: 12px;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.detail-meta-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.highlight-primary {
+    color: var(--primary);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+/* Block Thời gian - Phẳng hoá */
+.detail-timestamp-row {
+    display: flex;
+    gap: 32px;
+    /* FIX LỖI bị khuất phần ngày giờ dưới footer */
+    margin-top: 24px;
+}
+
+.detail-time-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-time-label {
+    font-size: 12px;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.detail-time-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+/* Thống kê (Dạng thẻ Pastel, không viền) */
+.detail-stats-stack {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.detail-stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 12px;
+    border-radius: var(--radius-md, 8px);
+    text-align: center;
+}
+
+/* Thẻ Mặc định */
+.detail-stat-card.border-default {
+    border: none;
+    background-color: var(--muted, rgba(0, 0, 0, 0.04));
+}
+
+/* Thẻ Thành công */
+.detail-stat-card.border-success {
+    border: none;
+    background-color: rgba(118, 160, 132, 0.15);
+}
+
+.detail-stat-card.border-success .detail-stat-label,
+.detail-stat-card.border-success .detail-stat-number {
+    color: #557d62;
+}
+
+/* Thẻ Thất bại */
+.detail-stat-card.border-danger {
+    border: none;
+    background-color: rgba(220, 107, 107, 0.15);
+}
+
+.detail-stat-card.border-danger .detail-stat-label,
+.detail-stat-card.border-danger .detail-stat-number {
+    color: #b54a4a;
+}
+
+.detail-stat-label {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.detail-stat-number {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Hình ảnh */
+.detail-img-container {
+    border-radius: var(--radius-md, 6px);
+    overflow: hidden;
+    background-color: var(--muted);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    width: 100%;
+}
+
+.detail-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .detail-modal-body {
+        flex-direction: column;
+        gap: 24px;
+        padding: 16px;
+    }
+
+    .detail-col-right {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--border);
+        padding-top: 24px;
+    }
 }
