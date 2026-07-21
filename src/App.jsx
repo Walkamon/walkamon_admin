@@ -18,6 +18,10 @@ import AchievementsManagementPage from "./pages/achievements/page/AchievementsMa
 import { NotificationsManagement } from "./pages/notifications/NotificationsManagement.jsx";
 
 import { SystemConfigManagement } from "./pages/config/SystemConfigManagement.jsx";
+import { RewardRulesManagement } from "./pages/pvp/page/RewardRulesManagementPage.jsx";
+import ItemEffectsManagement from "./pages/pvp/page/ItemEffectsManagementPage.jsx";
+import RankTiersManagement from "./pages/pvp/page/RankTiersManagementPage.jsx";
+import SpiritRulesManagement from "./pages/pvp/page/SpiritRulesManagementPage.jsx";
 
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
@@ -74,6 +78,26 @@ const router = createBrowserRouter([
           {
             path: "notifications",
             element: <NotificationsManagement />,
+          },
+          {
+            path: "pvp",
+            element: <Navigate to="/pvp/reward-rules" replace />,
+          },
+          {
+            path: "pvp/reward-rules",
+            element: <RewardRulesManagement />,
+          },
+          {
+            path: "pvp/item-effects",
+            element: <ItemEffectsManagement />,
+          },
+          {
+            path: "pvp/rank-tiers",
+            element: <RankTiersManagement />,
+          },
+          {
+            path: "pvp/spirit-rules",
+            element: <SpiritRulesManagement />,
           },
           // 2. CHÈN ROUTE MỚI VÀO ĐÂY:
           {
