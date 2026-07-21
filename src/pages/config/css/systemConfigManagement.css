@@ -1,0 +1,49 @@
+/* SystemConfigManagement.css */
+
+.sys-config-wrapper {
+    width: 100%;
+    /* Cho phép container chiếm 100% chiều rộng của thẻ cha */
+    max-width: none;
+    /* Bỏ giới hạn chiều rộng 1280px cũ */
+    color: var(--foreground);
+}
+
+.sys-config-wrapper .bg-card nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sys-config-wrapper .bg-card nav::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 4px;
+}
+
+.sys-config-wrapper input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.sys-config-wrapper .bg-primary\/10 {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.sys-config-wrapper .bg-info\/10 {
+    background-color: color-mix(in srgb, var(--info) 10%, transparent);
+}
+
+.sys-config-wrapper .border-info\/20 {
+    border-color: color-mix(in srgb, var(--info) 20%, transparent);
+}
+
+.sys-config-wrapper .border-info\/30 {
+    border-color: color-mix(in srgb, var(--info) 30%, transparent);
+}
+
+.sys-config-wrapper input {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+@media (min-width: 1024px) {
+    .sys-config-wrapper .lg\:sticky {
+        top: 2rem;
+    }
+}

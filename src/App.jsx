@@ -17,6 +17,8 @@ import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
 import AchievementsManagementPage from "./pages/achievements/page/AchievementsManagementPage.jsx";
 import { NotificationsManagement } from "./pages/notifications/NotificationsManagement.jsx";
 
+import { SystemConfigManagement } from "./pages/config/SystemConfigManagement.jsx";
+
 const router = createBrowserRouter([
   // Các route public (không cần đăng nhập)
   ...authRoutes,
@@ -73,6 +75,11 @@ const router = createBrowserRouter([
             path: "notifications",
             element: <NotificationsManagement />,
           },
+          // 2. CHÈN ROUTE MỚI VÀO ĐÂY:
+          {
+            path: "system-config",
+            element: <SystemConfigManagement />,
+          },
         ],
       },
     ],
@@ -82,9 +89,11 @@ const router = createBrowserRouter([
     path: "*",
     element: (
       <div className="p-8 text-center text-destructive">
-        <h2 className="text-2xl font-bold">404 - Không tìm thấy trang</h2>
+        <h2 className="text-2xl font-bold">
+          404 - Không tìm thấy trang[cite: 7]
+        </h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Đường dẫn này không tồn tại!
+          Đường dẫn này không tồn tại![cite: 7]
         </p>
       </div>
     ),
