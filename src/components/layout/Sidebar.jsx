@@ -171,7 +171,7 @@ const menuItems = [
     icon: Bell,
     path: "/notifications",
   },
-  { id: "pvp", label: "Quản Lý PvP (!)", icon: Swords, path: "/pvp" },
+  { id: "pvp", label: "Quản Lý PvP", icon: Swords, path: "/pvp" },
   {
     id: "systemconfig",
     label: "Cấu Hình Hệ Thống",
