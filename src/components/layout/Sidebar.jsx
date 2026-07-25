@@ -134,7 +134,7 @@ const menuItems = [
   { id: "players", label: "Quản Lý Người Dùng", icon: Users, path: "/players" },
   {
     id: "spirits",
-    label: "Quản Lý Tinh Linh (!)",
+    label: "Quản Lý Tinh Linh",
     icon: Heart,
     path: "/spirits",
   },

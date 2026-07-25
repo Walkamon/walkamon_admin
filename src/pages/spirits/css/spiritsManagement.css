@@ -1,0 +1,217 @@
+/* Animation mượt mà khi load trang */
+.spirits-management-wrapper {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background-color: var(--card);
+    min-height: 100vh;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Các thành phần Header */
+.spirits-header-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--foreground);
+}
+
+.spirits-header-desc {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+}
+
+/* Các khối Section (Thống kê & Bảng) */
+.spirits-section-card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.spirits-section-title {
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: var(--foreground);
+}
+
+/* Grid Thống Kê */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.stat-item {
+    padding: 1rem;
+    background-color: var(--muted);
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+}
+
+.stat-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.stat-icon-wrapper {
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: var(--card);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+}
+
+.stat-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--foreground);
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+/* Các màu sắc dùng cho Thống Kê */
+.bg-primary {
+    background-color: var(--primary);
+}
+
+.text-primary {
+    color: var(--primary);
+}
+
+.bg-success {
+    background-color: var(--success);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.bg-info {
+    background-color: var(--info);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+/* Table Style */
+.spirits-table-header th {
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--muted);
+}
+
+.spirits-table-row {
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    transition: background-color 0.2s;
+}
+
+.spirits-table-row:hover {
+    background-color: var(--muted);
+}
+
+.cell-id {
+    padding: 1rem;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--muted-foreground);
+    text-align: left;
+}
+
+.cell-name {
+    padding: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: left;
+}
+
+.cell-center {
+    padding: 1rem;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* Status Tags (Sinh mệnh, Năng lượng, Độ thân thiết) */
+.status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+/* Màu pha nhạt (Opacity 10% cho background, 20% cho border) khớp với theme */
+.tag-success {
+    color: var(--success);
+    background-color: rgba(118, 160, 132, 0.1);
+    border-color: rgba(118, 160, 132, 0.2);
+}
+
+.tag-warning {
+    color: var(--warning);
+    background-color: rgba(229, 154, 115, 0.1);
+    border-color: rgba(229, 154, 115, 0.2);
+}
+
+.tag-danger {
+    color: var(--danger);
+    background-color: rgba(220, 107, 107, 0.1);
+    border-color: rgba(220, 107, 107, 0.2);
+}
+
+.text-exp {
+    font-weight: 600;
+    color: var(--info);
+}
