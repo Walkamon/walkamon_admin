@@ -215,3 +215,198 @@
     font-weight: 600;
     color: var(--info);
 }
+
+/* ================= THÊM CHO TRANG CHI TIẾT ================= */
+.detail-header-action {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    background-color: var(--border);
+    color: var(--foreground);
+}
+
+.grid-2-cols {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .grid-2-cols {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed var(--border);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-row-label {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-row-value {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.rate-badge {
+    background-color: rgba(139, 92, 246, 0.1);
+    /* Màu tím nhạt */
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.url-text {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    background-color: var(--muted);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+    display: inline-block;
+}
+
+/* ================= CSS CHO MODAL POPUP ================= */
+.spirit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.spirit-modal-container {
+    background-color: var(--card);
+    width: 95vw;
+    max-width: 1200px;
+    /* Tăng độ rộng để bảng hiển thị URL dài hơn */
+    max-height: 90vh;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.url-text {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    background-color: var(--muted);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Gỡ bỏ max-width: 250px cũ, cho phép URL tự động chiếm hết chiều rộng cột */
+    width: 100%;
+    display: block;
+}
+
+.spirit-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background-color: var(--muted);
+}
+
+.spirit-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    /* Tùy chỉnh thanh cuộn cho Modal */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.spirit-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.spirit-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.spirit-modal-body::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 20px;
+}
+
+/* ================= CSS CHO TAB ================= */
+.spirit-tabs {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+}
+
+.spirit-tab-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.spirit-tab-btn:hover {
+    color: var(--foreground);
+}
+
+.spirit-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
