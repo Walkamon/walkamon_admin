@@ -192,7 +192,7 @@
     border: 1px solid;
 }
 
-/* Màu pha nhạt (Opacity 10% cho background, 20% cho border) khớp với theme */
+/* Màu pha nhạt khớp với theme */
 .tag-success {
     color: var(--success);
     background-color: rgba(118, 160, 132, 0.1);
@@ -266,12 +266,15 @@
     border-bottom: none;
 }
 
+/* [CẬP NHẬT]: Ngăn nhãn bị xuống dòng */
 .stat-row-label {
     font-size: 0.875rem;
     color: var(--muted-foreground);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .stat-row-value {
@@ -281,7 +284,6 @@
 
 .rate-badge {
     background-color: rgba(139, 92, 246, 0.1);
-    /* Màu tím nhạt */
     color: #8b5cf6;
     border: 1px solid rgba(139, 92, 246, 0.2);
     padding: 0.25rem 0.5rem;
@@ -300,8 +302,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 250px;
-    display: inline-block;
+    width: 100%;
+    display: block;
 }
 
 /* ================= CSS CHO MODAL POPUP ================= */
@@ -324,7 +326,6 @@
     background-color: var(--card);
     width: 95vw;
     max-width: 1200px;
-    /* Tăng độ rộng để bảng hiển thị URL dài hơn */
     max-height: 90vh;
     border-radius: 1rem;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -332,21 +333,6 @@
     flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--border);
-}
-
-.url-text {
-    font-size: 0.75rem;
-    color: var(--muted-foreground);
-    background-color: var(--muted);
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-family: monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* Gỡ bỏ max-width: 250px cũ, cho phép URL tự động chiếm hết chiều rộng cột */
-    width: 100%;
-    display: block;
 }
 
 .spirit-modal-header {
@@ -364,7 +350,6 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    /* Tùy chỉnh thanh cuộn cho Modal */
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
@@ -409,4 +394,69 @@
 .spirit-tab-btn.active {
     color: var(--primary);
     border-bottom-color: var(--primary);
+}
+
+/* ================= CSS CHO FORM EDIT ================= */
+/* [CẬP NHẬT]: Tăng padding bên phải để tạo khoảng cách với nút tăng giảm */
+.spirit-input {
+    width: 100%;
+    padding: 0.375rem 1.25rem 0.375rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background-color: var(--card);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.spirit-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+}
+
+.spirit-error-text {
+    color: var(--danger);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+    display: block;
+    font-weight: 500;
+}
+
+.spirit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.spirit-btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+.spirit-btn-primary:hover {
+    opacity: 0.9;
+}
+
+.spirit-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spirit-btn-outline {
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--foreground);
+}
+
+.spirit-btn-outline:hover {
+    background-color: var(--muted);
 }

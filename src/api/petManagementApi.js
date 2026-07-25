@@ -29,3 +29,18 @@ export const getAdminPetDetail = async (petId) => {
     );
   }
 };
+
+export const updateAdminPet = async (petId, data) => {
+  try {
+    const response = await axiosClient.put(`/api/admin/pets/${petId}`, data);
+    return { success: true, data: response };
+  } catch (error) {
+    console.error(`Lỗi khi cập nhật Tinh Linh ${petId}:`, error);
+    return (
+      error.response?.data || {
+        success: false,
+        message: "Lỗi kết nối máy chủ.",
+      }
+    );
+  }
+};
