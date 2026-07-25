@@ -14,3 +14,18 @@ export const getAdminPets = async () => {
     );
   }
 };
+
+export const getAdminPetDetail = async (petId) => {
+  try {
+    const response = await axiosClient.get(`/api/admin/pets/${petId}`);
+    return response;
+  } catch (error) {
+    console.error(`Lỗi khi lấy chi tiết Tinh Linh ${petId}:`, error);
+    return (
+      error.response?.data || {
+        success: false,
+        message: "Lỗi kết nối máy chủ.",
+      }
+    );
+  }
+};
