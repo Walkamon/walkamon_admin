@@ -16,7 +16,7 @@ import MissionsManagement from "./pages/missions/MissionsManagement.jsx";
 import { ShopPage } from "./pages/shop/page/ShopManagerPage.jsx";
 import AchievementsManagementPage from "./pages/achievements/page/AchievementsManagementPage.jsx";
 import { NotificationsManagement } from "./pages/notifications/NotificationsManagement.jsx";
-
+import { SpiritsManagement } from "./pages/spirits/SpiritsManagement.jsx";
 import { SystemConfigManagement } from "./pages/config/SystemConfigManagement.jsx";
 import { RewardRulesManagement } from "./pages/pvp/page/RewardRulesManagementPage.jsx";
 import ItemEffectsManagement from "./pages/pvp/page/ItemEffectsManagementPage.jsx";
@@ -99,10 +99,13 @@ const router = createBrowserRouter([
             path: "pvp/spirit-rules",
             element: <SpiritRulesManagement />,
           },
-          // 2. CHÈN ROUTE MỚI VÀO ĐÂY:
           {
             path: "system-config",
             element: <SystemConfigManagement />,
+          },
+          {
+            path: "spirits",
+            element: <SpiritsManagement />,
           },
         ],
       },
