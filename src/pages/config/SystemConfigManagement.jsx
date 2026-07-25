@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Save, Lightbulb, Sprout, Loader2, Footprints } from "lucide-react";
+import {
+  Save,
+  Lightbulb,
+  Sprout,
+  Loader2,
+  Footprints,
+  Zap,
+  Heart,
+  Activity,
+} from "lucide-react";
 import { getStepExpRate, updateStepExpRate } from "../../api/stepExpApi";
+import {
+  getPetStatusSettings,
+  updatePetStatusSettings,
+} from "../../api/petStatusApi";
 import CommonDialog from "../../components/common/CommonDialog";
 import "./css/systemConfigManagement.css";
 
@@ -13,10 +26,18 @@ export function SettingsPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // State Cấu hình bước chân
   const [baseExp, setBaseExp] = useState(0);
   const [apiDescription, setApiDescription] = useState("");
 
-  // State quản lý hiển thị Popup Dialog
+  // State Cấu hình Tinh linh
+  const [petStatus, setPetStatus] = useState({
+    energyRecoverPerMinute: 0,
+    bondDecreasePerMinute: 0,
+    lifeForceDecreasePerMinute: 0,
+  });
+
+  // State quản lý Popup Dialog
   const [dialogConfig, setDialogConfig] = useState({
     isOpen: false,
     type: "success",
@@ -24,7 +45,6 @@ export function SettingsPage() {
     message: "",
   });
 
-  // Hàm đóng Dialog
   const closeDialog = () => {
     setDialogConfig((prev) => ({ ...prev, isOpen: false }));
   };
@@ -34,27 +54,47 @@ export function SettingsPage() {
       const res = await getStepExpRate();
       if (res && res.success && res.data) {
         setBaseExp(res.data.baseExp);
-        setApiDescription(res.data.description);
+
+        // Dịch mô tả sang tiếng Việt
+        const desc = res.data.description;
+        if (desc && desc.includes("Every 100 validated daily steps")) {
+          setApiDescription(
+            "Mỗi 100 bước đi hợp lệ hàng ngày sẽ tự động cộng lượng Sinh Mệnh Lực (EXP) cho Tinh linh theo cấu hình.",
+          );
+        } else {
+          setApiDescription(desc);
+        }
       }
     } catch (error) {
       console.error("Fetch Step Config Error:", error);
     }
   }, []);
 
+  const fetchPetStatusConfig = useCallback(async () => {
+    try {
+      const res = await getPetStatusSettings();
+      if (res && res.success && res.data) {
+        setPetStatus(res.data);
+      }
+    } catch (error) {
+      console.error("Fetch Pet Status Config Error:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const loadAllConfig = async () => {
       setIsInitialLoading(true);
-      await fetchStepConfig();
+      await Promise.all([fetchStepConfig(), fetchPetStatusConfig()]);
       setIsInitialLoading(false);
     };
     loadAllConfig();
-  }, [fetchStepConfig]);
+  }, [fetchStepConfig, fetchPetStatusConfig]);
 
+  // Xử lý lưu cấu hình Bước chân
   const handleSaveSteps = async () => {
     setIsSaving(true);
     try {
       const res = await updateStepExpRate(baseExp);
-
       if (res && res.success) {
         setDialogConfig({
           isOpen: true,
@@ -81,6 +121,53 @@ export function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Xử lý lưu cấu hình Tinh linh
+  const handleSavePetStatus = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        energyRecoverPerMinute: petStatus.energyRecoverPerMinute,
+        bondDecreasePerMinute: petStatus.bondDecreasePerMinute,
+        lifeForceDecreasePerMinute: petStatus.lifeForceDecreasePerMinute,
+      };
+      const res = await updatePetStatusSettings(payload);
+
+      if (res && res.success) {
+        setDialogConfig({
+          isOpen: true,
+          type: "success",
+          title: "Thành công",
+          message: "Cập nhật cấu hình Tinh Linh thành công!",
+        });
+        await fetchPetStatusConfig();
+      } else {
+        setDialogConfig({
+          isOpen: true,
+          type: "error",
+          title: "Thất bại",
+          message: res.message || "Cập nhật cấu hình thất bại.",
+        });
+      }
+    } catch (error) {
+      setDialogConfig({
+        isOpen: true,
+        type: "error",
+        title: "Lỗi hệ thống",
+        message: "Đã có lỗi xảy ra khi kết nối server.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePetStatusChange = (field, value) => {
+    setPetStatus((prev) => ({
+      ...prev,
+      // Dùng Math.max để chặn gõ số âm trực tiếp từ bàn phím
+      [field]: Math.max(0, Number(value)),
+    }));
   };
 
   if (isInitialLoading) {
@@ -140,8 +227,6 @@ export function SettingsPage() {
                   Cấu hình bước chân
                 </h2>
               </div>
-
-              {/* Chỉ có 1 trường nhập liệu duy nhất theo yêu cầu */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-foreground/90">
@@ -149,8 +234,11 @@ export function SettingsPage() {
                   </label>
                   <input
                     type="number"
+                    min="0"
                     value={baseExp}
-                    onChange={(e) => setBaseExp(Number(e.target.value))}
+                    onChange={(e) =>
+                      setBaseExp(Math.max(0, Number(e.target.value)))
+                    }
                     className="w-full px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                     placeholder="VD: 100"
                   />
@@ -160,7 +248,6 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              {/* Box thông báo quy đổi từ API */}
               <div className="p-4 bg-info/10 border border-info/20 rounded-xl flex gap-3 items-start">
                 <Lightbulb className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                 <div className="text-sm text-foreground/90 space-y-2">
@@ -200,18 +287,104 @@ export function SettingsPage() {
             <div className="space-y-6">
               <div className="border-b border-border pb-4">
                 <h2 className="text-xl font-semibold text-foreground">
-                  Cấu hình Tinh Linh
+                  Cấu hình trạng thái Tinh Linh
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Đang chờ cập nhật API cấu hình Tinh Linh...
+                  Thiết lập các thông số hồi phục và giảm sút theo thời gian của
+                  Tinh Linh
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Energy */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground/90">
+                    <Zap className="w-4 h-4 text-warning" />
+                    Tốc độ hồi Năng Lượng (/phút)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={petStatus.energyRecoverPerMinute}
+                    onChange={(e) =>
+                      handlePetStatusChange(
+                        "energyRecoverPerMinute",
+                        e.target.value,
+                      )
+                    }
+                    className="w-full px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                  />
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Tinh linh hồi phục lượng Năng lượng này mỗi 1 phút.
+                  </p>
+                </div>
+
+                {/* Bond */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground/90">
+                    <Heart className="w-4 h-4 text-destructive" />
+                    Tốc độ giảm Độ Thân Thiết (/phút)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={petStatus.bondDecreasePerMinute}
+                    onChange={(e) =>
+                      handlePetStatusChange(
+                        "bondDecreasePerMinute",
+                        e.target.value,
+                      )
+                    }
+                    className="w-full px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                  />
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Tinh linh bị trừ lượng Độ thân thiết này mỗi 1 phút.
+                  </p>
+                </div>
+
+                {/* Life Force */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground/90">
+                    <Activity className="w-4 h-4 text-primary" />
+                    Tốc độ giảm Sinh Mệnh Lực (/phút)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={petStatus.lifeForceDecreasePerMinute}
+                    onChange={(e) =>
+                      handlePetStatusChange(
+                        "lifeForceDecreasePerMinute",
+                        e.target.value,
+                      )
+                    }
+                    className="w-full px-4 py-2.5 bg-input-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                  />
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Tinh linh bị trừ lượng Sinh mệnh lực này mỗi 1 phút.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-start gap-3 pt-5 border-t border-border mt-8">
+                <button
+                  onClick={handleSavePetStatus}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed font-medium"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSaving ? "Đang xử lý..." : "Lưu thay đổi"}
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Render Component Dialog ở cuối trang */}
       <CommonDialog
         isOpen={dialogConfig.isOpen}
         type={dialogConfig.type}
