@@ -16,3 +16,308 @@
 body {
   margin: 0;
 }
+
+/* Keep table column labels consistent across management and detail tables. */
+table thead th {
+  color: var(--muted-foreground) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+}
+
+/* Hide scrollbar visuals while preserving native scrolling. */
+html,
+body,
+#root,
+* {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Keep modal close actions consistent across all management pages. */
+#root .modal-close-standard,
+#root .modal-close-btn,
+#root .mission-modal-close,
+#root .mission-dialog-close,
+#root .spirit-modal-container .btn-back,
+#root .report-modal-close {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  padding: 0.5rem !important;
+  border-radius: 0.75rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+#root .modal-close-standard:hover,
+#root .modal-close-btn:hover,
+#root .mission-modal-close:hover,
+#root .mission-dialog-close:hover,
+#root .spirit-modal-container .btn-back:hover,
+#root .report-modal-close:hover {
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 20%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent) !important;
+}
+
+/* Dropdowns must stay opaque and above neighboring form sections. */
+#root .custom-select-wrapper.is-open {
+  position: relative !important;
+  z-index: 10000 !important;
+  isolation: isolate;
+}
+
+#root .custom-select-wrapper.is-open .custom-select-menu {
+  position: absolute !important;
+  z-index: 10001 !important;
+  background: var(--card) !important;
+  background-color: var(--card) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  isolation: isolate;
+  box-shadow: 0 8px 20px rgba(74, 93, 35, 0.12), 0 0 0 1px var(--border) !important;
+}
+
+#root .custom-select-wrapper.is-open .custom-select-option,
+#root .custom-select-wrapper.is-open .custom-select-option > button {
+  background-color: var(--card);
+  background-image: none;
+  opacity: 1;
+}
+
+#root .custom-select-wrapper.is-open .custom-select-option > button:hover {
+  background-color: var(--muted);
+}
+
+#root .custom-select-menu {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#root .custom-select-menu::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Keep create/edit forms visually consistent with the raised detail cards. */
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-form-layout),
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .form-grid) {
+  background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+}
+
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-form-layout) > .item-form-layout,
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .form-grid) > .form-grid {
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+  padding: 1rem;
+}
+
+/* These forms use the modal surface directly; keep only their field-level containers. */
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-modal-form),
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-type-modal-form),
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .notification-form-section),
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .notification-schedule-section) {
+  background: var(--card) !important;
+}
+
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-modal-form) > .item-modal-form,
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .item-type-modal-form) > .item-type-modal-form,
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .notification-form-section) > .notification-form-section,
+#root .modal-content:not(.modal-content-detail) .modal-body:has(> .notification-schedule-section) > .notification-schedule-section {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+#root .btn-modal-close,
+#root .btn-detail-close,
+#root .btn-detail-close-custom,
+#root .report-detail-close-button,
+#root .modal-content .btn-cancel,
+#root .modal-overlay .btn-cancel,
+#root .mission-modal-actions .mission-btn-secondary {
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent) !important;
+}
+
+#root .btn-modal-close:hover,
+#root .btn-detail-close:hover,
+#root .btn-detail-close-custom:hover,
+#root .report-detail-close-button:hover,
+#root .modal-content .btn-cancel:hover,
+#root .modal-overlay .btn-cancel:hover,
+#root .mission-modal-actions .mission-btn-secondary:hover {
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 20%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent) !important;
+}
+
+/* Shared loading state for management tables and list panels. */
+.management-loading-cell {
+  padding: 4rem 1rem !important;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.management-loading-cell .management-loading-spinner,
+.management-loading-state .management-loading-spinner {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0 auto 0.5rem;
+  color: var(--primary);
+  animation: management-loading-spin 0.9s linear infinite;
+}
+
+.management-loading-state {
+  display: flex;
+  min-height: 16rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+@keyframes management-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Shared create/update form actions, matching the mission modal buttons. */
+#root .management-btn-secondary,
+#root .management-btn-primary {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  border-radius: 0.5rem !important;
+  padding: 10px 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+
+/* Elevated content panels used inside detail modals. */
+.detail-child-container {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06) !important;
+}
+
+/* Section headings use the same pastel accent marker as challenge details. */
+.achievement-detail-body .detail-child-container > h3,
+.spirit-modal-container .spirits-section-card > .spirits-section-title,
+.noti-container .detail-section-title,
+.report-detail-content .report-detail-meta-card > p:first-child,
+.report-detail-content .report-detail-description > p:first-child,
+.report-detail-note-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.achievement-detail-body .detail-child-container > h3::before,
+.spirit-modal-container .spirits-section-card > .spirits-section-title::before,
+.noti-container .detail-section-title::before,
+.report-detail-content .report-detail-meta-card > p:first-child::before,
+.report-detail-content .report-detail-description > p:first-child::before,
+.report-detail-note-label::before {
+  content: "";
+  display: block;
+  width: 0.375rem;
+  height: 1rem;
+  flex: 0 0 0.375rem;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+/* Match the challenge detail modal's layered card and muted body surfaces. */
+#root .modal-content > .modal-body,
+#root .mission-modal > .mission-create-form {
+  background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+}
+
+#root .modal-content > .modal-header,
+#root .modal-content > .modal-footer,
+#root .mission-modal > .mission-modal-header,
+#root .mission-modal > .mission-modal-actions {
+  background: var(--card) !important;
+}
+
+#root .management-btn-secondary {
+  color: var(--foreground) !important;
+  background: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+}
+
+#root .management-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--primary-foreground) !important;
+  background: var(--primary) !important;
+  border: 0 !important;
+}
+
+#root .management-btn-secondary:disabled,
+#root .management-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#root .management-form-actions {
+  display: flex;
+  justify-content: space-between !important;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2rem;
+  padding-top: 0;
+}
+
+#root .management-form-actions .management-btn-secondary,
+#root .management-form-actions .management-btn-primary {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  padding-inline: 1.5rem !important;
+}
+
+#root .modal-footer.management-form-actions {
+  margin-top: 2rem;
+  padding: 0 24px 24px !important;
+  border-top: 0 !important;
+}
+
+@media (max-width: 640px) {
+  #root .management-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  #root .management-form-actions .management-btn-secondary,
+  #root .management-form-actions .management-btn-primary {
+    width: 100% !important;
+  }
+}

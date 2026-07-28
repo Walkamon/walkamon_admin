@@ -13,6 +13,7 @@ import {
 import { missionApi } from "../../api/missionApi";
 import { itemApi } from "../../api/itemApi";
 import "../missions/css/missionsManagement.css";
+import "../pvp/css/pvpAdmin.css";
 
 import { Table, TableEmpty } from "../../components/common/table.jsx";
 import { Button } from "../../components/common/button.jsx";
@@ -20,6 +21,7 @@ import { SearchFilter } from "../../components/common/SearchFilter";
 import { Pagination } from "../../components/common/pagination.jsx";
 import CustomSelect from "../../components/common/CustomSelect";
 import CustomDatePicker from "../../components/common/CustomDatePicker";
+import CommonDialog from "../../components/common/CommonDialog";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -188,7 +190,13 @@ export default function MissionsManagement() {
       }
     } catch (err) {
       console.error(`Lỗi khi lấy dữ liệu missions cho tab ${tab}:`, err);
-      setError("Không thể tải dữ liệu nhiệm vụ. Vui lòng thử lại sau.");
+      setMissions([]);
+      setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      setDialogInfo({
+        isOpen: true,
+        type: "error",
+        message: "Không thể tải dữ liệu. Vui lòng thử lại sau.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -838,13 +846,6 @@ export default function MissionsManagement() {
         </div>
       </div>
 
-      {error && (
-        <div className="mission-alert-error">
-          <AlertCircle className="w-5 h-5 mr-2" />
-          <span>{error}</span>
-        </div>
-      )}
-
       {successMessage && (
         <div className="mission-alert-success">
           <CheckCircle className="w-5 h-5 mr-2" />
@@ -973,7 +974,7 @@ export default function MissionsManagement() {
               ) : currentMissions.length === 0 ? (
                 <TableEmpty
                   colSpan={activeTab === "daily" ? 6 : 5}
-                  message="Không tìm thấy nhiệm vụ nào phù hợp."
+                  message={error ? "Không thể tải danh sách nhiệm vụ." : "Không tìm thấy nhiệm vụ nào phù hợp."}
                 />
               ) : (
                 currentMissions.map((mission) => (
@@ -1302,10 +1303,10 @@ export default function MissionsManagement() {
           }}
         >
           <div
-            className="common-dialog-container"
+            className="common-dialog-container mission-update-dialog-container"
             style={{
               width: "100%",
-              maxWidth: "840px",
+              maxWidth: "720px",
               maxHeight: "90vh",
               display: "flex",
               flexDirection: "column",
@@ -1395,7 +1396,7 @@ export default function MissionsManagement() {
                   margin: 0,
                   fontSize: "1.25rem",
                   fontWeight: "700",
-                  color: "#76A084",
+                  color: "var(--foreground)",
                 }}
               >
                 Cập nhật thông tin nhiệm vụ
@@ -1667,7 +1668,7 @@ export default function MissionsManagement() {
                             onChange={(val) =>
                               setUpdateField("completionConditionCode", val)
                             }
-                            placeholder="Chọn ĐK"
+                            placeholder="CHỌN ĐIỀU KIỆN"
                             error={formErrors.completionConditionCode}
                           />
                         </div>
@@ -1830,7 +1831,7 @@ export default function MissionsManagement() {
                 {/* Ô CHỌN NGÀY DÀNH CHO DAILY MISSION TRONG FORM CẬP NHẬT */}
                 {updateForm.missionTypeCode === "daily" && (
                   <div
-                    className="mt-4"
+                    className="mission-dialog-date-group"
                     style={{ position: "relative", zIndex: 1 }}
                   >
                     <label
@@ -1926,7 +1927,7 @@ export default function MissionsManagement() {
                         ]);
                       }}
                     >
-                      <Plus className="w-3.5 h-3.5" /> Thêm quà tặng
+                      <Plus className="w-3.5 h-3.5" /> Tạo quà tặng
                     </button>
                   </div>
 
@@ -2031,18 +2032,20 @@ export default function MissionsManagement() {
 
               {/* FOOTER */}
               <div
+                className="management-form-actions"
                 style={{
-                  padding: "1.25rem 1.5rem",
-                  borderTop: "1px solid #E5DCCF",
+                  marginTop: "2rem",
                   display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "1rem",
-                  backgroundColor: "#ffffff",
+                  gap: "12px",
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
                 <button
                   type="button"
+                  className="management-btn-secondary"
                   style={{
+                    flex: 1,
                     padding: "0.625rem 1.25rem",
                     borderRadius: "8px",
                     border: "1px solid #d1d5db",
@@ -2059,7 +2062,9 @@ export default function MissionsManagement() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
+                  className="management-btn-primary"
                   style={{
+                    flex: 1,
                     padding: "0.625rem 1.25rem",
                     borderRadius: "8px",
                     border: "none",
@@ -2095,7 +2100,7 @@ export default function MissionsManagement() {
           onClick={() => setShowDetailModal(false)}
         >
           <div
-            className="mission-modal"
+            className="mission-modal mission-detail-modal"
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: "850px", width: "100%" }}
           >
@@ -2126,12 +2131,12 @@ export default function MissionsManagement() {
                     color: "var(--muted-foreground)",
                   }}
                 >
-                  Mã định danh:{" "}
+                  ID:{" "}
                   <span
                     style={{
                       fontFamily: "monospace",
-                      color: "var(--accent)", // Màu cam đất Terracotta đặc trưng
-                      fontWeight: 600,
+                      color: "var(--muted-foreground)",
+                      fontWeight: 400,
                     }}
                   >
                     {selectedDetail.missionId}
@@ -2149,6 +2154,7 @@ export default function MissionsManagement() {
 
             {/* 2. MODAL BODY */}
             <div
+              className="mission-detail-body"
               style={{
                 padding: "1.5rem",
                 overflowY: "auto",
@@ -2177,7 +2183,7 @@ export default function MissionsManagement() {
                     boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
                   }}
                 >
-                  <span
+                  <span className="mission-detail-heading"
                     style={{
                       fontSize: "0.875rem",
                       fontWeight: 700,
@@ -2207,7 +2213,7 @@ export default function MissionsManagement() {
                     }}
                   ></div>
 
-                  <span
+                  <span className="mission-detail-heading"
                     style={{
                       fontSize: "0.875rem",
                       fontWeight: 700,
@@ -2244,7 +2250,7 @@ export default function MissionsManagement() {
                   }}
                 >
                   <div>
-                    <span
+                    <span className="mission-detail-heading"
                       style={{
                         fontSize: "0.875rem",
                         fontWeight: 700,
@@ -2269,7 +2275,7 @@ export default function MissionsManagement() {
                   </div>
 
                   <div>
-                    <span
+                    <span className="mission-detail-heading"
                       style={{
                         fontSize: "0.875rem",
                         fontWeight: 700,
@@ -2426,7 +2432,7 @@ export default function MissionsManagement() {
                     gap: "1.25rem",
                   }}
                 >
-                  <h4
+                  <h4 className="mission-detail-heading"
                     style={{
                       fontSize: "0.875rem",
                       fontWeight: 700,
@@ -2552,7 +2558,7 @@ export default function MissionsManagement() {
                                 justifyContent: "space-between",
                                 padding: "6px 0 6px 12px", // Đẩy chữ ra khỏi thanh viền dọc bên trái
                                 borderLeft: "3px solid var(--primary)", // Thanh viền dọc màu xanh lá làm điểm nhấn nổi bật dòng chữ
-                                borderBottom: "1px solid var(--border)", // Đường gạch đáy mờ mảnh định hình dòng
+                                borderBottom: "none",
                               }}
                             >
                               {/* Tên tiêu chí hoàn thành */}
@@ -2607,7 +2613,7 @@ export default function MissionsManagement() {
                     padding: "1.25rem",
                   }}
                 >
-                  <h4
+                  <h4 className="mission-detail-heading"
                     style={{
                       fontSize: "0.875rem",
                       fontWeight: 700,
@@ -2786,35 +2792,6 @@ export default function MissionsManagement() {
               </div>
             </div>
 
-            {/* 3. MODAL FOOTER */}
-            <div
-              className="mission-modal-actions"
-              style={{
-                padding: "1rem 1.5rem",
-                borderTop: "1px solid var(--border)",
-                display: "flex",
-                justifyContent: "flex-end",
-                backgroundColor: "var(--card)",
-              }}
-            >
-              <button
-                type="button"
-                className="mission-btn-secondary"
-                onClick={() => setShowDetailModal(false)}
-                style={{
-                  width: "auto",
-                  minWidth: "130px",
-                  padding: "9px 24px",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  border: "1px solid var(--border)",
-                  color: "var(--muted-foreground)",
-                }}
-              >
-                Đóng cửa sổ
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -3013,6 +2990,7 @@ export default function MissionsManagement() {
                     <label className="mission-checkbox-row">
                       <input
                         type="checkbox"
+                        className="pvp-checkbox"
                         checked={createForm.isActive}
                         onChange={(e) =>
                           setCreateField("isActive", e.target.checked)
@@ -3179,10 +3157,10 @@ export default function MissionsManagement() {
                   style={{
                     margin: 0, // Xóa sạch toàn bộ margin mặc định của thẻ h3
                     // Nếu có lỗi thì chỉ cách 0.15rem (sát rạt), nếu không có lỗi thì cách 1rem như cũ
-                    marginBottom: formErrors.reward ? "0.15rem" : "1rem",
-                    fontWeight: "600",
-                    fontSize: "1.125rem",
-                    color: "#4A5D23",
+                    marginBottom: "0.75rem",
+                    fontWeight: "700",
+                    fontSize: "0.875rem",
+                    color: "var(--foreground)",
                   }}
                 >
                   3. Phần thưởng <span className="text-red-500">*</span>
@@ -3269,7 +3247,7 @@ export default function MissionsManagement() {
                         border: "none",
                       }}
                     >
-                      <Plus size={14} /> Thêm vật phẩm
+                      <Plus size={14} /> Tạo vật phẩm
                     </button>
                   </div>
 
@@ -3365,8 +3343,13 @@ export default function MissionsManagement() {
                     <p
                       style={{
                         fontSize: "0.875rem",
-                        color: "var(--muted-foreground)",
+                        color: "#9ca3af",
                         textAlign: "center",
+                        fontStyle: "italic",
+                        backgroundColor: "#f9fafb",
+                        border: "1px dashed #d1d5db",
+                        borderRadius: "8px",
+                        padding: "0.75rem 1rem",
                         margin: 0,
                       }}
                     >
@@ -3377,7 +3360,7 @@ export default function MissionsManagement() {
               </section>
 
               <div
-                className="mission-modal-actions"
+                className="management-form-actions"
                 style={{
                   marginTop: "2rem",
                   display: "flex",
@@ -3388,7 +3371,7 @@ export default function MissionsManagement() {
               >
                 <button
                   type="button"
-                  className="mission-btn-secondary"
+                  className="management-btn-secondary"
                   onClick={() => setShowCreateModal(false)}
                   disabled={isSubmitting}
                   style={{
@@ -3405,7 +3388,7 @@ export default function MissionsManagement() {
 
                 <button
                   type="submit"
-                  className="mission-btn-primary"
+                  className="management-btn-primary"
                   disabled={isSubmitting}
                   style={{
                     flex: 1, // Ép nút Tạo chiếm đúng 50% không gian còn lại
@@ -3432,7 +3415,7 @@ export default function MissionsManagement() {
       )}
 
       {/* Modal Xác nhận Vô hiệu hoá / Kích hoạt */}
-      {showConfirmModal && missionToToggle && (
+      {false && showConfirmModal && missionToToggle && (
         <div className="common-dialog-overlay">
           <div
             className="common-dialog-container"
@@ -3516,42 +3499,35 @@ export default function MissionsManagement() {
       )}
 
       {/* Dialog Thông báo (Success / Error) */}
+      {showConfirmModal && missionToToggle && (
+        <CommonDialog
+          isOpen={showConfirmModal}
+          type="warning"
+          title={missionToToggle.isActive ? "Xác nhận vô hiệu hóa" : "Xác nhận kích hoạt"}
+          message={
+            <>
+              Bạn có chắc chắn muốn {missionToToggle.isActive ? "vô hiệu hóa" : "kích hoạt"} nhiệm vụ{" "}
+              <strong className="font-bold text-foreground">{missionToToggle.title}</strong> không?
+            </>
+          }
+          onClose={() => {
+            setShowConfirmModal(false);
+            setMissionToToggle(null);
+          }}
+          onConfirm={handleConfirmToggle}
+          confirmLabel={missionToToggle.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+          isLoading={isSubmitting}
+        />
+      )}
+
       {dialogInfo.isOpen && (
-        <div className="common-dialog-overlay">
-          <div
-            className={`common-dialog-container ${
-              dialogInfo.type === "success"
-                ? "common-dialog-success"
-                : "common-dialog-error"
-            }`}
-          >
-            {/* Vòng tròn chứa Icon */}
-            <div className="common-dialog-icon">
-              {dialogInfo.type === "success" ? (
-                <CheckCircle className="w-8 h-8" />
-              ) : (
-                <AlertCircle className="w-8 h-8" />
-              )}
-            </div>
-
-            {/* Tiêu đề biểu mẫu thông báo */}
-            <h3 className="common-dialog-title">
-              {dialogInfo.type === "success" ? "Thành công" : "Thất bại"}
-            </h3>
-
-            {/* Nội dung thông báo phản hồi từ hệ thống */}
-            <p className="common-dialog-message">{dialogInfo.message}</p>
-
-            {/* Nút bấm hành động duy nhất để đóng */}
-            <button
-              type="button"
-              className="common-dialog-btn"
-              onClick={() => setDialogInfo({ ...dialogInfo, isOpen: false })}
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
+        <CommonDialog
+          isOpen={dialogInfo.isOpen}
+          type={dialogInfo.type}
+          title={dialogInfo.type === "success" ? "Thành công" : "Thất bại"}
+          message={dialogInfo.message}
+          onClose={() => setDialogInfo({ ...dialogInfo, isOpen: false })}
+        />
       )}
     </div>
   );

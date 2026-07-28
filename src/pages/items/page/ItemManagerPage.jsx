@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Plus,
   Pencil,
   Trash2,
   CheckCircle,
   Loader2,
-  ChevronDown,
   Package,
   AlertTriangle,
   Image as ImageIcon,
@@ -16,10 +15,14 @@ import { Button } from "../../../components/common/button.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
 import { Table } from "../../../components/common/table.jsx";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
+import CustomSelect from "../../../components/common/CustomSelect.jsx";
 
 import { itemApi } from "../../../api/itemApi";
 import { itemTypeApi } from "../../../api/itemTypeApi";
 import "../css/itemManagerPage.css";
+import "../../missions/css/missionsManagement.css";
+import "../../../styles/managementStats.css";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -45,6 +48,18 @@ const translateErrorItem = (englishMsg) => {
   return str;
 };
 
+const translateEffectCode = (effectCode) => {
+  const code = String(effectCode ?? "").trim();
+  const normalized = code.toLowerCase().replace(/[\s_-]+/g, "");
+  const translations = {
+    pvpspeedup: "Tăng tốc độ PvP",
+    debuff: "Hiệu ứng bất lợi",
+    pvpspeeddown: "Giảm tốc độ PvP",
+  };
+
+  return translations[normalized] || code || "-";
+};
+
 function ItemDetailView({ item, onClose }) {
   if (!item) return null;
 
@@ -52,12 +67,22 @@ function ItemDetailView({ item, onClose }) {
     <div className="item-form-layout">
       <div className="detail-image-wrapper">
         {item.image ? (
-          <img src={item.image} alt={item.itemName} className="detail-img" />
+          <img
+            src={item.image}
+            alt={item.itemName}
+            className="detail-img"
+            onError={(event) => {
+              event.currentTarget.hidden = true;
+              event.currentTarget.nextElementSibling.classList.remove("is-hidden");
+            }}
+          />
         ) : (
-          <div className="detail-fallback-img">
-            <ImageIcon size={48} className="text-muted-foreground" />
-          </div>
+          null
         )}
+        <div className={`detail-fallback-img${item.image ? " is-hidden" : ""}`}>
+          <ImageIcon className="detail-placeholder-icon" />
+          <span>Chưa có icon</span>
+        </div>
       </div>
       <div className="detail-info-list">
         <div className="detail-info-row">
@@ -77,18 +102,18 @@ function ItemDetailView({ item, onClose }) {
         <div className="detail-info-row">
           <span className="detail-label">Mã hiệu ứng:</span>
           <span className="detail-value-effect-code">
-            {item.effectTypeCode || "-"}
+            {translateEffectCode(item.effectTypeCode)}
           </span>
         </div>
         <div className="detail-info-row">
           <span className="detail-label">Giá trị hiệu ứng:</span>
-          <span className="text-primary font-bold">
+          <span className="text-foreground font-medium">
             {item.effectValue ?? 0}
           </span>
         </div>
         <div className="detail-info-row">
           <span className="detail-label">Trạng thái:</span>
-          <div>
+          <div className="detail-status-value">
             <span className={item.isActive ? "badge-active" : "badge-inactive"}>
               {item.isActive ? "Hoạt động" : "Tạm dừng"}
             </span>
@@ -103,24 +128,15 @@ function ItemDetailView({ item, onClose }) {
           </p>
         </div>
       </div>
-      <div className="form-actions detail-actions">
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn-cancel btn-detail-close"
-        >
-          Đóng cửa sổ
-        </button>
-      </div>
     </div>
   );
 }
 
 // ─── COMPONENT MODAL & FORM  ───────────────────────────────────
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, variant = "" }) {
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className={`modal-content ${variant ? `modal-content-${variant}` : ""}`}>
         <div className="modal-header">
           <h2>{title}</h2>
           <button onClick={onClose} className="modal-close-btn">
@@ -249,7 +265,7 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
+    <form onSubmit={handleSubmit} className="item-form-layout item-modal-form">
       <div className="form-group">
         <label>
           Tên vật phẩm <span className="text-destructive">*</span>
@@ -287,7 +303,8 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
           </div>
         ) : (
           <div>
-            <SelectDropdown
+            <CustomSelect
+              valueKey="value"
               options={
                 dynamicTypes.length > 0
                   ? dynamicTypes.map((type) => ({
@@ -448,19 +465,19 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
         )}
       </div>
 
-      <div className="form-actions">
+      <div className="management-form-actions">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="btn-cancel"
+          className="management-btn-secondary"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="btn-submit flex items-center justify-center gap-2"
+          className="management-btn-primary"
         >
           {isLoading ? (
             <>
@@ -555,7 +572,7 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
+    <form onSubmit={handleSubmit} className="item-form-layout item-modal-form">
       {/* Tên vật phẩm */}
       <div className="form-group">
         <label>
@@ -595,7 +612,8 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
           </div>
         ) : (
           <div>
-            <SelectDropdown
+            <CustomSelect
+              valueKey="value"
               options={dynamicTypes.map((type) => ({
                 value: type.itemTypeId,
                 label: type.itemTypeName,
@@ -747,19 +765,19 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
         )}
       </div>
 
-      <div className="form-actions">
+      <div className="management-form-actions">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="btn-cancel"
+          className="management-btn-secondary"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="btn-submit flex items-center justify-center gap-2"
+          className="management-btn-primary"
         >
           {isLoading ? (
             <>
@@ -776,79 +794,11 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
 }
 
 // ─── Component Dropdown Chung ───────────────────────────────────────────────
-function SelectDropdown({
-  options,
-  value,
-  onChange,
-  className = "",
-  disabled,
-  hasError,
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-  const selected = options.find((o) => o.value === value) ?? options[0];
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className={`relative min-w-[11rem] ${className}`}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full rounded-full py-2 px-4 bg-muted border text-sm text-foreground focus:outline-none focus:ring-2 text-left flex justify-between items-center disabled:opacity-50 transition-colors ${
-          hasError
-            ? "border-destructive focus:ring-destructive/20 bg-destructive/5"
-            : "border-border focus:ring-primary/20"
-        }`}
-      >
-        <span>{selected?.label || "Chọn..."}</span>
-        <ChevronDown
-          className={`w-4 h-4 text-muted-foreground transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {open && options.length > 0 && (
-        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-card border border-border rounded-lg shadow-md p-1 max-h-60 overflow-y-auto">
-          {options.map((option, index) => (
-            <li key={`${option.value}-${index}`}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                  option.value === value
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted text-foreground"
-                }`}
-              >
-                {option.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 export function ItemManagerPage() {
   const [items, setItems] = useState([]);
   const [dynamicTypes, setDynamicTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [filterType, setFilterType] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -860,6 +810,7 @@ export function ItemManagerPage() {
     message: "",
     type: "success",
   });
+  const [statusTarget, setStatusTarget] = useState(null);
 
   const showDialog = (message, type = "success") => {
     setDialog({ show: true, message, type });
@@ -872,6 +823,7 @@ export function ItemManagerPage() {
   const fetchItems = useCallback(async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const res = await itemApi.getAll();
       const actualData = Array.isArray(res)
         ? res
@@ -906,6 +858,10 @@ export function ItemManagerPage() {
       }
     } catch (error) {
       console.error("Lỗi khi gọi API danh sách vật phẩm:", error);
+      setItems([]);
+      setDynamicTypes([]);
+      setLoadError(true);
+      showDialog("Không thể tải dữ liệu. Vui lòng thử lại sau.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -1051,7 +1007,7 @@ export function ItemManagerPage() {
     }
   };
 
-  const handleToggleStatus = async (item) => {
+  const applyToggleStatus = async (item) => {
     if (!item?.itemId || togglingItemId) return;
 
     try {
@@ -1071,52 +1027,44 @@ export function ItemManagerPage() {
     }
   };
 
+  const handleToggleStatus = async (item) => {
+    if (item?.isActive) {
+      setStatusTarget(item);
+      return;
+    }
+    await applyToggleStatus(item);
+  };
+
   return (
     <div className="page-container relative">
       {/* --- DIALOG THÔNG BÁO --- */}
-      {dialog.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                dialog.type === "success"
-                  ? "bg-primary/10 text-primary"
-                  : dialog.type === "error"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-amber-500/10 text-amber-500"
-              }`}
-            >
-              {dialog.type === "success" && <CheckCircle size={32} />}
-              {dialog.type === "error" && <X size={32} />}
-              {dialog.type === "warning" && <AlertTriangle size={32} />}
-            </div>
+      <CommonDialog
+        isOpen={dialog.show}
+        type={dialog.type}
+        title={dialog.type === "success" ? "Thành công" : dialog.type === "error" ? "Có lỗi xảy ra" : "Cảnh báo"}
+        message={dialog.message}
+        onClose={closeDialog}
+      />
 
-            <h3 className="text-xl font-bold text-foreground mb-2">
-              {dialog.type === "success"
-                ? "Thành công"
-                : dialog.type === "error"
-                  ? "Có lỗi xảy ra"
-                  : "Cảnh báo"}
-            </h3>
-
-            <p className="text-muted-foreground mb-6 text-sm">
-              {dialog.message}
-            </p>
-
-            <button
-              onClick={closeDialog}
-              className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                dialog.type === "success"
-                  ? "bg-primary hover:bg-primary/90 focus:ring-primary"
-                  : dialog.type === "error"
-                    ? "bg-destructive hover:bg-destructive/90 focus:ring-destructive"
-                    : "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500"
-              }`}
-            >
-              Xác nhận
-            </button>
-          </div>
-        </div>
+      {statusTarget && (
+        <CommonDialog
+          isOpen={!!statusTarget}
+          type="warning"
+          title="Xác nhận vô hiệu hóa"
+          message={
+            <>
+              Bạn có chắc chắn muốn vô hiệu hóa vật phẩm{" "}
+              <strong className="font-bold text-foreground">{statusTarget.itemName || "này"}</strong> không?
+            </>
+          }
+          onClose={() => setStatusTarget(null)}
+          onConfirm={async () => {
+            await applyToggleStatus(statusTarget);
+            setStatusTarget(null);
+          }}
+          confirmLabel="Vô hiệu hóa"
+          isLoading={togglingItemId === statusTarget.itemId}
+        />
       )}
 
       {/* --- HEADER --- */}
@@ -1129,45 +1077,46 @@ export function ItemManagerPage() {
         </div>
 
         <Button onClick={() => setCreateItemOpen(true)} className="btn-create">
-          <Plus size={16} /> Tạo vật phẩm mới
+          <Plus size={16} /> Tạo vật phẩm
         </Button>
       </div>
 
       {/* --- STATS GRID --- */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-primary/10 text-primary">
+      <div className="management-stats-grid">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{items.length}</p>
+            <p className="management-stat-label">Tổng vật phẩm</p>
+          </div>
+          <div className="management-stat-icon">
             <Package size={20} />
           </div>
-          <div>
-            <p className="stat-value">{items.length}</p>
-            <p className="stat-label">Tổng vật phẩm</p>
-          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-primary/10 text-primary">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{activeCount}</p>
+            <p className="management-stat-label">Hoạt động</p>
+          </div>
+          <div className="management-stat-icon">
             <CheckCircle size={20} />
           </div>
-          <div>
-            <p className="stat-value">{activeCount}</p>
-            <p className="stat-label">Hoạt động</p>
-          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-destructive/10 text-destructive">
-            <AlertTriangle size={20} />
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{inactiveCount}</p>
+            <p className="management-stat-label">Tạm dừng</p>
           </div>
-          <div>
-            <p className="stat-value">{inactiveCount}</p>
-            <p className="stat-label">Tạm dừng</p>
+          <div className="management-stat-icon">
+            <AlertTriangle size={20} />
           </div>
         </div>
       </div>
 
       {/* --- MAIN CONTENT --- */}
       <>
-        <div className="filter-container">
-          <div className="search-wrapper">
+        <div className="mission-table-container item-table-card">
+          <div className="mission-toolbar item-toolbar">
+          <div className="mission-toolbar-search">
             <SearchFilter
               value={searchKeyword}
               onChange={(e) => {
@@ -1175,55 +1124,57 @@ export function ItemManagerPage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm kiếm vật phẩm..."
-              className="w-full border-none"
-              inputClassName="bg-muted border-none"
             />
           </div>
 
-          <div className="select-wrapper">
-            <SelectDropdown
-              options={[
-                { value: "all", label: "Tất cả loại" },
-                ...dynamicTypes.map((type) => ({
-                  value: type.itemTypeName || type.name,
-                  label: type.itemTypeName || type.name,
-                })),
-              ]}
-              value={filterType}
-              onChange={(val) => {
-                setFilterType(val);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+          <div className="item-filter-group">
+            <div className="item-filter-select">
+              <CustomSelect
+                valueKey="value"
+                options={[
+                  { value: "all", label: "Tất cả loại" },
+                  ...dynamicTypes.map((type) => ({
+                    value: type.itemTypeName || type.name,
+                    label: type.itemTypeName || type.name,
+                  })),
+                ]}
+                value={filterType}
+                onChange={(val) => {
+                  setFilterType(val);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
 
-          <div className="select-wrapper">
-            <SelectDropdown
-              options={[
-                { value: "all", label: "Tất cả trạng thái" },
-                { value: "active", label: "Hoạt động" },
-                { value: "inactive", label: "Tạm dừng" },
-              ]}
-              value={statusFilter}
-              onChange={(val) => {
-                setStatusFilter(val);
-                setCurrentPage(1);
-              }}
-            />
+            <div className="item-filter-select">
+              <CustomSelect
+                valueKey="value"
+                options={[
+                  { value: "all", label: "Tất cả trạng thái" },
+                  { value: "active", label: "Hoạt động" },
+                  { value: "inactive", label: "Tạm dừng" },
+                ]}
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <Table className="custom-table">
+          <div className="mission-table-responsive">
+          <Table className="mission-table" containerClassName="item-table-wrapper">
             <thead>
-              <tr className="bg-muted/50 text-muted-foreground">
-                <th className="px-5 py-3 w-[80px]">Hình ảnh</th>
-                <th className="px-5 py-3">Vật phẩm</th>
-                <th className="px-4 py-3">Loại</th>
-                <th className="px-4 py-3">Loại hiệu ứng</th>
-                <th className="px-4 py-3">Giá trị</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">Thao tác</th>
+              <tr>
+                <th style={{ width: "10%" }}>Hình ảnh</th>
+                <th style={{ width: "22%" }}>Vật phẩm</th>
+                <th style={{ width: "13%" }}>Loại</th>
+                <th style={{ width: "15%" }}>Loại hiệu ứng</th>
+                <th style={{ width: "10%" }}>Giá trị</th>
+                <th style={{ width: "12%" }}>Trạng thái</th>
+                <th style={{ width: "18%" }}>Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -1231,9 +1182,9 @@ export function ItemManagerPage() {
                 <tr>
                   <td
                     colSpan={7}
-                    className="py-12 text-center text-muted-foreground"
+                    className="management-loading-cell"
                   >
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                    <Loader2 className="management-loading-spinner" />
                     Đang tải danh sách...
                   </td>
                 </tr>
@@ -1243,7 +1194,7 @@ export function ItemManagerPage() {
                     colSpan={7}
                     className="py-12 text-center text-muted-foreground"
                   >
-                    Không có vật phẩm nào.
+                {loadError ? "Không thể tải danh sách vật phẩm." : "Không có vật phẩm nào."}
                   </td>
                 </tr>
               ) : (
@@ -1278,7 +1229,7 @@ export function ItemManagerPage() {
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <td className="px-5 py-3">
+                    <td className="align-middle">
                       <div className="item-image-container">
                         {item.image ? (
                           <img
@@ -1300,27 +1251,27 @@ export function ItemManagerPage() {
                       </div>
                     </td>
 
-                    <td className="px-5 py-3">
+                    <td className="align-middle">
                       <div className="flex flex-col">
                         <span className="item-name-text">{item.itemName}</span>
                         <span className="item-id-text">
-                          #{item.itemId ? item.itemId.substring(0, 5) : "ITEM"}
+                          #{item.itemId ? item.itemId.substring(0, 5) : "-"}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="align-middle text-muted-foreground">
                       {item.itemTypeName}
                     </td>
 
-                    <td className="px-4 py-3 text-muted-foreground font-medium">
-                      {item.effectTypeCode || "-"}
+                    <td className="align-middle text-muted-foreground font-medium">
+                      {translateEffectCode(item.effectTypeCode)}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground font-medium text-primary">
+                    <td className="align-middle text-muted-foreground font-medium text-primary">
                       {item.effectValue ? `${item.effectValue}` : "0"}
                     </td>
 
-                    <td className="px-4 py-3">
+                    <td className="align-middle">
                       <span
                         className={
                           item.isActive ? "badge-active" : "badge-inactive"
@@ -1331,10 +1282,10 @@ export function ItemManagerPage() {
                     </td>
 
                     <td
-                      className="px-4 py-3"
+                      className="align-middle whitespace-nowrap"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="inline-flex items-center gap-1.5">
+                      <div className="item-actions inline-flex items-center gap-1.5 flex-nowrap">
                         <button
                           type="button"
                           onClick={async () => {
@@ -1356,7 +1307,7 @@ export function ItemManagerPage() {
                               setEditItem(item);
                             }
                           }}
-                          className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                          className="mission-table-pill-btn edit"
                         >
                           <Pencil className="w-3 h-3" />
                           <span>Sửa</span>
@@ -1365,7 +1316,7 @@ export function ItemManagerPage() {
                           type="button"
                           onClick={() => handleToggleStatus(item)}
                           disabled={togglingItemId === item.itemId}
-                          className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${item.isActive ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white" : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white"}`}
+                          className={`mission-table-pill-btn ${item.isActive ? "disable" : "enable"}`}
                         >
                           {togglingItemId === item.itemId ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -1385,23 +1336,26 @@ export function ItemManagerPage() {
               )}
             </tbody>
           </Table>
-        </div>
+          </div>
 
-        <div className="footer-container">
-          <p>
-            Hiển thị {startItem}–{endItem} trong {filteredItems.length} kết quả
-          </p>
+        <div className="mission-footer">
+          <span>
+            Hiển thị <span className="font-medium text-foreground">{startItem}</span> –{" "}
+            <span className="font-medium text-foreground">{endItem}</span> trong{" "}
+            <span className="font-medium text-foreground">{filteredItems.length}</span> kết quả
+          </span>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onChange={(page) => setCurrentPage(page)}
           />
         </div>
+        </div>
       </>
 
       {createItemOpen && (
         <Modal
-          title="Tạo vật phẩm mới"
+          title="Tạo vật phẩm"
           onClose={() => setCreateItemOpen(false)}
         >
           <ItemForm
@@ -1427,7 +1381,7 @@ export function ItemManagerPage() {
       )}
 
       {detailItem && (
-        <Modal title="Chi tiết vật phẩm" onClose={() => setDetailItem(null)}>
+        <Modal title="Chi tiết vật phẩm" variant="detail" onClose={() => setDetailItem(null)}>
           <ItemDetailView
             item={detailItem}
             onClose={() => setDetailItem(null)}

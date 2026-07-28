@@ -6,7 +6,12 @@
     gap: 1.5rem;
     background-color: var(--card);
     min-height: 100vh;
-    animation: fadeIn 0.3s ease-in-out;
+    animation: none;
+}
+
+.spirits-loading-state {
+    align-items: center;
+    justify-content: center;
 }
 
 @keyframes fadeIn {
@@ -43,10 +48,24 @@
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
+.spirit-modal-container .spirits-section-card {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.spirit-modal-container.is-editing .spirits-section-card {
+    border-color: color-mix(in srgb, var(--border) 75%, transparent);
+    box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+}
+
 .spirits-section-title {
     font-weight: 500;
     margin-bottom: 1rem;
     color: var(--foreground);
+}
+
+.spirit-modal-container .spirits-section-title {
+    color: var(--foreground) !important;
 }
 
 /* Grid Thống Kê */
@@ -64,9 +83,11 @@
 
 .stat-item {
     padding: 1rem;
-    background-color: var(--muted);
-    border-radius: 1rem;
+    background-color: var(--card);
+    border-radius: 0.75rem;
     border: 1px solid var(--border);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
 }
 
 .stat-item-header {
@@ -146,7 +167,7 @@
     font-size: 0.75rem;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border);
-    background-color: var(--muted);
+    background-color: var(--card);
 }
 
 .spirits-table-row {
@@ -285,7 +306,7 @@
 .rate-badge {
     background-color: rgba(139, 92, 246, 0.1);
     color: #8b5cf6;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid var(--border);
     padding: 0.25rem 0.5rem;
     border-radius: 9999px;
     font-size: 0.75rem;
@@ -341,7 +362,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    background-color: var(--muted);
+    background-color: transparent;
 }
 
 .spirit-modal-body {
@@ -371,8 +392,18 @@
 .spirit-tabs {
     display: flex;
     gap: 1.5rem;
+    background-color: color-mix(in srgb, var(--muted) 10%, transparent);
     border-bottom: 1px solid var(--border);
     margin-bottom: 1.5rem;
+}
+
+/* Keep the tab tables close to their tab bar without changing the stats spacing. */
+.spirit-modal-body > .spirit-tabs {
+    margin-bottom: 0;
+}
+
+.spirit-modal-body > .spirit-tabs + .spirits-section-card {
+    padding-top: 0.5rem;
 }
 
 .spirit-tab-btn {
@@ -397,7 +428,7 @@
 }
 
 /* ================= CSS CHO FORM EDIT ================= */
-/* [CẬP NHẬT]: Tăng padding bên phải để tạo khoảng cách với nút tăng giảm */
+/* Keep numeric values visually separated from the native spinner controls. */
 .spirit-input {
     width: 100%;
     padding: 0.375rem 1.25rem 0.375rem 0.75rem;
@@ -407,6 +438,10 @@
     color: var(--foreground);
     font-size: 0.875rem;
     transition: all 0.2s;
+}
+
+.spirit-input[type="number"] {
+    padding-right: 0.75rem !important;
 }
 
 .spirit-input:focus {
@@ -459,4 +494,17 @@
 
 .spirit-btn-outline:hover {
     background-color: var(--muted);
+}
+
+.spirits-list-card {
+    padding: 0;
+}
+
+.spirits-list-card .mission-table-responsive {
+    padding-top: 1rem;
+}
+
+.spirits-table-wrapper {
+    width: 100%;
+    overflow-x: visible;
 }

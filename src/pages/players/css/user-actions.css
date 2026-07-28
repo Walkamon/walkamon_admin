@@ -72,3 +72,370 @@
 .ua-log:hover {
   background-color: rgba(59,130,246,0.15);
 }
+.mission-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* Player detail modal follows the same section-card language as challenge details. */
+.player-detail-modal {
+  display: flex !important;
+  flex-direction: column !important;
+  max-width: 48rem !important;
+  max-height: 85vh !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+}
+
+.player-detail-modal > .sticky {
+  padding: 1rem 1.25rem !important;
+  background: var(--card) !important;
+}
+
+.player-detail-modal > .sticky h2 {
+  color: var(--foreground) !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.player-detail-body {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  gap: 1rem !important;
+  padding: 1.25rem !important;
+  background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+  overflow-y: auto;
+}
+
+.player-detail-avatar,
+.player-detail-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem !important;
+  background: var(--card) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06) !important;
+}
+
+.player-detail-avatar {
+  min-height: 9rem;
+}
+
+.player-detail-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem !important;
+  color: var(--foreground) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em;
+  line-height: 1.25 !important;
+  text-transform: uppercase;
+}
+
+.player-detail-section-title::before {
+  width: 0.375rem;
+  height: 1rem;
+  flex: 0 0 0.375rem;
+  content: "";
+  background: var(--primary);
+  border-radius: 0.125rem;
+}
+
+.player-detail-section > .grid {
+  gap: 1rem !important;
+}
+
+.player-detail-field {
+  min-width: 0;
+  padding: 0 0 0.75rem !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+}
+
+.player-detail-field > p:first-child {
+  margin: 0 0 0.375rem !important;
+  color: var(--muted-foreground) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  line-height: 1.25 !important;
+}
+
+.player-detail-field > p:last-child {
+  margin: 0 !important;
+  color: var(--foreground) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.5;
+}
+
+.player-detail-field > .player-detail-status-active,
+.player-detail-field > .player-detail-status-inactive {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.25rem 0.625rem !important;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}
+
+.player-detail-field > .player-detail-status-active {
+  color: var(--success) !important;
+  background: color-mix(in srgb, var(--success) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--success) 24%, transparent);
+}
+
+.player-detail-field > .player-detail-status-inactive {
+  color: var(--destructive) !important;
+  background: color-mix(in srgb, var(--destructive) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--destructive) 24%, transparent);
+}
+
+.player-detail-section > .grid > .player-detail-field:nth-last-child(-n + 2) {
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .player-detail-body {
+    padding: 1rem !important;
+  }
+}
+
+.users-table-card {
+  overflow: hidden;
+}
+
+.users-table-wrapper {
+  width: 100%;
+  overflow-x: visible !important;
+}
+
+.users-table-card .mission-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.users-table-card .mission-table th,
+.users-table-card .mission-table td {
+  vertical-align: middle;
+}
+
+.users-table-card .mission-table th:last-child,
+.users-table-card .mission-table td:last-child {
+  white-space: nowrap;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.user-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  min-width: max-content;
+}
+
+.user-action-button-group {
+  display: inline-flex;
+}
+
+.user-audit-overlay {
+  backdrop-filter: blur(3px);
+}
+
+.user-audit-modal {
+  border-color: var(--border);
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.user-audit-header {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.user-audit-content {
+  width: 100%;
+  min-width: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.user-audit-content::-webkit-scrollbar,
+.user-audit-change-panel pre::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.user-audit-table {
+  width: calc(100% - 2rem) !important;
+  margin: 0 1rem;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+  color: var(--foreground);
+}
+
+.user-audit-table th:nth-child(1),
+.user-audit-table th:nth-child(2),
+.user-audit-table th:nth-child(3),
+.user-audit-table th:nth-child(4),
+.user-audit-table th:nth-child(5) {
+  width: 20%;
+}
+
+.user-audit-th {
+  padding: 0.75rem 1rem !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.user-audit-td {
+  padding: 0.875rem 1rem !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: var(--foreground);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.user-audit-row:last-child .user-audit-td {
+  border-bottom: 0;
+}
+
+.user-audit-td pre {
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--muted) !important;
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.user-audit-td details {
+  display: block;
+  width: 100%;
+}
+
+.user-audit-td details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+.user-audit-change-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 761px) {
+  .user-audit-td details[open] .user-audit-change-grid {
+    width: 480%;
+    transform: translateX(-82%);
+  }
+}
+
+.user-audit-change-panel {
+  min-width: 0;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--muted) 45%, var(--card));
+  box-sizing: border-box;
+}
+
+.user-audit-change-title {
+  display: flex;
+  align-items: center;
+  min-height: 1.5rem;
+  margin-bottom: 0.625rem;
+  padding-left: 0.625rem;
+  border-left: 3px solid var(--border);
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.user-audit-change-title-old {
+  border-left-color: var(--muted-foreground);
+}
+
+.user-audit-change-title-new {
+  border-left-color: var(--primary);
+}
+
+.user-audit-change-panel pre {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 5rem;
+  max-height: 16rem !important;
+  padding: 0.75rem !important;
+  border-radius: 0.5rem !important;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .user-audit-overlay {
+    padding: 0.75rem;
+  }
+
+  .user-audit-modal {
+    max-height: 94vh;
+  }
+
+  .user-audit-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 0.75rem;
+  }
+
+  .user-audit-th,
+  .user-audit-td {
+    padding: 0.625rem 0.5rem !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .user-audit-th {
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  .user-audit-change-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .user-audit-td details[open] .user-audit-change-grid {
+    width: 480% !important;
+    transform: translateX(-82%) !important;
+    grid-template-columns: 1fr !important;
+  }
+}

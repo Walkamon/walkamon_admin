@@ -7,7 +7,7 @@ export function Button({
   ...props
 }) {
   const baseStyles =
-    "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:pointer-events-none";
   const variantStyles =
     variant === "primary"
       ? "bg-primary text-white hover:bg-primary/90"
@@ -15,6 +15,8 @@ export function Button({
       ? "bg-muted text-foreground hover:bg-muted/80 border border-border"
       : variant === "destructive"
       ? "bg-destructive text-white hover:bg-destructive/90"
+      : variant === "ghost"
+      ? "bg-transparent text-foreground hover:bg-muted border-transparent"
       : "bg-card text-foreground hover:bg-muted border border-border";
   const sizeStyles =
     size === "sm"

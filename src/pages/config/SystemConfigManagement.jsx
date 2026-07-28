@@ -15,6 +15,7 @@ import {
   updatePetStatusSettings,
 } from "../../api/petStatusApi";
 import CommonDialog from "../../components/common/CommonDialog";
+import { Button } from "../../components/common/button.jsx";
 import "./css/systemConfigManagement.css";
 
 export function SystemConfigManagement() {
@@ -172,8 +173,8 @@ export function SettingsPage() {
 
   if (isInitialLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center gap-2 sys-config-wrapper">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="management-loading-state h-screen w-full sys-config-wrapper">
+        <Loader2 className="management-loading-spinner" />
         <span>Đang tải cấu hình hệ thống...</span>
       </div>
     );
@@ -192,7 +193,8 @@ export function SettingsPage() {
         {/* Sidebar Tabs */}
         <div className="bg-card border border-border rounded-xl p-4 self-start lg:sticky lg:top-6">
           <nav className="space-y-1">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab("steps")}
               className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 ${
                 activeTab === "steps"
@@ -202,8 +204,9 @@ export function SettingsPage() {
             >
               <Footprints className="w-4 h-4" />
               Cấu hình bước chân
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab("spirit")}
               className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 ${
                 activeTab === "spirit"
@@ -213,7 +216,7 @@ export function SettingsPage() {
             >
               <Sprout className="w-4 h-4" />
               Cấu hình Tinh Linh
-            </button>
+            </Button>
           </nav>
         </div>
 
@@ -266,10 +269,11 @@ export function SettingsPage() {
               </div>
 
               <div className="flex justify-start gap-3 pt-5 border-t border-border mt-8">
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleSaveSteps}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed font-medium"
+                  className="management-btn-primary"
                 >
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -277,7 +281,7 @@ export function SettingsPage() {
                     <Save className="w-4 h-4" />
                   )}
                   {isSaving ? "Đang xử lý..." : "Lưu thay đổi"}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -367,7 +371,8 @@ export function SettingsPage() {
               </div>
 
               <div className="flex justify-start gap-3 pt-5 border-t border-border mt-8">
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleSavePetStatus}
                   disabled={isSaving}
                   className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed font-medium"
@@ -378,7 +383,7 @@ export function SettingsPage() {
                     <Save className="w-4 h-4" />
                   )}
                   {isSaving ? "Đang xử lý..." : "Lưu thay đổi"}
-                </button>
+                </Button>
               </div>
             </div>
           )}

@@ -62,11 +62,11 @@
 }
 
 .filter-bar {
-  @apply flex flex-col md:flex-row gap-4 mb-6;
+  @apply flex flex-col md:flex-row justify-start gap-4 mb-6;
 }
 
 .search-input-wrapper {
-  @apply flex-1 relative;
+  @apply flex-none relative w-full max-w-sm;
 }
 
 .search-icon {
@@ -80,12 +80,38 @@
 
 /* --- Bảng dữ liệu (Table) --- */
 .table-responsive {
-  @apply overflow-x-auto;
+  @apply overflow-visible;
 }
 
 .custom-table {
-  @apply w-full;
+  @apply w-full table-fixed;
 }
+
+.custom-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-table th {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.custom-table th:nth-child(1),
+.custom-table td:nth-child(1) { width: 10%; }
+.custom-table th:nth-child(2),
+.custom-table td:nth-child(2) { width: 24%; }
+.custom-table th:nth-child(3),
+.custom-table td:nth-child(3) { width: 14%; }
+.custom-table th:nth-child(4),
+.custom-table td:nth-child(4) { width: 14%; }
+.custom-table th:nth-child(5),
+.custom-table td:nth-child(5) { width: 12%; }
+.custom-table th:nth-child(6),
+.custom-table td:nth-child(6) { width: 14%; white-space: nowrap; }
+.custom-table th:nth-child(7),
+.custom-table td:nth-child(7) { width: 22%; white-space: nowrap; }
 
 .custom-table th {
   @apply text-left py-3.5 px-4 text-sm font-medium text-muted-foreground/80 bg-transparent border-b border-border/60;
@@ -133,22 +159,22 @@
 
 /* --- Nút Hành động (Actions) --- */
 .action-buttons-wrapper {
-  @apply inline-flex items-center gap-1.5;
+  @apply inline-flex items-center gap-1.5 flex-nowrap;
+  min-width: max-content;
 }
 
-.btn-edit-custom {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-accent/10 text-accent border border-accent/30 hover:bg-accent hover:text-accent-foreground hover:border-accent;
-}
-
-.btn-toggle-disable {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive;
-}
-
-.btn-toggle-enable {
-  @apply py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary;
-}
 
 /* --- Footer khối phân trang --- */
+.mission-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+}
+
 .footer-container {
     @apply flex items-center justify-between px-5 py-4 border border-border rounded-xl bg-card text-xs text-muted-foreground;
 }
@@ -391,9 +417,74 @@ button:disabled {
   cursor: pointer;
 }
 
+.challenge-detail-footer {
+  justify-content: flex-end !important;
+}
+
+.challenge-detail-footer .btn-detail-close-custom {
+  width: auto !important;
+  min-width: 6.5rem;
+  padding-inline: 1.5rem !important;
+}
+
+.challenge-detail-footer .challenge-detail-close {
+  width: auto !important;
+  min-width: 6.5rem;
+}
+
 .btn-detail-close-custom:hover {
   background-color: var(--muted, #FAF8F4) !important;
   border-color: var(--muted-foreground, #9A8F82) !important;
+}
+
+.challenge-create-form {
+  padding: 1.5rem 2rem !important;
+}
+
+.challenge-edit-form,
+.challenge-create-form {
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+.challenge-edit-form > .space-y-3\.5,
+.challenge-create-form > .space-y-3\.5 {
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+  padding: 1rem;
+}
+
+.challenge-create-form .management-form-actions {
+  flex-direction: row !important;
+  gap: 1rem !important;
+}
+
+.challenge-create-form .management-form-actions .management-btn-secondary {
+  order: 1;
+  flex: 1 1 0 !important;
+  width: auto !important;
+}
+
+.challenge-create-form .management-form-actions .management-btn-primary {
+  order: 2;
+  flex: 1 1 0 !important;
+  width: auto !important;
+}
+
+@media (max-width: 640px) {
+  .challenge-create-form {
+    padding: 1.25rem !important;
+  }
+
+  .challenge-create-form .management-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .challenge-create-form .management-form-actions .management-btn-secondary,
+  .challenge-create-form .management-form-actions .management-btn-primary {
+    order: initial;
+  }
 }
 
 .sticky.top-0 h2 {

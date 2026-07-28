@@ -1,5 +1,6 @@
 import { X, User } from "lucide-react";
 import { useState } from "react";
+import { Button } from "../../../components/common/button.jsx";
 
 function formatDate(dateStr) {
     if (!dateStr) return "-";
@@ -36,7 +37,7 @@ function UserAvatarSection({ user }) {
     const hasAvatar = Boolean(avatarUrl && !imgError);
 
     return (
-        <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-2xl">
+        <div className="player-detail-avatar flex flex-col items-center justify-center p-6 bg-muted rounded-2xl">
             {hasAvatar ? (
                 <img
                     src={avatarUrl}
@@ -63,23 +64,25 @@ export function PlayerDetailModal({ user, open, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card border border-border rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="player-detail-modal bg-card border border-border rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
                     <h2 className="font-bold text-lg">Chi tiết tài khoản</h2>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={onClose}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors"
+                        className="modal-close-standard p-2 rounded-lg transition-colors"
                     >
                         <X className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="player-detail-body p-6 space-y-6">
                     <UserAvatarSection user={user} />
 
                     {/* KHỐI 1: TÀI KHOẢN */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Tài khoản</h3>
+                    <div className="player-detail-section">
+                        <h3 className="player-detail-section-title text-sm font-semibold text-muted-foreground mb-3">Tài khoản</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
                                 ["User ID", user.userId || user.id],
@@ -89,17 +92,17 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                 ["Ngày tạo", formatDate(user.createdAt)],
                                 ["Đăng nhập cuối", user.lastLoginAt ? formatDate(user.lastLoginAt) : "Chưa từng"],
                             ].map(([label, value]) => (
-                                <div key={label} className="p-4 bg-muted rounded-xl">
+                                <div key={label} className="player-detail-field p-4 bg-muted rounded-xl">
                                     <p className="text-xs text-muted-foreground mb-1">{label}</p>
-                                    <p className="font-semibold text-sm break-all">{value || "—"}</p>
+                                    <p className={`font-semibold text-sm break-all ${label === "Mã trạng thái" ? (value === "active" ? "player-detail-status-active" : "player-detail-status-inactive") : ""}`}>{value || "—"}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* KHỐI 2: HỒ SƠ */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Hồ sơ</h3>
+                    <div className="player-detail-section">
+                        <h3 className="player-detail-section-title text-sm font-semibold text-muted-foreground mb-3">Hồ sơ</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
                                 ["Tên người dùng", getUsername(user)],
@@ -107,7 +110,7 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                 ["Giới tính", formatGender(user.profile?.gender)],
                                 ["Ngày sinh", user.profile?.dob ? formatDate(user.profile.dob) : "Chưa cập nhật"],
                             ].map(([label, value]) => (
-                                <div key={label} className="p-4 bg-muted rounded-xl">
+                                <div key={label} className="player-detail-field p-4 bg-muted rounded-xl">
                                     <p className="text-xs text-muted-foreground mb-1">{label}</p>
                                     <p className="font-semibold text-sm break-all">{value}</p>
                                 </div>
@@ -116,8 +119,8 @@ export function PlayerDetailModal({ user, open, onClose }) {
                     </div>
 
                     {/* KHỐI 3: THÔNG TIN TINH LINH */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                    <div className="player-detail-section">
+                        <h3 className="player-detail-section-title text-sm font-semibold text-muted-foreground mb-3">
                             Thông tin Tinh Linh
                         </h3>
                         {pet ? (
@@ -136,13 +139,13 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                     </div>
                                     <div className="bg-card/60 p-3 rounded-xl border border-border/60">
                                         <p className="text-xs text-muted-foreground mb-0.5">Thuộc hệ</p>
-                                        <span className="inline-block mt-0.5 px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded text-xs font-semibold">
+                                        <span className="inline-block mt-0.5 px-2 py-0.5 bg-warning/10 text-warning rounded text-xs font-semibold">
                                             {pet.element}
                                         </span>
                                     </div>
                                     <div className="bg-card/60 p-3 rounded-xl border border-border/60">
                                         <p className="text-xs text-muted-foreground mb-0.5">Sinh Mệnh Lực</p>
-                                        <p className="font-bold text-sm text-rose-500 mt-0.5">
+                                        <p className="font-bold text-sm text-danger mt-0.5">
                                             {pet.vitality?.toLocaleString()}%
                                         </p>
                                     </div>
@@ -152,11 +155,11 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                     </div>
                                     <div className="bg-card/60 p-3 rounded-xl border border-border/60">
                                         <p className="text-xs text-muted-foreground mb-0.5">Năng lượng</p>
-                                        <p className="font-semibold text-sm text-emerald-600">{pet.energy} / 100</p>
+                                        <p className="font-semibold text-sm text-success">{pet.energy} / 100</p>
                                     </div>
                                     <div className="bg-card/60 p-3 rounded-xl border border-border/60">
                                         <p className="text-xs text-muted-foreground mb-0.5">Độ Gắn Kết</p>
-                                        <p className="font-semibold text-sm text-pink-600">{pet.bond}%</p>
+                                        <p className="font-semibold text-sm text-accent">{pet.bond}%</p>
                                     </div>
                                 </div>
                             </div>

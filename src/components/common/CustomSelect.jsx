@@ -9,6 +9,8 @@ export default function CustomSelect({
   labelKey = "label",
   placeholder = "Chọn...",
   className = "",
+  disabled = false,
+  hasError = false,
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((opt) => opt[valueKey] === value);
@@ -25,13 +27,14 @@ export default function CustomSelect({
   return (
     // Thêm class relative và padding-right để chữ không đè lên mũi tên khi sát biên
     <div
-      className={`relative ${className}`}
+      className={`custom-select-wrapper relative ${open ? "is-open" : ""} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="item-select-btn w-full text-left pl-3.5 pr-7 py-2 bg-input-background border border-border rounded-lg text-sm flex items-center justify-between text-foreground"
+        disabled={disabled}
+        className={`item-select-btn w-full text-left pl-3.5 pr-7 py-2 bg-input-background border rounded-lg text-sm flex items-center justify-between text-foreground transition-colors disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 ${hasError ? "border-destructive focus:ring-destructive/20" : "border-border focus:ring-primary/20"}`}
       >
         <span className="truncate">
           {selected ? selected[labelKey] : placeholder}
@@ -45,14 +48,14 @@ export default function CustomSelect({
       </button>
 
       {open && (
-        <ul className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto bg-card border border-border rounded-lg shadow-lg p-1 space-y-0.5">
+        <ul className="custom-select-menu absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-card border border-border rounded-lg shadow-lg p-1 space-y-0.5">
           {options.length === 0 ? (
             <li className="px-3 py-2 text-xs text-muted-foreground text-center">
               Không có dữ liệu
             </li>
           ) : (
             options.map((opt) => (
-              <li key={opt[valueKey]}>
+              <li key={opt[valueKey]} className="custom-select-option">
                 <button
                   type="button"
                   onClick={() => {

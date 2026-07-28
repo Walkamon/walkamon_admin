@@ -33,11 +33,19 @@
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
+/* Use the same table-card geometry as Mission Management. */
+.noti-card.mission-table-container {
+    padding: 0;
+}
+
 .noti-toolbar {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-bottom: 16px;
+    background: color-mix(in srgb, var(--muted) 10%, transparent);
+    margin-bottom: 0;
+    padding: 1rem 1.5rem;
+    justify-content: flex-end;
 }
 
 @media (min-width: 640px) {
@@ -48,14 +56,10 @@
     }
 }
 
-.noti-search-filter {
-    width: 100%;
-}
-
-@media (min-width: 640px) {
-    .noti-search-filter {
-        max-width: 24rem;
-    }
+.noti-filter-group {
+    margin-left: auto;
+    width: 200px;
+    align-self: flex-end;
 }
 
 .noti-counter {
@@ -94,18 +98,6 @@
 }
 
 /* Bảng dữ liệu (Table Styles) */
-.noti-th {
-    text-align: left;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted-foreground);
-    background-color: var(--muted);
-    border-bottom: 1px solid var(--border);
-}
-
 .noti-tr {
     border-bottom: 1px solid var(--border);
     transition: background-color 0.2s ease;
@@ -120,8 +112,6 @@
 }
 
 .noti-td {
-    padding: 16px;
-    font-size: 14px;
     vertical-align: middle;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -156,7 +146,6 @@
 }
 
 .noti-td-actions {
-    padding: 16px;
     text-align: center;
     vertical-align: middle;
 }
@@ -165,24 +154,6 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-}
-
-.btn-edit-action {
-    border-radius: 8px !important;
-    padding: 6px !important;
-    color: #d97706 !important;
-    background-color: transparent !important;
-    border: none !important;
-}
-
-.btn-edit-action:hover {
-    background-color: rgba(234, 179, 8, 0.1) !important;
-}
-
-.btn-delete-action {
-    border-radius: 8px !important;
-    padding: 6px !important;
-    border: none !important;
 }
 
 .noti-table-loading {
@@ -346,6 +317,15 @@
     box-shadow: 0 0 0 1px var(--primary);
 }
 
+.noti-container .pvp-checkbox {
+    width: 1.125rem !important;
+    min-width: 1.125rem !important;
+    height: 1.125rem !important;
+    flex: 0 0 1.125rem !important;
+    padding: 0 !important;
+    border-radius: 0.25rem !important;
+}
+
 .form-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -367,45 +347,6 @@
     gap: 12px;
     background-color: rgba(0, 0, 0, 0.01);
 }
-
-.btn-edit-action {
-    border-radius: 9999px !important;
-    padding: 6px 14px !important;
-    color: var(--warning) !important;
-    background-color: rgba(229, 154, 115, 0.08) !important;
-    border: 1px solid rgba(229, 154, 115, 0.3) !important;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-edit-action:hover {
-    background-color: rgba(229, 154, 115, 0.15) !important;
-    border-color: rgba(229, 154, 115, 0.6) !important;
-}
-
-.btn-delete-action {
-    border-radius: 9999px !important;
-    padding: 6px 14px !important;
-    color: var(--danger) !important;
-    background-color: rgba(220, 107, 107, 0.08) !important;
-    border: 1px solid rgba(220, 107, 107, 0.3) !important;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-delete-action:hover {
-    background-color: rgba(220, 107, 107, 0.15) !important;
-    border-color: rgba(220, 107, 107, 0.6) !important;
-}
-
 
 .badge-status {
     padding: 4px 12px;
@@ -497,7 +438,7 @@
 .detail-id-badge {
     font-family: monospace;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--muted-foreground);
     word-break: break-all;
 }
@@ -701,4 +642,219 @@
         border-top: 1px solid var(--border);
         padding-top: 24px;
     }
+}
+
+/* Detail notification modal follows the challenge detail layout. */
+.detail-modal-dialog {
+    max-width: 36rem !important;
+    max-height: 85vh !important;
+    border-radius: 0.75rem !important;
+}
+
+.detail-modal-dialog .modal-header {
+    padding: 1rem 1.25rem !important;
+    background: var(--card) !important;
+}
+
+.detail-modal-dialog .modal-header h2 {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+}
+
+.detail-modal-dialog .detail-modal-body {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    padding: 1.25rem !important;
+    background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+}
+
+.detail-modal-dialog .detail-col-left,
+.detail-modal-dialog .detail-col-right {
+    display: flex !important;
+    flex: none !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    min-width: 0;
+    padding: 1rem !important;
+    background: var(--card) !important;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06) !important;
+    box-sizing: border-box;
+}
+
+.detail-modal-dialog .detail-col-right {
+    border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important;
+}
+
+.detail-modal-dialog .detail-info-row,
+.detail-modal-dialog .detail-section,
+.detail-modal-dialog .detail-metadata-grid,
+.detail-modal-dialog .detail-timestamp-row {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.detail-modal-dialog .detail-section-title,
+.detail-modal-dialog .detail-meta-label,
+.detail-modal-dialog .detail-time-label {
+    color: var(--muted-foreground) !important;
+}
+
+.detail-modal-dialog .detail-metadata-grid {
+    gap: 1rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+.detail-modal-dialog .detail-timestamp-row {
+    gap: 1rem !important;
+    margin-top: 0 !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+.detail-modal-dialog .detail-stats-stack {
+    gap: 0.75rem !important;
+}
+
+.detail-modal-dialog .detail-img-container {
+    height: 12rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+}
+
+.detail-modal-dialog .detail-modal-footer {
+    padding: 1rem 1.25rem !important;
+    background: var(--card) !important;
+}
+
+@media (max-width: 640px) {
+    .detail-modal-dialog .detail-col-left,
+    .detail-modal-dialog .detail-col-right {
+        padding: 1rem !important;
+    }
+
+    .detail-modal-dialog .detail-metadata-grid,
+    .detail-modal-dialog .detail-stats-stack {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Only the main block heading keeps the accent marker. */
+.detail-modal-dialog .detail-col-left .detail-section-title {
+    display: block !important;
+    margin-bottom: 0.375rem !important;
+    color: var(--muted-foreground) !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em;
+    line-height: 1.25 !important;
+}
+
+.detail-modal-dialog .detail-col-left .detail-section-title::before {
+    display: none !important;
+    content: none !important;
+}
+
+.detail-modal-dialog .detail-main-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 !important;
+    color: var(--foreground) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em;
+    line-height: 1.25 !important;
+    text-transform: uppercase;
+}
+
+.detail-modal-dialog .detail-main-section-title::before {
+    width: 0.375rem;
+    height: 1rem;
+    flex: 0 0 0.375rem;
+    content: "";
+    background: var(--primary);
+    border-radius: 0.125rem;
+}
+
+.detail-modal-dialog .detail-col-right > .detail-section > .detail-section-title {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.25rem !important;
+    color: var(--foreground) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em;
+    line-height: 1.25 !important;
+}
+
+.detail-modal-dialog .detail-col-right > .detail-section > .detail-section-title::before {
+    display: block !important;
+    width: 0.375rem;
+    height: 1rem;
+    flex: 0 0 0.375rem;
+    content: "";
+    background: var(--primary);
+    border-radius: 0.125rem;
+}
+
+.detail-modal-dialog .detail-title {
+    margin-top: 0 !important;
+    color: var(--foreground) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+}
+
+.detail-modal-dialog .detail-content-text {
+    margin: 0 !important;
+    color: var(--foreground) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+}
+
+.detail-status-badge {
+    display: inline-flex !important;
+    width: fit-content;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+}
+
+.detail-status-success {
+    color: var(--secondary) !important;
+    -webkit-text-fill-color: var(--secondary) !important;
+    background: color-mix(in srgb, var(--success) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--success) 24%, transparent) !important;
+}
+
+.detail-status-warning {
+    color: var(--accent) !important;
+    background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
+}
+
+.detail-status-danger {
+    color: var(--destructive) !important;
+    background: color-mix(in srgb, var(--destructive) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--destructive) 24%, transparent) !important;
+}
+.mission-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
 }

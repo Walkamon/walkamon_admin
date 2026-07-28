@@ -17,11 +17,14 @@ import {
 
 import { Button } from "../../../components/common/button.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import { challengeApi } from "../../../api/challengeApi";
 import { itemApi } from "../../../api/itemApi";
 import CustomSelect from "../../../components/common/CustomSelect";
 import CustomDatePicker from "../../../components/common/CustomDatePicker";
 import "../css/challengesManagement.css";
+import "../../../styles/managementStats.css";
+import "../../missions/css/missionsManagement.css";
 
 const translateChallengeError = (key, message) => {
   if (key === "Title") return "Vui lòng nhập tên thử thách.";
@@ -85,6 +88,7 @@ export default function ChallengesManagementPage() {
   const [items, setItems] = useState([]);
   const [metricOptions, setMetricOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -109,12 +113,15 @@ export default function ChallengesManagementPage() {
     message: "",
     type: "success",
   });
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
   const showDialog = (message, type = "success") =>
     setDialog({ show: true, message, type });
 
   const loadInitialData = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
 
       const defaultParams = { page: 1, pageSize: 100, limit: 100 };
 
@@ -147,6 +154,10 @@ export default function ChallengesManagementPage() {
         }
 
         setChallenges(finalArray);
+      } else {
+        setChallenges([]);
+        setLoadError(true);
+        showDialog("Không thể tải dữ liệu. Vui lòng thử lại sau.", "error");
       }
 
       // 2. Tải danh sách cấu hình hoạt động (Metric Codes)
@@ -217,7 +228,7 @@ export default function ChallengesManagementPage() {
     loadInitialData();
   }, []);
 
-  const handleToggleStatus = async (challenge) => {
+  const applyToggleStatus = async (challenge) => {
     const currentId = challenge.challengeId || challenge.id;
     const nextState = !challenge.isActive;
 
@@ -240,6 +251,25 @@ export default function ChallengesManagementPage() {
       showDialog(backendMessage, "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (challenge) => {
+    if (challenge?.isActive) {
+      setStatusTarget(challenge);
+      return;
+    }
+    await applyToggleStatus(challenge);
+  };
+
+  const handleConfirmStatus = async () => {
+    if (!statusTarget) return;
+    setStatusLoading(true);
+    try {
+      await applyToggleStatus(statusTarget);
+      setStatusTarget(null);
+    } finally {
+      setStatusLoading(false);
     }
   };
 
@@ -512,30 +542,30 @@ export default function ChallengesManagementPage() {
   return (
     <div className="page-container relative">
       {/* POPUP THÔNG BÁO HỆ THỐNG */}
-      {dialog.show && (
-        <div className="common-dialog-overlay">
-          <div
-            className={`common-dialog-container ${dialog.type === "success" ? "common-dialog-success" : "common-dialog-error"}`}
-          >
-            <div className="common-dialog-icon">
-              {dialog.type === "success" ? (
-                <CheckCircle size={32} />
-              ) : (
-                <AlertTriangle size={32} />
-              )}
-            </div>
-            <h3 className="common-dialog-title">
-              {dialog.type === "success" ? "Thành công!" : "Thất bại"}
-            </h3>
-            <p className="common-dialog-message">{dialog.message}</p>
-            <button
-              className="common-dialog-btn"
-              onClick={() => setDialog({ ...dialog, show: false })}
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
+      <CommonDialog
+        isOpen={dialog.show}
+        type={dialog.type}
+        title={dialog.type === "success" ? "Thành công" : "Thất bại"}
+        message={dialog.message}
+        onClose={() => setDialog({ ...dialog, show: false })}
+      />
+
+      {statusTarget && (
+        <CommonDialog
+          isOpen={!!statusTarget}
+          type="warning"
+          title="Xác nhận vô hiệu hóa"
+          message={
+            <>
+              Bạn có chắc chắn muốn vô hiệu hóa thử thách{" "}
+              <strong className="font-bold text-foreground">{statusTarget.title || "này"}</strong> không?
+            </>
+          }
+          onClose={() => setStatusTarget(null)}
+          onConfirm={handleConfirmStatus}
+          confirmLabel="Vô hiệu hóa"
+          isLoading={statusLoading}
+        />
       )}
 
       {/* Header & Stats Grid */}
@@ -557,45 +587,45 @@ export default function ChallengesManagementPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6 max-w-5xl">
-        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
+      <div className="management-stats-grid">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-label">
               Tổng thử thách
             </p>
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+            <h3 className="management-stat-value">
               {summary.totalChallenges.toLocaleString()}
             </h3>
           </div>
-          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
+          <div className="management-stat-icon">
             <Trophy className="w-5 h-5" />
           </div>
         </div>
 
-        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-label">
               Đang diễn ra
             </p>
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+            <h3 className="management-stat-value">
               {summary.ongoingChallenges.toLocaleString()}
             </h3>
           </div>
-          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
+          <div className="management-stat-icon">
             <Target className="w-5 h-5" />
           </div>
         </div>
 
-        <div className=" border border-border/60 p-4.5 rounded-2xl flex items-center justify-between shadow-xs">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-label">
               Tổng người tham gia
             </p>
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">
+            <h3 className="management-stat-value">
               {summary.totalParticipants.toLocaleString()}
             </h3>
           </div>
-          <div className="p-2.5 bg-primary/5 rounded-full text-primary border border-primary/10">
+          <div className="management-stat-icon">
             <Users className="w-5 h-5" />
           </div>
         </div>
@@ -637,8 +667,9 @@ export default function ChallengesManagementPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8">
-                    <Loader2 className="animate-spin inline-block text-primary w-6 h-6" />
+                  <td colSpan="7" className="management-loading-cell">
+                    <Loader2 className="management-loading-spinner" />
+                    Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : pagedChallenges.length === 0 ? (
@@ -647,7 +678,7 @@ export default function ChallengesManagementPage() {
                     colSpan="7"
                     className="text-center py-8 text-muted-foreground"
                   >
-                    Không tìm thấy dữ liệu thử thách nào.
+                    {loadError ? "Không thể tải danh sách thử thách." : "Không tìm thấy dữ liệu thử thách nào."}
                   </td>
                 </tr>
               ) : (
@@ -701,7 +732,7 @@ export default function ChallengesManagementPage() {
                           {/* Nút Sửa */}
                           <Button
                             onClick={() => handleEditClick(challenge)}
-                            className="btn-edit-custom"
+                            className="mission-table-pill-btn edit"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                             <span>Sửa</span>
@@ -712,8 +743,8 @@ export default function ChallengesManagementPage() {
                             onClick={() => handleToggleStatus(challenge)}
                             className={
                               challenge.isActive
-                                ? "btn-toggle-disable"
-                                : "btn-toggle-enable"
+                                ? "mission-table-pill-btn disable"
+                                : "mission-table-pill-btn enable"
                             }
                           >
                             {challenge.isActive ? (
@@ -737,18 +768,18 @@ export default function ChallengesManagementPage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="footer-container mb-6 mt-4">
-        <p>
-          Hiển thị {startItem}–{endItem} trong {filteredChallenges.length} kết
-          quả
-        </p>
+      <div className="mission-footer">
+        <span>
+          Hiển thị <span className="font-medium text-foreground">{startItem}</span> –{" "}
+          <span className="font-medium text-foreground">{endItem}</span> trong{" "}
+          <span className="font-medium text-foreground">{filteredChallenges.length}</span> kết quả
+        </span>
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onChange={setCurrentPage}
         />
+      </div>
       </div>
 
       {/* ====== MODAL POPUP: CHI TIẾT THỬ THÁCH (CẬP NHẬT GIAO DIỆN MỚI) ====== */}
@@ -768,7 +799,7 @@ export default function ChallengesManagementPage() {
               </h2>
               <button
                 onClick={() => setDetailChallenge(null)}
-                className="text-muted-foreground hover:bg-muted p-1.5 rounded-md transition-colors"
+                className="modal-close-standard p-1.5 rounded-md transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -777,7 +808,7 @@ export default function ChallengesManagementPage() {
             {/* Body */}
             <div className="p-5 space-y-4 overflow-y-scroll flex-1 text-left bg-muted/10">
               {/* Container 1: Thông tin chung */}
-              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+              <div className="detail-child-container bg-card border border-border/70 rounded-xl p-4 shadow-sm">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-primary rounded-full"></div>
                   Thông tin chung
@@ -804,7 +835,7 @@ export default function ChallengesManagementPage() {
               </div>
 
               {/* Container 2: Chỉ số & Thời gian */}
-              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+              <div className="detail-child-container bg-card border border-border/70 rounded-xl p-4 shadow-sm">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-primary rounded-full"></div>
                   Chỉ số & Thời gian
@@ -859,7 +890,7 @@ export default function ChallengesManagementPage() {
               </div>
 
               {/* Container 3: Vận hành & Trạng thái */}
-              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+              <div className="detail-child-container bg-card border border-border/70 rounded-xl p-4 shadow-sm">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-primary rounded-full"></div>
                   Vận hành & Trạng thái
@@ -944,7 +975,7 @@ export default function ChallengesManagementPage() {
               </div>
 
               {/* Container 4: Phần thưởng */}
-              <div className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+              <div className="detail-child-container bg-card border border-border/70 rounded-xl p-4 shadow-sm">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-primary rounded-full"></div>
                   Phần thưởng hoàn thành
@@ -998,15 +1029,6 @@ export default function ChallengesManagementPage() {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end gap-2.5 px-5 py-4 border-t border-border bg-muted/30">
-              <button
-                onClick={() => setDetailChallenge(null)}
-                className="px-6 py-2 bg-card text-foreground font-medium rounded-lg border border-border shadow-sm hover:bg-muted transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1027,7 +1049,7 @@ export default function ChallengesManagementPage() {
               </h2>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="text-muted-foreground"
+                className="modal-close-standard"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1035,7 +1057,7 @@ export default function ChallengesManagementPage() {
 
             <form
               onSubmit={handleEditSubmit}
-              className="p-5 space-y-5 flex-1 overflow-y-scroll"
+              className="challenge-edit-form p-5 space-y-5 flex-1 overflow-y-scroll"
               noValidate
             >
               <div className="space-y-3.5">
@@ -1240,23 +1262,23 @@ export default function ChallengesManagementPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2.5 pt-3.5 border-t border-border">
+              <div className="management-form-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="management-btn-secondary"
+                >
+                  Hủy bỏ
+                </button>
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-2 shadow-xs"
+                  className="management-btn-primary"
                 >
                   {isUpdating && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   )}{" "}
                   Lưu cập nhật
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 bg-muted text-foreground rounded-lg border border-border/50"
-                >
-                  Hủy bỏ
                 </button>
               </div>
             </form>
@@ -1276,11 +1298,11 @@ export default function ChallengesManagementPage() {
           >
             <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
               <h2 className="font-semibold text-base text-foreground">
-                Thêm thử thách mới
+                Tạo thử thách mới
               </h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground"
+                className="modal-close-standard"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1288,7 +1310,7 @@ export default function ChallengesManagementPage() {
 
             <form
               onSubmit={handleCreateSubmit}
-              className="p-5 space-y-5 flex-1 overflow-y-scroll"
+              className="challenge-create-form p-5 space-y-5 flex-1 overflow-y-scroll"
               noValidate
             >
               <div className="space-y-3.5">
@@ -1557,17 +1579,7 @@ export default function ChallengesManagementPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2.5 pt-3.5 border-t border-border">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-2 shadow-xs"
-                >
-                  {isSubmitting && (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  )}{" "}
-                  Tạo thử thách
-                </button>
+              <div className="management-form-actions">
                 <button
                   type="button"
                   onClick={() => {
@@ -1575,9 +1587,19 @@ export default function ChallengesManagementPage() {
                     setCreateForm({ ...emptyForm });
                     setShowCreateModal(false);
                   }}
-                  className="px-4 py-2 bg-muted text-foreground rounded-lg border border-border/50"
+                  className="management-btn-secondary"
                 >
                   Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="management-btn-primary"
+                >
+                  {isSubmitting && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}{" "}
+                  Tạo thử thách
                 </button>
               </div>
             </form>
