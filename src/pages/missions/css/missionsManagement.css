@@ -186,6 +186,11 @@
     align-items: center;
 }
 
+/* Keep all list controls aligned to the right across management pages. */
+.mission-toolbar > :not(.mission-toolbar-search) {
+    margin-left: auto;
+}
+
 .mission-toolbar-search {
     width: 100%;
     max-width: 24rem;
@@ -194,7 +199,7 @@
 
 /* Wrapper để cuộn ngang thanh thoát */
 .mission-table-responsive {
-    overflow-x: auto;
+    overflow-x: visible;
     width: 100%;
     padding-left: 1.5rem;
     /* px-6 */
@@ -573,6 +578,53 @@
     gap: 1rem;
 }
 
+.mission-dialog-form {
+    background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+}
+
+/* Override the generic confirmation-dialog spacing for the full update form. */
+.mission-update-dialog-container {
+    padding: 0 !important;
+    align-items: stretch !important;
+    text-align: left !important;
+}
+
+.mission-update-dialog-container .management-form-actions {
+    margin-top: 0 !important;
+    padding: 1rem 1.5rem 1.25rem !important;
+    box-sizing: border-box;
+    background: var(--card);
+}
+
+.mission-dialog-date-group {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+}
+
+.mission-dialog-body > div:first-child {
+    background: var(--card);
+    border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+    padding: 0.75rem;
+}
+
+/* Create/edit forms use the same muted surface and raised inner cards as detail modals. */
+.mission-modal:not(.mission-detail-modal):not(.achievement-detail-modal) .mission-create-form,
+.achievement-detail-modal .mission-create-form {
+    background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+.mission-modal:not(.mission-detail-modal):not(.achievement-detail-modal) .mission-form-section,
+.achievement-detail-modal .mission-form-section {
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06);
+}
+
 .mission-form-section {
     border: 1px solid var(--border);
     border-radius: 0.75rem;
@@ -700,9 +752,9 @@
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    padding: 0.45rem 1rem;
+    padding: 0.25rem 0.75rem;
     font-size: 0.8125rem;
-    font-weight: 600;
+    font-weight: 500;
     border-radius: 9999px;
     /* Bo tròn hoàn toàn dạng viên thuốc giống hình */
     border: none;
@@ -713,31 +765,77 @@
 
 /* 1. Nút Sửa: Màu xanh lá tươi rực rỡ như nút "Tạo nhiệm vụ" trong ảnh */
 .mission-table-pill-btn.edit {
-    background-color: #00C853;
-    color: #FFFFFF;
+    background-color: rgba(229, 154, 115, 0.15);
+    color: var(--accent);
+    border: 1px solid rgba(229, 154, 115, 0.3);
+}
+
+/* Mission detail headings keep the existing layout and only gain the shared accent treatment. */
+.mission-detail-modal .mission-detail-heading,
+.mission-detail-modal > .mission-modal-header + div > div:first-child > div:nth-child(3) > span:first-child {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.25 !important;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mission-detail-modal .mission-detail-heading::before,
+.mission-detail-modal > .mission-modal-header + div > div:first-child > div:nth-child(3) > span:first-child::before {
+  width: 0.375rem;
+  height: 1rem;
+  flex: 0 0 0.375rem;
+  content: "";
+  background: var(--primary);
+  border-radius: 0.125rem;
+}
+
+.mission-detail-modal .mission-detail-heading + h3 {
+  margin-top: 0.875rem !important;
+  color: var(--foreground) !important;
+  font-weight: 400 !important;
+}
+
+.mission-detail-modal > .mission-modal-header + div > div:first-child > div:nth-child(2) {
+  align-items: start;
+}
+
+.mission-detail-modal .mission-detail-body {
+  background: color-mix(in srgb, var(--muted) 10%, transparent) !important;
+}
+
+.mission-detail-modal .mission-detail-body > div > div {
+  border-color: color-mix(in srgb, var(--border) 70%, transparent) !important;
+  box-shadow: 0 2px 8px rgba(74, 93, 35, 0.06) !important;
 }
 
 .mission-table-pill-btn.edit:hover {
-    background-color: #00B24A;
+    background-color: rgba(229, 154, 115, 0.25);
     transform: translateY(-1px);
 }
 
 /* 2. Nút Vô hiệu hóa: Màu đỏ khối (solid destructive) rõ ràng nổi bật */
 .mission-table-pill-btn.disable {
-    background-color: #DC6B6B;
-    /* Hoặc #FF4D4F tùy ông thích đỏ nào */
-    color: #FFFFFF;
+    background-color: rgba(220, 107, 107, 0.15);
+    color: var(--destructive);
+    border: 1px solid rgba(220, 107, 107, 0.3);
 }
 
 .mission-table-pill-btn.disable:hover {
-    background-color: #C85A5A;
+    background-color: rgba(220, 107, 107, 0.25);
     transform: translateY(-1px);
 }
 
 /* 3. Nút Kích hoạt (khi nhiệm vụ đang ẩn): Màu xanh rêu nhẹ theo theme hoặc xanh lá tùy chọn */
 .mission-table-pill-btn.enable {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: rgba(118, 160, 132, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(118, 160, 132, 0.3);
 }
 
 .mission-table-pill-btn.enable:hover {

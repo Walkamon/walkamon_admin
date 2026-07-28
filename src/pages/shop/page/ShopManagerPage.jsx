@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -6,9 +6,7 @@ import {
   Trash2,
   CheckCircle,
   Loader2,
-  ChevronDown,
   Package,
-  Coins,
   ShoppingBag,
   AlertTriangle,
   Image as ImageIcon,
@@ -19,10 +17,14 @@ import { Button } from "../../../components/common/button.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter";
 import { Table } from "../../../components/common/table.jsx";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
+import CustomSelect from "../../../components/common/CustomSelect.jsx";
 
 import { itemApi } from "../../../api/itemApi";
 import { shopApi } from "../../../api/shopApi";
 import "../css/shopManagerPage.css";
+import "../../missions/css/missionsManagement.css";
+import "../../../styles/managementStats.css";
 
 const ITEMS_PER_PAGE = 5;
 const API_BASE_URL =
@@ -36,7 +38,7 @@ const translateErrorShop = (englishMsg) => {
 
   if (str.includes("ItemId") && str.includes("required")) return "Vui lòng chọn vật phẩm.";
   if (str.includes("PriceAmount") || str.includes("price")) return "Giá bán không hợp lệ.";
-  if (str.includes("already exists") || str.includes("duplicate")) return "Vật phẩm này đã có trong shop.";
+  if (str.includes("already exists") || str.includes("duplicate")) return "Vật phẩm này đã có trong cửa hàng.";
 
   return str;
 };
@@ -82,11 +84,42 @@ function getItemImage(shopItem, itemInfo) {
 }
 
 function getItemTypeName(shopItem, itemInfo) {
-  return (
+  const directTypeName =
     pickField(shopItem, "itemTypeName", "ItemTypeName") ??
     pickField(itemInfo, "itemTypeName", "ItemTypeName") ??
-    "Chưa có loại"
-  );
+    pickField(shopItem, "typeName", "TypeName") ??
+    pickField(itemInfo, "typeName", "TypeName");
+
+  if (directTypeName) return directTypeName;
+
+  const nestedType = shopItem?.itemType ?? shopItem?.ItemType ?? itemInfo?.itemType ?? itemInfo?.ItemType;
+  return pickField(nestedType, "name", "Name", "typeName", "TypeName", "code", "Code") ?? "Chưa có loại";
+}
+
+function translateItemTypeName(itemTypeName) {
+  const typeName = String(itemTypeName ?? "").trim();
+  if (!typeName) return "Chưa có loại";
+
+  const normalized = typeName.toLowerCase().replace(/[\s_-]+/g, "");
+  const translations = {
+    pvpspeedup: "Tăng tốc độ PvP",
+    debuff: "Hiệu ứng bất lợi",
+    pvpspeeddown: "Giảm tốc độ PvP",
+    consumable: "Vật phẩm tiêu hao",
+    equipment: "Trang bị",
+    material: "Nguyên liệu",
+    questitem: "Vật phẩm nhiệm vụ",
+    special: "Đặc biệt",
+    food: "Thức ăn",
+    gift: "Quà tặng",
+    currency: "Tiền tệ",
+    boost: "Tăng cường",
+    cosmetic: "Trang trí",
+    pet: "Tinh linh",
+    ticket: "Vé",
+  };
+
+  return translations[normalized] || typeName;
 }
 
 function getLinkedItem(shopItem, itemLookup) {
@@ -96,17 +129,53 @@ function getLinkedItem(shopItem, itemLookup) {
   return itemLookup.get(normalizeId(itemId));
 }
 
+function translateEffectCode(effectCode) {
+  const code = String(effectCode ?? "").trim();
+  if (!code) return "-";
+
+  const normalized = code.toLowerCase().replace(/[\s_-]+/g, "");
+  const translations = {
+    pvpspeedup: "Tăng tốc độ PvP",
+    debuff: "Hiệu ứng bất lợi",
+    pvpspeeddown: "Giảm tốc độ PvP",
+    increasehp: "Tăng máu",
+    increasemaxhp: "Tăng máu tối đa",
+    maxhp: "Máu tối đa",
+    health: "Máu",
+    heal: "Hồi máu",
+    increaseenergy: "Tăng năng lượng",
+    restoreenergy: "Hồi năng lượng",
+    energy: "Năng lượng",
+    increasestamina: "Tăng thể lực",
+    stamina: "Thể lực",
+    increaseattack: "Tăng tấn công",
+    attack: "Tấn công",
+    increasedefense: "Tăng phòng thủ",
+    defense: "Phòng thủ",
+    increasespeed: "Tăng tốc độ",
+    speed: "Tốc độ",
+    increaseexp: "Tăng kinh nghiệm",
+    exp: "Kinh nghiệm",
+    increasebond: "Tăng gắn kết",
+    bond: "Gắn kết",
+    lifeforce: "Sinh Mệnh Lực",
+  };
+
+  return translations[normalized] || code;
+}
+
 function formatEffectText(item) {
   const effectCode = pickField(item, "effectTypeCode", "EffectTypeCode");
   const effectValue = pickField(item, "effectValue", "EffectValue");
+  const translatedEffectCode = translateEffectCode(effectCode);
 
   if (effectCode && effectValue !== undefined && effectValue !== null && effectValue !== "") {
     const numericValue = Number(effectValue);
     const prefix = Number.isFinite(numericValue) && numericValue > 0 ? "+" : "";
-    return `${prefix}${effectValue} ${effectCode}`.trim();
+    return `${prefix}${effectValue} ${translatedEffectCode}`.trim();
   }
 
-  if (effectCode) return effectCode;
+  if (effectCode) return translatedEffectCode;
   if (effectValue !== undefined && effectValue !== null && effectValue !== "") return String(effectValue);
   return "-";
 }
@@ -125,68 +194,6 @@ function Modal({ title, onClose, children }) {
         </div>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
-  );
-}
-
-function SelectDropdown({ options, value, onChange, className = "", disabled, hasError, placeholder = "Chọn..." }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-  const selected = options.find((o) => o.value === value);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className={`relative min-w-[11rem] ${className}`}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full rounded-full py-2 px-4 bg-muted border text-sm text-foreground focus:outline-none focus:ring-2 text-left flex justify-between items-center disabled:opacity-50 transition-colors ${
-          hasError
-            ? "border-destructive focus:ring-destructive/20 bg-destructive/5"
-            : "border-border focus:ring-primary/20"
-        }`}
-      >
-        <span className="truncate">{selected?.label || placeholder}</span>
-        <ChevronDown
-          className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {open && options.length > 0 && (
-        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-card border border-border rounded-lg shadow-md p-1 max-h-60 overflow-y-auto">
-          {options.map((option, index) => (
-            <li key={`${option.value}-${index}`}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                  option.value === value
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted text-foreground"
-                }`}
-              >
-                {option.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
@@ -242,18 +249,19 @@ function ShopItemForm({ itemOptions, onSubmit, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
+    <form onSubmit={handleSubmit} className="item-form-layout shop-item-create-form">
       <div className="form-group">
         <label>
           Vật phẩm <span className="text-destructive">*</span>
         </label>
         {activeItems.length === 0 ? (
           <div className="w-full rounded-full py-2 px-4 bg-destructive/10 border border-destructive text-sm text-destructive">
-            Không có vật phẩm hoạt động để thêm vào shop.
+            Không có vật phẩm hoạt động để thêm vào cửa hàng.
           </div>
         ) : (
           <div>
-            <SelectDropdown
+            <CustomSelect
+              valueKey="value"
               options={activeItems.map((item) => ({
                 value: item.itemId,
                 label: item.itemName,
@@ -289,7 +297,7 @@ function ShopItemForm({ itemOptions, onSubmit, onClose }) {
             setForm({ ...form, priceAmount: e.target.value });
             if (errors.priceAmount) setErrors({ ...errors, priceAmount: null });
           }}
-          placeholder="Nhập giá bán (coin)"
+          placeholder="Nhập giá bán"
           disabled={isLoading}
           className={errors.priceAmount ? "border-destructive focus:ring-destructive/20" : ""}
         />
@@ -300,14 +308,14 @@ function ShopItemForm({ itemOptions, onSubmit, onClose }) {
         )}
       </div>
 
-      <div className="form-actions">
-        <button type="button" onClick={onClose} disabled={isLoading} className="btn-cancel">
+      <div className="management-form-actions">
+        <button type="button" onClick={onClose} disabled={isLoading} className="management-btn-secondary">
           Hủy
         </button>
         <button
           type="submit"
           disabled={isLoading || activeItems.length === 0}
-          className="btn-submit flex items-center justify-center gap-2"
+          className="management-btn-primary"
         >
           {isLoading ? (
             <>
@@ -315,7 +323,7 @@ function ShopItemForm({ itemOptions, onSubmit, onClose }) {
               Đang xử lý...
             </>
           ) : (
-            "Thêm vào shop"
+            "Tạo trong cửa hàng"
           )}
         </button>
       </div>
@@ -325,8 +333,8 @@ function ShopItemForm({ itemOptions, onSubmit, onClose }) {
 
 function ShopItemEditForm({ initialData, onSubmit, onClose }) {
   const [form, setForm] = useState({
-    itemId: initialData?.itemId || initialData?.ItemId || "",
-    priceAmount: String(initialData?.priceAmount ?? ""),
+    itemId: pickField(initialData, "itemId", "ItemId") || "",
+    priceAmount: String(pickField(initialData, "priceAmount", "PriceAmount") ?? ""),
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -360,16 +368,10 @@ function ShopItemEditForm({ initialData, onSubmit, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
-      <div className="rounded-xl border border-border bg-muted/40 p-4">
-        <p className="text-xs text-muted-foreground">Đang chỉnh sửa</p>
-        <p className="mt-1 font-semibold text-foreground">{initialData?.itemName || initialData?.ItemName || "Vật phẩm"}</p>
-        <p className="mt-1 text-xs text-muted-foreground font-mono">#{initialData?.shopItemId}</p>
-      </div>
-
+    <form onSubmit={handleSubmit} className="item-form-layout shop-item-edit-form">
       <div className="form-group">
         <label>Vật phẩm</label>
-        <div className="rounded-full py-2 px-4 bg-muted border border-border text-sm text-foreground">
+        <div className="rounded-lg py-2 px-3 bg-card border border-border text-sm text-foreground">
           {initialData?.itemName || initialData?.ItemName || "-"}
         </div>
       </div>
@@ -396,11 +398,11 @@ function ShopItemEditForm({ initialData, onSubmit, onClose }) {
         )}
       </div>
 
-      <div className="form-actions">
-        <button type="button" onClick={onClose} disabled={isLoading} className="btn-cancel">
+      <div className="management-form-actions">
+        <button type="button" onClick={onClose} disabled={isLoading} className="management-btn-secondary">
           Hủy
         </button>
-        <button type="submit" disabled={isLoading} className="btn-submit flex items-center justify-center gap-2">
+        <button type="submit" disabled={isLoading} className="management-btn-primary">
           {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
@@ -428,6 +430,7 @@ export function ShopPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [dialog, setDialog] = useState({ show: false, message: "", type: "success" });
+  const [loadError, setLoadError] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -449,6 +452,7 @@ export function ShopPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const [shopRes, itemRes] = await Promise.all([
         shopApi.getAll(),
         itemApi.getAll(),
@@ -456,8 +460,11 @@ export function ShopPage() {
       setShopItems(normalizeList(shopRes));
       setItemOptions(normalizeList(itemRes));
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu shop:", error);
-      showDialog("Không thể tải dữ liệu shop.", "error");
+      console.error("Lỗi khi tải dữ liệu cửa hàng:", error);
+      setShopItems([]);
+      setItemOptions([]);
+      setLoadError(true);
+      showDialog("Không thể tải dữ liệu. Vui lòng thử lại sau.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -547,13 +554,13 @@ export function ShopPage() {
 
       await fetchData();
       setCreateOpen(false);
-      showDialog("Thêm vật phẩm vào shop thành công!", "success");
+      showDialog("Thêm vật phẩm vào cửa hàng thành công!", "success");
     } catch (err) {
-      console.error("Lỗi khi thêm shop item:", err);
+      console.error("Lỗi khi thêm vật phẩm vào cửa hàng:", err);
       const fieldErrors = parseApiFieldErrors(err);
       if (fieldErrors) throw { isValidationError: true, fields: fieldErrors };
 
-      let rawErrorMsg = "Không thể thêm vật phẩm vào shop.";
+      let rawErrorMsg = "Không thể thêm vật phẩm vào cửa hàng.";
       if (err.response?.data) {
         const data = err.response.data;
         if (data.message) rawErrorMsg = data.message;
@@ -573,9 +580,17 @@ export function ShopPage() {
       getLinkedItem(editingItem, itemLookup) ??
       itemNameLookup.get(normalizeId(pickField(editingItem, "itemName", "ItemName")));
     const itemId =
-      pickField(editingItem, "itemId", "ItemId") ??
-      pickField(itemInfo, "itemId", "ItemId");
-    const shopItemId = pickField(editingItem, "shopItemId", "ShopItemId");
+      pickField(editingItem, "itemId", "ItemId", "itemID", "ItemID") ??
+      pickField(itemInfo, "itemId", "ItemId", "itemID", "ItemID");
+    const shopItemId = pickField(
+      editingItem,
+      "shopItemId",
+      "ShopItemId",
+      "shopItemID",
+      "ShopItemID",
+      "id",
+      "Id",
+    );
 
     if (!itemId) {
       showDialog("Không thể cập nhật vì thiếu mã vật phẩm.", "error");
@@ -583,7 +598,7 @@ export function ShopPage() {
     }
 
     if (!shopItemId) {
-      showDialog("Không thể cập nhật vì thiếu mã shop item.", "error");
+      showDialog("Không thể cập nhật vì thiếu mã vật phẩm cửa hàng.", "error");
       throw { isValidationError: true, fields: {} };
     }
 
@@ -595,9 +610,9 @@ export function ShopPage() {
 
       await fetchData();
       setEditingItem(null);
-      showDialog("Cập nhật shop item thành công!", "success");
+      showDialog("Cập nhật vật phẩm cửa hàng thành công!", "success");
     } catch (err) {
-      console.error("Lỗi khi cập nhật shop item:", err);
+      console.error("Lỗi khi cập nhật vật phẩm cửa hàng:", err);
       const fieldErrors = parseApiFieldErrors(err);
       if (fieldErrors) throw { isValidationError: true, fields: fieldErrors };
 
@@ -616,11 +631,11 @@ export function ShopPage() {
       await shopApi.toggleStatus(shopItemId);
       await fetchData();
       showDialog(
-        item.isActive ? "Đã vô hiệu hóa shop item." : "Kích hoạt shop item thành công!",
+        item.isActive ? "Đã vô hiệu hóa vật phẩm cửa hàng." : "Kích hoạt vật phẩm cửa hàng thành công!",
         "success",
       );
     } catch (err) {
-      showDialog(getErrorMessage(err, "Không thể thay đổi trạng thái shop item."), "error");
+      showDialog(getErrorMessage(err, "Không thể thay đổi trạng thái vật phẩm cửa hàng."), "error");
     } finally {
       setTogglingShopItemId(null);
     }
@@ -684,46 +699,15 @@ export function ShopPage() {
   }
 
   return (
-    <div className="page-container relative">
+    <div className="mission-page-wrapper relative">
       {/* Dialog thông báo phản hồi */}
-      {dialog.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                dialog.type === "success"
-                  ? "bg-primary/10 text-primary"
-                  : dialog.type === "error"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-amber-500/10 text-amber-500"
-              }`}
-            >
-              {dialog.type === "success" && <CheckCircle size={32} />}
-              {dialog.type === "error" && <X size={32} />}
-              {dialog.type === "warning" && <AlertTriangle size={32} />}
-            </div>
-
-            <h3 className="text-xl font-bold text-foreground mb-2">
-              {dialog.type === "success" ? "Thành công" : dialog.type === "error" ? "Có lỗi xảy ra" : "Cảnh báo"}
-            </h3>
-
-            <p className="text-muted-foreground mb-6 text-sm">{dialog.message}</p>
-
-            <button
-              onClick={closeDialog}
-              className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                dialog.type === "success"
-                  ? "bg-primary hover:bg-primary/90 focus:ring-primary"
-                  : dialog.type === "error"
-                    ? "bg-destructive hover:bg-destructive/90 focus:ring-destructive"
-                    : "bg-amber-500 hover:bg-amber-600 focus:ring-amber-500"
-              }`}
-            >
-              Xác nhận
-            </button>
-          </div>
-        </div>
-      )}
+      <CommonDialog
+        isOpen={dialog.show}
+        type={dialog.type}
+        title={dialog.type === "success" ? "Thành công" : dialog.type === "error" ? "Có lỗi xảy ra" : "Cảnh báo"}
+        message={dialog.message}
+        onClose={closeDialog}
+      />
 
       {/* Modal hiển thị chi tiết vật phẩm */}
       {detailTarget && (
@@ -734,43 +718,66 @@ export function ShopPage() {
               Đang tải chi tiết...
             </div>
           ) : (
-            <div className="space-y-3 text-sm">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-primary">
-                  {pickField(detailData, "itemName", "ItemName") ?? detailTarget.itemName ?? "-"}
-                </h3>
-              </div>
+            <div className="shop-detail-body text-sm">
+              <div className="shop-detail-overview">
+                <div className="shop-detail-icon-box">
+                  {getItemImage(detailTarget, detailData ?? detailTarget.itemInfo) && (
+                    <img
+                      src={getItemImage(detailTarget, detailData ?? detailTarget.itemInfo)}
+                      alt={pickField(detailData, "itemName", "ItemName") ?? detailTarget.itemName ?? "Vật phẩm"}
+                      onError={(event) => {
+                        event.currentTarget.hidden = true;
+                        event.currentTarget.nextElementSibling.classList.remove("is-hidden");
+                      }}
+                    />
+                  )}
+                  <div
+                    className={`shop-detail-icon-empty${getItemImage(detailTarget, detailData ?? detailTarget.itemInfo) ? " is-hidden" : ""}`}
+                  >
+                    <ImageIcon className="shop-detail-icon-placeholder" />
+                    <span>Chưa có icon</span>
+                  </div>
+                </div>
 
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Loại:</span>
-                <span className="font-medium text-primary text-right">
-                  {pickField(detailData, "itemTypeName", "ItemTypeName") ?? detailTarget.itemInfo?.itemTypeName ?? "Chưa có loại"}
-                </span>
-              </div>
+                <div className="shop-detail-info">
+                  <h3 className="shop-detail-name">
+                    {pickField(detailData, "itemName", "ItemName") ?? detailTarget.itemName ?? "-"}
+                  </h3>
 
-              <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">Hiệu ứng:</span>
-                <span className="font-medium text-primary text-right">
-                  {formatEffectText(detailData ?? detailTarget.itemInfo ?? detailTarget)}
-                </span>
-              </div>
+                  <div className="shop-detail-row">
+                    <span className="text-muted-foreground">Loại:</span>
+                    <span className="font-medium text-foreground text-right">
+                      {translateItemTypeName(
+                        getItemTypeName(detailData ?? {}, detailTarget.itemInfo ?? detailTarget),
+                      )}
+                    </span>
+                  </div>
 
-              <div className="flex justify-between items-center gap-3">
-                <span className="text-muted-foreground">Trạng thái:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    detailTarget.isActive ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {detailTarget.isActive ? "Hoạt động" : "Tạm dừng"}
-                </span>
-              </div>
+                  <div className="shop-detail-row">
+                    <span className="text-muted-foreground">Hiệu ứng:</span>
+                    <span className="font-medium text-foreground text-right">
+                      {formatEffectText(detailData ?? detailTarget.itemInfo ?? detailTarget)}
+                    </span>
+                  </div>
 
-              <div className="pt-2 border-t border-border">
-                <p className="text-muted-foreground mb-1">Mô tả:</p>
-                <p className="text-primary whitespace-pre-line">
-                  {pickField(detailData, "description", "Description") || "Chưa có mô tả."}
-                </p>
+                  <div className="shop-detail-row shop-detail-status-row">
+                    <span className="text-muted-foreground">Trạng thái:</span>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        detailTarget.isActive ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {detailTarget.isActive ? "Hoạt động" : "Tạm dừng"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shop-detail-description">
+                  <p className="text-muted-foreground mb-1">Mô tả:</p>
+                  <p className="text-foreground whitespace-pre-line">
+                    {pickField(detailData, "description", "Description") || "Chưa có mô tả."}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -778,73 +785,76 @@ export function ShopPage() {
       )}
 
       {/* Giao diện Header */}
-      <div className="header-wrapper">
+      <div className="mission-header">
         <div>
-          <h1 className="header-title">Quản lý cửa hàng</h1>
-          <p className="header-subtitle">Quản lý vật phẩm bán trong shop Walkamon</p>
+          <h1 className="mission-title">Quản lý cửa hàng</h1>
+          <p className="mission-subtitle">Quản lý vật phẩm bán trong cửa hàng Walkamon</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="btn-create">
-          <Plus size={16} /> Thêm vật phẩm mới
-        </Button>
+        <div className="mission-header-actions">
+          <Button variant="primary" onClick={() => setCreateOpen(true)} className="rounded-lg">
+          <Plus size={16} /> Tạo vật phẩm
+          </Button>
+        </div>
       </div>
 
       {/* Grid thống kê trạng thái */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-primary/10 text-primary"><ShoppingBag size={20} /></div>
-          <div>
-            <p className="stat-value">{shopItems.length}</p>
-            <p className="stat-label">Tổng shop item</p>
+      <div className="management-stats-grid shop-stats-grid">
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{shopItems.length}</p>
+            <p className="management-stat-label">Tổng vật phẩm cửa hàng</p>
           </div>
+          <div className="management-stat-icon"><ShoppingBag size={20} /></div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-accent/10 text-accent"><Package size={20} /></div>
-          <div>
-            <p className="stat-value">{itemOptions.length}</p>
-            <p className="stat-label">Vật phẩm có sẵn</p>
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{itemOptions.length}</p>
+            <p className="management-stat-label">Vật phẩm có sẵn</p>
           </div>
+          <div className="management-stat-icon"><Package size={20} /></div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-primary/10 text-primary"><CheckCircle size={20} /></div>
-          <div>
-            <p className="stat-value">{activeCount}</p>
-            <p className="stat-label">Đang bán</p>
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{activeCount}</p>
+            <p className="management-stat-label">Đang bán</p>
           </div>
+          <div className="management-stat-icon"><CheckCircle size={20} /></div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper bg-destructive/10 text-destructive"><AlertTriangle size={20} /></div>
-          <div>
-            <p className="stat-value">{inactiveCount}</p>
-            <p className="stat-label">Đã ẩn</p>
+        <div className="management-stat-card">
+          <div className="management-stat-content">
+            <p className="management-stat-value">{inactiveCount}</p>
+            <p className="management-stat-label">Đã ẩn</p>
           </div>
+          <div className="management-stat-icon"><AlertTriangle size={20} /></div>
         </div>
       </div>
 
-      {/* Khu vực Tìm kiếm và Bộ lọc */}
-      <div className="filter-container">
-        <div className="search-wrapper">
+      <div className="mission-table-container">
+        <div className="mission-toolbar shop-toolbar">
+          <div className="mission-toolbar-search">
           <SearchFilter
             value={searchKeyword}
             onChange={(e) => {
               setSearchKeyword(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Tìm kiếm shop item..."
-            className="w-full border-none"
-            inputClassName="bg-muted border-none"
+          placeholder="Tìm kiếm vật phẩm cửa hàng..."
+            className="w-full"
           />
-        </div>
+          </div>
 
-        <div className="select-wrapper">
-          <SelectDropdown
-            options={[{ value: "all", label: "Tất cả loại" }, ...categoryOptions.map((cat) => ({ value: cat, label: cat }))]}
+        <div className="shop-filter-select">
+          <CustomSelect
+            valueKey="value"
+            options={[{ value: "all", label: "Tất cả loại" }, ...categoryOptions.map((cat) => ({ value: cat, label: translateItemTypeName(cat) }))]}
             value={categoryFilter}
             onChange={(val) => { setCategoryFilter(val); setCurrentPage(1); }}
           />
         </div>
 
-        <div className="select-wrapper">
-          <SelectDropdown
+        <div className="shop-filter-select">
+          <CustomSelect
+            valueKey="value"
             options={[
               { value: "all", label: "Tất cả trạng thái" },
               { value: "active", label: "Đang bán" },
@@ -854,33 +864,32 @@ export function ShopPage() {
             onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
           />
         </div>
-      </div>
+        </div>
 
-      {/* Bảng Danh sách dữ liệu chính */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <Table className="custom-table">
+        <div className="mission-table-responsive">
+        <Table className="mission-table" containerClassName="shop-table-wrapper">
           <thead>
-            <tr className="bg-muted/50 text-muted-foreground">
-              <th className="px-5 py-3 w-[80px]">Hình ảnh</th>
-              <th className="px-5 py-3">Vật phẩm</th>
-              <th className="px-4 py-3">Loại</th>
-              <th className="px-4 py-3">Giá bán</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Thao tác</th>
+            <tr>
+              <th style={{ width: "10%" }}>Hình ảnh</th>
+              <th style={{ width: "25%" }}>Vật phẩm</th>
+              <th style={{ width: "15%" }}>Loại</th>
+              <th style={{ width: "14%" }}>Giá bán</th>
+              <th style={{ width: "12%" }}>Trạng thái</th>
+              <th style={{ width: "24%" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                <td colSpan={6} className="management-loading-cell">
+                  <Loader2 className="management-loading-spinner" />
                   Đang tải danh sách...
                 </td>
               </tr>
             ) : pagedItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                  Không có shop item nào.
+                  {loadError ? "Không thể tải danh sách vật phẩm cửa hàng." : "Không có vật phẩm cửa hàng nào."}
                 </td>
               </tr>
             ) : (
@@ -890,17 +899,13 @@ export function ShopPage() {
                 const itemName = pickField(item, "itemName", "ItemName") ?? itemInfo?.itemName ?? "-";
                 const itemTypeName = getItemTypeName(item, itemInfo);
                 const isActive = item.isActive === true;
-                const toggleClass = isActive
-                  ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
-                  : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-white";
-
                 return (
                   <tr
                     key={item.shopItemId}
                     className="hover:bg-muted/30 transition-colors cursor-pointer"
                     onClick={() => handleOpenDetail(item)}
                   >
-                    <td className="px-5 py-3">
+                    <td className="align-middle">
                       <div className="item-image-container">
                         {imageSrc ? (
                           <img
@@ -922,36 +927,35 @@ export function ShopPage() {
                       </div>
                     </td>
 
-                    <td className="px-5 py-3">
+                    <td className="align-middle">
                       <div className="flex flex-col">
                         <span className="item-name-text">{itemName}</span>
                         <span className="item-id-text">
-                          #{item.shopItemId ? String(item.shopItemId).substring(0, 8) : "SHOP"}
+                          #{item.shopItemId ? String(item.shopItemId).substring(0, 8) : "-"}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-muted-foreground">{itemTypeName}</td>
+                    <td className="align-middle text-muted-foreground">{translateItemTypeName(itemTypeName)}</td>
 
-                    <td className="px-4 py-3">
-                      <div className="inline-flex items-center gap-1.5 price-text">
-                        <Coins className="w-4 h-4" />
+                    <td className="align-middle">
+                      <div className="price-text">
                         {formatMoney(item.priceAmount)}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3">
-                      <span className={isActive ? "badge-active" : "badge-inactive"}>
+                    <td className="align-middle">
+                    <span className={`badge-status ${isActive ? "shop-status-active" : "shop-status-inactive"}`}>
                         {isActive ? "Đang bán" : "Đã ẩn"}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center gap-1.5">
+                    <td className="align-middle" onClick={(e) => e.stopPropagation()}>
+                      <div className="shop-action-buttons">
                         <button
                           type="button"
                           onClick={() => setEditingItem(item)}
-                          className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                          className="mission-table-pill-btn edit"
                         >
                           <Pencil className="w-3 h-3" />
                           <span>Sửa</span>
@@ -960,7 +964,7 @@ export function ShopPage() {
                           type="button"
                           onClick={() => handleToggleStatus(item)}
                           disabled={togglingShopItemId === item.shopItemId}
-                          className={`py-1.5 px-2.5 text-xs inline-flex items-center justify-center gap-1 rounded-lg font-medium transition-all active:scale-[0.98] whitespace-nowrap ${toggleClass}`}
+                          className={`mission-table-pill-btn ${isActive ? "disable" : "enable"}`}
                         >
                           {togglingShopItemId === item.shopItemId ? (
                             <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
@@ -979,59 +983,53 @@ export function ShopPage() {
             )}
           </tbody>
         </Table>
-      </div>
+        </div>
 
       {/* Footer phân trang */}
-      <div className="footer-container">
-        <p>Hiển thị {startItem}–{endItem} trong {filteredItems.length} kết quả</p>
+      <div className="mission-footer">
+        <span>
+          Hiển thị <span className="font-medium text-foreground">{startItem}</span> –{" "}
+          <span className="font-medium text-foreground">{endItem}</span> trong{" "}
+          <span className="font-medium text-foreground">{filteredItems.length}</span> kết quả
+        </span>
         <Pagination currentPage={currentPage} totalPages={totalPages} onChange={(page) => setCurrentPage(page)} />
       </div>
+      </div>
 
-      {/* Modal Thêm mới */}
+      {/* Modal Tạo mới */}
       {createOpen && (
-        <Modal title="Thêm vật phẩm mới" onClose={() => setCreateOpen(false)}>
+        <Modal title="Tạo vật phẩm" onClose={() => setCreateOpen(false)}>
           <ShopItemForm itemOptions={itemOptions} onSubmit={handleCreateShopItem} onClose={() => setCreateOpen(false)} />
         </Modal>
       )}
 
       {/* Modal Chỉnh sửa */}
       {editingItem && (
-        <Modal title="Cập nhật shop item" onClose={() => setEditingItem(null)}>
+        <Modal title="Cập nhật vật phẩm cửa hàng" onClose={() => setEditingItem(null)}>
           <ShopItemEditForm initialData={editingItem} onSubmit={handleUpdateShopItem} onClose={() => setEditingItem(null)} />
         </Modal>
       )}
 
       {/* Modal Vô hiệu hóa */}
       {deleteTarget && (
-        <Modal title="Xác nhận vô hiệu hóa" onClose={() => setDeleteTarget(null)}>
-          <div className="item-form-layout">
-            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4">
-              <p className="text-sm text-destructive">Shop item này sẽ bị vô hiệu hóa và ẩn khỏi danh sách bán.</p>
-              <p className="mt-2 font-semibold text-foreground">{deleteTarget.itemName || "-"}</p>
-              <p className="mt-1 text-xs text-muted-foreground font-mono">#{deleteTarget.shopItemId}</p>
-            </div>
-
-            <div className="form-actions">
-              <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} className="btn-cancel">Hủy</button>
-              <button
-                type="button"
-                onClick={handleDeactivate}
-                disabled={deleting}
-                className="btn-submit flex items-center justify-center gap-2 bg-destructive hover:opacity-90"
-              >
-                {deleting ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" /> Đang xử lý...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={16} /> Vô hiệu hóa
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </Modal>
+        <CommonDialog
+          isOpen={!!deleteTarget}
+          type="warning"
+          title="Xác nhận vô hiệu hóa"
+          message={
+            <>
+              Bạn có chắc chắn muốn vô hiệu hóa vật phẩm cửa hàng{" "}
+              <strong className="font-bold text-foreground">
+                {deleteTarget.itemName || "này"}
+              </strong>{" "}
+              không?
+            </>
+          }
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDeactivate}
+          confirmLabel="Vô hiệu hóa"
+          isLoading={deleting}
+        />
       )}
     </div>
   );

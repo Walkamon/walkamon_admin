@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, X, Pencil, CheckCircle } from "lucide-react";
+import { Loader2, Plus, Trash2, X, Pencil, CheckCircle, ImageIcon } from "lucide-react";
 import CustomSelect from "../../../components/common/CustomSelect.jsx";
 import { Table, TableEmpty } from "../../../components/common/table.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
 import { Button } from "../../../components/common/button.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import { achievementApi } from "../../../api/achievementApi";
 import { itemApi } from "../../../api/itemApi";
 import { missionApi } from "../../../api/missionApi";
 import "../../missions/css/missionsManagement.css";
+import "../../pvp/css/pvpAdmin.css";
 import "../css/AchievementsManagementPage.css";
 
 const ITEMS_PER_PAGE = 5;
@@ -50,6 +52,11 @@ export function AchievementsManagementPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDisableTarget, setConfirmDisableTarget] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [dialog, setDialog] = useState({ isOpen: false, type: "success", message: "" });
+
+  const notifyError = (message) => {
+    setDialog({ isOpen: true, type: "error", message });
+  };
 
   const loadAchievements = async () => {
     setLoading(true);
@@ -60,7 +67,10 @@ export function AchievementsManagementPage() {
       setSummary(data.summary || {});
       setAchievements(Array.isArray(data.achievements) ? data.achievements : Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err?.message || "Lỗi khi tải danh sách thành tựu");
+      setAchievements([]);
+      setSummary({});
+      setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      notifyError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -325,7 +335,7 @@ export function AchievementsManagementPage() {
       setShowCreate(true);
     } catch (err) {
       console.error("Error loading achievement for edit:", err);
-      alert(err?.response?.data?.message || err?.message || "Lỗi khi tải thông tin chỉnh sửa");
+      notifyError(err?.response?.data?.message || err?.message || "Lỗi khi tải thông tin chỉnh sửa");
     } finally {
       setFormLoading(false);
     }
@@ -452,9 +462,14 @@ export function AchievementsManagementPage() {
       });
       // refresh list
       await loadAchievements();
+      setDialog({
+        isOpen: true,
+        type: "success",
+        message: isActive ? "Đã vô hiệu hóa thành tựu." : "Đã kích hoạt thành tựu.",
+      });
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || err?.message || "Lỗi khi cập nhật trạng thái");
+      notifyError(err?.response?.data?.message || err?.message || "Lỗi khi cập nhật trạng thái");
     }
   };
 
@@ -470,7 +485,7 @@ export function AchievementsManagementPage() {
       setSelectedAchievement(data);
     } catch (err) {
       console.error("Error loading detail:", err);
-      alert(err?.response?.data?.message || err?.message || "Lỗi khi tải chi tiết thành tựu");
+      notifyError(err?.response?.data?.message || err?.message || "Lỗi khi tải chi tiết thành tựu");
       setShowDetail(false);
     } finally {
       setDetailLoading(false);
@@ -482,11 +497,11 @@ export function AchievementsManagementPage() {
     setCreating(true);
     try {
       if (!form.title?.trim()) {
-        alert("Tên thành tựu là bắt buộc.");
+        notifyError("Tên thành tựu là bắt buộc.");
         return;
       }
       if (!form.metricCode) {
-        alert("Loại thành tựu (Metric code) là bắt buộc.");
+        notifyError("Loại thành tựu (Metric code) là bắt buộc.");
         return;
       }
       const achievementId = selectedAchievement?.achievementId || selectedAchievement?.id;
@@ -498,19 +513,19 @@ export function AchievementsManagementPage() {
         return aId !== achievementIdStr && title === normalizedTitle;
       });
       if (duplicateTitle) {
-        alert("Tên thành tựu đã tồn tại. Vui lòng chọn tên khác.");
+        notifyError("Tên thành tựu đã tồn tại. Vui lòng chọn tên khác.");
         return;
       }
       if (!form.targetValue || Number(form.targetValue) <= 0) {
-        alert("Mục tiêu cần đạt phải lớn hơn 0.");
+        notifyError("Mục tiêu cần đạt phải lớn hơn 0.");
         return;
       }
       if (String(form.completionTargetValue ?? "").trim() === "" || Number(form.completionTargetValue) <= 0) {
-        alert("Mục tiêu hoàn thành không được để trống và phải lớn hơn 0.");
+        notifyError("Mục tiêu hoàn thành không được để trống và phải lớn hơn 0.");
         return;
       }
       if (Number(form.rewardWalletAmount) <= 0) {
-        alert("Thưởng Giọt Sương phải lớn hơn 0.");
+        notifyError("Thưởng Giọt Sương phải lớn hơn 0.");
         return;
       }
       // (duplicate check removed — use `duplicateTitle` above which excludes the current editing item)
@@ -528,6 +543,11 @@ export function AchievementsManagementPage() {
       setShowCreate(false);
       setIsEditing(false);
       setSelectedAchievement(null);
+      setDialog({
+        isOpen: true,
+        type: "success",
+        message: isEditing ? "Cập nhật thành tựu thành công." : "Tạo thành tựu thành công.",
+      });
     } catch (err) {
       console.error(err);
       const backendMessage =
@@ -535,7 +555,7 @@ export function AchievementsManagementPage() {
         (err?.response?.data?.errors
           ? Object.values(err.response.data.errors).flat().join("\n")
           : null);
-      alert(backendMessage || err?.message || "Lỗi khi tạo thành tựu");
+      notifyError(backendMessage || err?.message || "Lỗi khi lưu thành tựu");
     } finally {
       setCreating(false);
     }
@@ -543,6 +563,12 @@ export function AchievementsManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <CommonDialog
+        isOpen={dialog.isOpen}
+        type={dialog.type}
+        message={dialog.message}
+        onClose={() => setDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-foreground">Quản lý thành tựu</h1>
@@ -580,9 +606,9 @@ export function AchievementsManagementPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-6">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex-1">
+      <div className="mission-table-container">
+        <div className="mission-toolbar achievement-toolbar">
+          <div className="mission-toolbar-search">
             <SearchFilter
               value={searchName}
               onChange={(e) => { setSearchName(e.target.value); setPage(1); }}
@@ -590,7 +616,7 @@ export function AchievementsManagementPage() {
             />
           </div>
 
-          <div className="w-48">
+          <div className="achievement-status-filter">
             <CustomSelect
               value={statusFilter}
               onChange={(v) => { setStatusFilter(v); setPage(1); }}
@@ -602,7 +628,8 @@ export function AchievementsManagementPage() {
           </div>
         </div>
 
-        <Table>
+        <div className="mission-table-responsive">
+        <Table className="mission-table" containerClassName="achievement-table-wrapper">
           <thead>
             <tr className="text-left text-sm text-muted-foreground border-b border-border">
               <th className="py-3">Tên thành tựu</th>
@@ -615,12 +642,15 @@ export function AchievementsManagementPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="py-12 text-center">Đang tải dữ liệu...</td>
+                <td colSpan={5} className="management-loading-cell">
+                  <Loader2 className="management-loading-spinner" />
+                  Đang tải dữ liệu...
+                </td>
               </tr>
             )}
 
             {!loading && pageItems.length === 0 && (
-              <TableEmpty colSpan={5} message={error ? error : "Không có thành tựu."} />
+              <TableEmpty colSpan={5} message={error ? "Không thể tải danh sách thành tựu." : "Không có thành tựu."} />
             )}
 
             {!loading && pageItems.map((a) => (
@@ -639,7 +669,9 @@ export function AchievementsManagementPage() {
                   </div>
                 </td>
                 <td className="py-4 text-sm">{a?.conditionText || formatCondition(a)}</td>
-                <td className="py-4 text-sm">{a?.rewardText || formatReward(a)}</td>
+                <td className="py-4 text-sm">
+                  {String(a?.rewardText || formatReward(a)).replace(/\bGiot\s+Suong\b/gi, "Giọt Sương")}
+                </td>
                 <td className="py-4 text-sm">
                   <span className={getAchievementActive(a) ? "badge-active" : "badge-inactive"}>
                     {normalizeStatusName(a)}
@@ -682,8 +714,14 @@ export function AchievementsManagementPage() {
             ))}
           </tbody>
         </Table>
+        </div>
 
-        <div className="mt-4 flex items-center justify-end">
+        <div className="mission-footer">
+          <span>
+            Hiển thị <span className="font-medium text-foreground">{pageItems.length === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1}</span> –{" "}
+            <span className="font-medium text-foreground">{Math.min(page * ITEMS_PER_PAGE, achievements.length)}</span> trong{" "}
+            <span className="font-medium text-foreground">{achievements.length}</span> kết quả
+          </span>
           <Pagination currentPage={page} totalPages={totalPages} onChange={(p) => setPage(p)} />
         </div>
       </div>
@@ -698,7 +736,7 @@ export function AchievementsManagementPage() {
             setSelectedAchievement(null);
           }}
         >
-          <div className="mission-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="mission-modal achievement-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mission-modal-header">
               <div>
                 <h2>{isEditing ? "Chỉnh sửa thành tựu" : "Tạo thành tựu mới"}</h2>
@@ -713,7 +751,7 @@ export function AchievementsManagementPage() {
               </button>
             </div>
 
-            <form className="mission-create-form" onSubmit={handleCreate}>
+            <form className="mission-create-form achievement-edit-form" onSubmit={handleCreate}>
               <section
                 className="mission-form-section"
                 style={{ position: "relative", zIndex: 60 }}
@@ -772,7 +810,7 @@ export function AchievementsManagementPage() {
                   </label>
 
                   <label>
-                    Xu được thưởng
+                    Giọt Sương được thưởng
                     <input
                       type="number"
                       min="0"
@@ -797,6 +835,7 @@ export function AchievementsManagementPage() {
                   <label className="mission-checkbox-row" style={{ margin: 0 }}>
                     <input
                       type="checkbox"
+                      className="pvp-checkbox"
                       checked={form.isActive}
                       onChange={(e) => {
                         setFormField("isActive", e.target.checked);
@@ -907,7 +946,7 @@ export function AchievementsManagementPage() {
                       className="mission-table-pill-btn"
                       style={{ background: "var(--primary)", color: "#fff", border: "none" }}
                     >
-                      <Plus size={14} /> Thêm vật phẩm
+                      <Plus size={14} /> Tạo vật phẩm
                     </button>
                   </div>
 
@@ -987,7 +1026,12 @@ export function AchievementsManagementPage() {
                     <p
                       style={{
                         fontSize: "0.875rem",
-                        color: "var(--muted-foreground)",
+                        color: "#9ca3af",
+                        fontStyle: "italic",
+                        backgroundColor: "#f9fafb",
+                        padding: "1rem",
+                        borderRadius: "8px",
+                        border: "1px dashed #d1d5db",
                         textAlign: "center",
                         margin: 0,
                       }}
@@ -998,10 +1042,10 @@ export function AchievementsManagementPage() {
                 </div>
               </section>
 
-              <div className="mission-modal-actions">
+              <div className="management-form-actions">
                 <button
                   type="button"
-                  className="mission-btn-secondary"
+                  className="management-btn-secondary"
                   onClick={() => {
                     resetForm();
                     setShowCreate(false);
@@ -1009,7 +1053,7 @@ export function AchievementsManagementPage() {
                 >
                   Hủy bỏ
                 </button>
-                <button type="submit" className="mission-btn-primary" disabled={creating}>
+                <button type="submit" className="management-btn-primary" disabled={creating}>
                   {creating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1027,8 +1071,27 @@ export function AchievementsManagementPage() {
 
       {/* Confirm disable modal */}
       {confirmDisableTarget && (
-        <div className="common-dialog-overlay">
-          <div className="common-dialog-container" style={{ maxWidth: "450px", textAlign: "left" }}>
+        <CommonDialog
+          isOpen={!!confirmDisableTarget}
+          type="warning"
+          title="Xác nhận vô hiệu hóa"
+          message={
+            <>
+              Bạn có chắc chắn muốn vô hiệu hóa thành tựu{" "}
+              <strong className="font-bold text-foreground">
+                {getAchievementTitle(confirmDisableTarget)}
+              </strong>{" "}
+              không?
+            </>
+          }
+          onClose={() => setConfirmDisableTarget(null)}
+          onConfirm={handleConfirmToggleStatus}
+          confirmLabel="Vô hiệu hóa"
+          isLoading={confirmLoading}
+        />
+      )}
+      {false && (/*
+        <div>
             <h3 className="common-dialog-title" style={{ fontSize: "1.125rem", color: "var(--foreground)", marginBottom: "12px" }}>
               Xác nhận vô hiệu hóa
             </h3>
@@ -1058,6 +1121,8 @@ export function AchievementsManagementPage() {
         </div>
       )}
 
+      */ null)}
+
       {/* Detail modal */}
       {showDetail && selectedAchievement && (
         <div className="mission-modal-overlay" onClick={() => setShowDetail(false)}>
@@ -1072,16 +1137,16 @@ export function AchievementsManagementPage() {
               </button>
             </div>
 
-            <div className="mission-create-form" style={{ maxHeight: "600px", overflowY: "auto" }}>
+            <div className="mission-create-form achievement-detail-body" style={{ maxHeight: "600px", overflowY: "auto" }}>
               {detailLoading ? (
                 <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               ) : (
                 <>
-                  <section className="mission-form-section">
+                  <section className="detail-child-container mission-form-section">
                     <h3>Thông tin cơ bản</h3>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
+                    <div className="achievement-detail-overview" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
                       <div>
                         <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
                           Tên thành tựu
@@ -1104,22 +1169,31 @@ export function AchievementsManagementPage() {
                           style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
                         />
                       </div>
-                      {selectedAchievement?.iconUrl && (
-                        <div>
-                          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
-                            Icon
-                          </label>
-                          <img 
-                            src={selectedAchievement.iconUrl} 
-                            alt="Achievement icon" 
-                            style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "0.5rem" }}
-                          />
+                      <div className="achievement-detail-icon-field">
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+                          Icon
+                        </label>
+                        <div className="achievement-detail-icon-box">
+                          {selectedAchievement?.iconUrl && (
+                            <img
+                              src={selectedAchievement.iconUrl}
+                              alt="Achievement icon"
+                              onError={(event) => {
+                                event.currentTarget.hidden = true;
+                                event.currentTarget.nextElementSibling.classList.remove("is-hidden");
+                              }}
+                            />
+                          )}
+                          <div className={`achievement-detail-icon-empty${selectedAchievement?.iconUrl ? " is-hidden" : ""}`}>
+                            <ImageIcon className="achievement-detail-icon-placeholder" />
+                            <span>Chưa có icon</span>
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </section>
 
-                  <section className="mission-form-section">
+                  <section className="detail-child-container mission-form-section">
                     <h3>Yêu cầu & Phần thưởng</h3>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                       <div>
@@ -1146,7 +1220,7 @@ export function AchievementsManagementPage() {
                       </div>
                       <div>
                         <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
-                          Xu được thưởng
+                          Giọt Sương được thưởng
                         </label>
                         <input
                           type="number"
@@ -1162,14 +1236,15 @@ export function AchievementsManagementPage() {
                         <input
                           type="text"
                           disabled
-                          value={selectedAchievement?.statusName || (selectedAchievement?.isActive ? "Hoạt động" : "Vô hiệu")}
+                          value={normalizeStatusName(selectedAchievement)}
+                          className={`achievement-detail-status ${getAchievementActive(selectedAchievement) ? "achievement-detail-status-active" : "achievement-detail-status-inactive"}`}
                           style={{ width: "100%", padding: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border)", backgroundColor: "var(--input-bg)" }}
                         />
                       </div>
                     </div>
                   </section>
 
-                  <section className="mission-form-section">
+                  <section className="detail-child-container mission-form-section">
                     <h3>Vật phẩm thưởng</h3>
                     {Array.isArray(selectedAchievement?.rewardItems) && selectedAchievement.rewardItems.length > 0 ? (
                       <ul style={{ fontSize: "0.875rem", paddingLeft: "1.5rem" }}>
@@ -1187,7 +1262,7 @@ export function AchievementsManagementPage() {
                   </section>
 
                   {Array.isArray(selectedAchievement?.assignmentConditions) && selectedAchievement.assignmentConditions.length > 0 && (
-                    <section className="mission-form-section">
+                    <section className="detail-child-container mission-form-section">
                       <h3>Điều kiện gán</h3>
                       <ul style={{ fontSize: "0.875rem", paddingLeft: "1.5rem" }}>
                         {selectedAchievement.assignmentConditions.map((cond, idx) => (
@@ -1202,15 +1277,6 @@ export function AchievementsManagementPage() {
               )}
             </div>
 
-            <div className="mission-modal-actions">
-              <button
-                type="button"
-                className="mission-btn-secondary"
-                onClick={() => setShowDetail(false)}
-              >
-                Đóng
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -5,15 +5,43 @@ import { Button } from "../../../components/common/button.jsx";
 import { SearchFilter } from "../../../components/common/SearchFilter.jsx";
 import { Table } from "../../../components/common/table.jsx";
 import { Pagination } from "../../../components/common/pagination.jsx";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import { itemTypeApi } from "../../../api/itemTypeApi.js";
 import "../css/itemTypeManagerPage.css";
+import "../../missions/css/missionsManagement.css";
 
 const ITEMS_PER_PAGE = 5;
 
-function Modal({ title, onClose, children }) {
+const translateItemTypeName = (itemTypeName) => {
+  const typeName = String(itemTypeName ?? "").trim();
+  if (!typeName) return "Chưa đặt tên";
+
+  const normalized = typeName.toLowerCase().replace(/[\s_-]+/g, "");
+  const translations = {
+    pvpspeedup: "Tăng tốc độ PvP",
+    debuff: "Hiệu ứng bất lợi",
+    pvpspeeddown: "Giảm tốc độ PvP",
+    consumable: "Vật phẩm tiêu hao",
+    equipment: "Trang bị",
+    material: "Nguyên liệu",
+    questitem: "Vật phẩm nhiệm vụ",
+    special: "Đặc biệt",
+    food: "Thức ăn",
+    gift: "Quà tặng",
+    currency: "Tiền tệ",
+    boost: "Tăng cường",
+    cosmetic: "Trang trí",
+    pet: "Tinh linh",
+    ticket: "Vé",
+  };
+
+  return translations[normalized] || typeName;
+};
+
+function Modal({ title, onClose, children, variant = "" }) {
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className={`modal-content${variant ? ` modal-content-${variant}` : ""}`}>
         <div className="modal-header">
           <h2>{title}</h2>
           <button onClick={onClose} className="modal-close-btn">
@@ -44,27 +72,32 @@ function ItemTypeDetailView({ itemType, onClose }) {
   return (
     <div className="item-detail-layout">
       {/* Hàng trên cùng: Mã loại & Tên loại chia theo tỉ lệ Grid */}
-      <div className="detail-main-grid">
+      <div className="detail-child-container detail-section-card">
+        <h3 className="detail-section-title">THÔNG TIN CHUNG</h3>
+        <div className="detail-main-grid">
         <div className="detail-info-group">
           <span className="detail-label">Mã loại</span>
           <span className="detail-value-code">{itemType.itemTypeId}</span>
         </div>
         <div className="detail-info-group">
           <span className="detail-label">Tên loại</span>
-          <span className="detail-value-name">{itemType.itemTypeName || "Chưa đặt tên"}</span>
+          <span className="detail-value-name">{translateItemTypeName(itemType.itemTypeName)}</span>
         </div>
         <div className="detail-info-group">
           <span className="detail-label">Trạng thái</span>
-          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-            itemType.isActive ? "bg-emerald-100 text-emerald-700" : "bg-destructive/10 text-destructive"
+          <span className={`inline-flex self-start rounded-full px-3 py-1 text-xs font-semibold ${
+            itemType.isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}>
             {itemType.isActive ? "Hoạt động" : "Ngừng hoạt động"}
           </span>
         </div>
+        </div>
       </div>
 
       {/* Hàng thứ hai: Khối thời gian xếp ngang song song dạng Pills */}
-      <div className="detail-time-row">
+      <div className="detail-child-container detail-section-card">
+        <h3 className="detail-section-title">THỜI GIAN</h3>
+        <div className="detail-time-row">
         <div className="time-pill-block">
           <span className="detail-label">Ngày tạo</span>
           <div className="time-pill-value">
@@ -80,18 +113,9 @@ function ItemTypeDetailView({ itemType, onClose }) {
             <span className="date-part">{updatedTime.date}</span>
           </div>
         </div>
+        </div>
       </div>
 
-      {/* Hàng cuối cùng: Khu vực nút hành động đóng cửa sổ full-width */}
-      <div className="detail-footer-actions">
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn-modal-close"
-        >
-          Đóng cửa sổ
-        </button>
-      </div>
     </div>
   );
 }
@@ -127,7 +151,7 @@ function CreateItemTypeForm({ onSubmit, onClose, errorMessage }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
+    <form onSubmit={handleSubmit} className="item-form-layout item-type-modal-form">
       <div className="form-group">
         <label>
           Tên loại vật phẩm <span className="text-destructive">*</span>
@@ -152,19 +176,19 @@ function CreateItemTypeForm({ onSubmit, onClose, errorMessage }) {
         )}
       </div>
 
-      <div className="form-actions">
+      <div className="management-form-actions">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="btn-cancel"
+          className="management-btn-secondary"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="btn-submit flex items-center justify-center gap-2"
+          className="management-btn-primary"
         >
           {isLoading ? (
             <>
@@ -211,7 +235,7 @@ function EditItemTypeForm({ itemType, onSubmit, onClose, errorMessage }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="item-form-layout">
+    <form onSubmit={handleSubmit} className="item-form-layout item-type-modal-form">
       <div className="form-group">
         <label>
           Tên loại vật phẩm <span className="text-destructive">*</span>
@@ -236,19 +260,19 @@ function EditItemTypeForm({ itemType, onSubmit, onClose, errorMessage }) {
         )}
       </div>
 
-      <div className="form-actions">
+      <div className="management-form-actions">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="btn-cancel"
+          className="management-btn-secondary"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="btn-submit flex items-center justify-center gap-2"
+          className="management-btn-primary"
         >
           {isLoading ? (
             <>
@@ -300,7 +324,9 @@ export function ItemTypeManager() {
       setTypes(actualData);
     } catch (err) {
       console.error("Lỗi khi lấy danh sách loại vật phẩm:", err);
-      setError("Không thể tải danh sách loại vật phẩm.");
+      setTypes([]);
+      setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      showDialog("Không thể tải dữ liệu. Vui lòng thử lại sau.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -420,106 +446,70 @@ export function ItemTypeManager() {
   const endItem = Math.min(currentPage * ITEMS_PER_PAGE, filteredTypes.length);
 
   return (
-    <div className="page-container relative px-4 py-6">
-      <div className="header-wrapper bg-card border border-border rounded-2xl p-6 shadow-sm">
+    <div className="mission-page-wrapper relative">
+      <div className="mission-header">
         <div>
-          <h1 className="header-title">Quản lý loại vật phẩm</h1>
-          <p className="header-subtitle">
-            Danh sách loại vật phẩm và số lượng item theo từng loại
+          <h1 className="mission-title">Quản lý loại vật phẩm</h1>
+          <p className="mission-subtitle">
+            Danh sách loại vật phẩm và số lượng vật phẩm theo từng loại
           </p>
         </div>
-
-      </div>
-
-      <div className="filter-container">
-        <div className="search-wrapper">
-          <SearchFilter
-            value={searchKeyword}
-            onChange={(e) => {
-              setSearchKeyword(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Tìm kiếm loại vật phẩm..."
-            className="w-full border-none"
-            inputClassName="bg-muted border-none"
-          />
-        </div>
-        <div className="mt-4 md:mt-0">
+        <div className="mission-header-actions">
           <Button
             variant="primary"
-            size="md"
-            className="inline-flex items-center gap-2"
             onClick={() => setCreateTypeOpen(true)}
+            className="rounded-lg"
           >
-            <Plus size={16} />
+            <Plus size={16} className="mr-2" />
             Tạo loại mới
           </Button>
         </div>
       </div>
 
-      {dialog.show && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                dialog.type === "success"
-                  ? "bg-primary/10 text-primary"
-                  : dialog.type === "error"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-amber-500/10 text-amber-500"
-              }`}
-            >
-              {dialog.type === "success" && <CheckCircle size={32} />}
-              {dialog.type === "error" && <X size={32} />}
-            </div>
+      <CommonDialog
+        isOpen={dialog.show}
+        type={dialog.type}
+        title={dialog.type === "success" ? "Thành công" : dialog.type === "error" ? "Có lỗi xảy ra" : "Thông báo"}
+        message={dialog.message}
+        onClose={closeDialog}
+      />
 
-            <h3 className="text-xl font-bold text-foreground mb-2">
-              {dialog.type === "success"
-                ? "Thành công"
-                : dialog.type === "error"
-                  ? "Có lỗi xảy ra"
-                  : "Thông báo"}
-            </h3>
-
-            <p className="text-muted-foreground mb-6 text-sm">{dialog.message}</p>
-
-            <button
-              onClick={closeDialog}
-              className={`w-full py-2.5 rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                dialog.type === "success"
-                  ? "bg-primary hover:bg-primary/90 focus:ring-primary"
-                  : "bg-destructive hover:bg-destructive/90 focus:ring-destructive"
-              }`}
-            >
-              Xác nhận
-            </button>
+      <div className="mission-table-container item-type-table-card">
+        <div className="mission-toolbar">
+          <div className="mission-toolbar-search">
+            <SearchFilter
+              value={searchKeyword}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm kiếm loại vật phẩm..."
+            />
           </div>
         </div>
-      )}
-
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <Table className="custom-table">
+        <div className="mission-table-responsive">
+        <Table className="mission-table" containerClassName="item-type-table-wrapper">
           <thead>
-            <tr className="bg-muted/50 text-muted-foreground">
-              <th className="px-5 py-3">Mã loại</th>
-              <th className="px-4 py-3">Tên loại</th>
-              <th className="px-4 py-3">Số lượng item đang sử dụng</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Thao tác</th>
+            <tr>
+              <th style={{ width: "24%" }}>Mã loại</th>
+              <th style={{ width: "22%" }}>Tên loại</th>
+              <th style={{ width: "22%" }}>Số lượng vật phẩm đang sử dụng</th>
+              <th style={{ width: "14%" }}>Trạng thái</th>
+              <th style={{ width: "18%" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                <td colSpan={5} className="management-loading-cell">
+                  <Loader2 className="management-loading-spinner" />
                   Đang tải danh sách...
                 </td>
               </tr>
             ) : pagedTypes.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  Không có loại vật phẩm nào.
+                  {error ? "Không thể tải danh sách loại vật phẩm." : "Không có loại vật phẩm nào."}
                 </td>
               </tr>
             ) : (
@@ -538,24 +528,26 @@ export function ItemTypeManager() {
                     }
                   }}
                 >
-                  <td className="px-5 py-3 text-muted-foreground break-all">
+                  <td className="align-middle">
+                    <span className="mission-item-id break-all">
                     {type.itemTypeId}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-foreground font-medium">
-                    {type.itemTypeName || "Chưa đặt tên"}
+                  <td className="align-middle">
+                    <span className="mission-item-title">
+                    {translateItemTypeName(type.itemTypeName)}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-primary font-semibold">
+                  <td className="align-middle font-semibold text-primary">
                     {type.count ?? 0}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                      type.isActive ? "bg-emerald-100 text-emerald-700" : "bg-destructive/10 text-destructive"
-                    }`}>
+                  <td className="align-middle">
+                    <span className={`badge-status ${type.isActive ? "item-type-status-active" : "item-type-status-inactive"}`}>
                       {type.isActive ? "Hoạt động" : "Ngừng hoạt động"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="inline-flex items-center gap-2">
+                  <td className="align-middle">
+                    <div className="item-type-action-buttons">
                       <button
                         type="button"
                         onClick={async (e) => {
@@ -569,7 +561,7 @@ export function ItemTypeManager() {
                             setEditType(type);
                           }
                         }}
-                        className="py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium bg-amber-500/10 text-amber-700 border border-amber-500/25 hover:bg-amber-500 hover:text-white"
+                        className="mission-table-pill-btn edit"
                       >
                         <Pencil className="w-3 h-3" />
                         <span>Sửa</span>
@@ -581,13 +573,7 @@ export function ItemTypeManager() {
                           await handleToggleActive(type.itemTypeId, type.isActive);
                         }}
                         disabled={deletingTypeId === type.itemTypeId}
-                        className={`py-1.5 px-2.5 text-xs inline-flex items-center gap-1 rounded-lg font-medium ${
-                          deletingTypeId === type.itemTypeId
-                            ? "bg-destructive/10 text-destructive border border-destructive/25 opacity-70 cursor-not-allowed"
-                            : type.isActive
-                              ? "bg-destructive/10 text-destructive border border-destructive/25 hover:bg-destructive hover:text-white"
-                              : "bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200"
-                        }`}
+                        className={`mission-table-pill-btn ${type.isActive ? "disable" : "enable"} ${deletingTypeId === type.itemTypeId ? "opacity-70 cursor-not-allowed" : ""}`}
                       >
                         {deletingTypeId === type.itemTypeId ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -603,24 +589,21 @@ export function ItemTypeManager() {
             )}
           </tbody>
         </Table>
-      </div>
+        </div>
 
-      <div className="footer-container">
-        <p className="text-sm text-muted-foreground">
-          Hiển thị {startItem}–{endItem} trong {filteredTypes.length} kết quả
-        </p>
+      <div className="mission-footer">
+        <span>
+          Hiển thị <span className="font-medium text-foreground">{startItem}</span> –{" "}
+          <span className="font-medium text-foreground">{endItem}</span> trong{" "}
+          <span className="font-medium text-foreground">{filteredTypes.length}</span> kết quả
+        </span>
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onChange={(page) => setCurrentPage(page)}
         />
       </div>
-
-      {error && (
-        <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      </div>
 
       {createTypeOpen && (
         <Modal
@@ -637,7 +620,7 @@ export function ItemTypeManager() {
 
       {editType && (
         <Modal
-          title={`Sửa loại vật phẩm: ${editType.itemTypeName}`}
+          title={`Sửa loại vật phẩm: ${translateItemTypeName(editType.itemTypeName)}`}
           onClose={() => setEditType(null)}
         >
           <EditItemTypeForm
@@ -651,8 +634,9 @@ export function ItemTypeManager() {
 
       {detailType && (
         <Modal
-          title={`Chi tiết loại: ${detailType.itemTypeName}`}
+          title="Chi tiết loại vật phẩm"
           onClose={() => setDetailType(null)}
+          variant="detail"
         >
           <ItemTypeDetailView
             itemType={detailType}
@@ -661,7 +645,7 @@ export function ItemTypeManager() {
         </Modal>
       )}
 
-      {confirmDeleteType && (
+      {false && confirmDeleteType && (
         <Modal
           title={confirmActionTarget ? "Xác nhận kích hoạt loại vật phẩm" : "Xác nhận vô hiệu hóa loại vật phẩm"}
           onClose={handleCancelDeleteType}
@@ -693,7 +677,7 @@ export function ItemTypeManager() {
                 className={`w-full sm:w-auto py-2 px-4 rounded-xl text-sm font-semibold transition-colors ${
                   deletingTypeId === confirmDeleteType
                     ? "bg-destructive/20 text-destructive cursor-not-allowed"
-                    : (confirmActionTarget ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-destructive text-white hover:bg-destructive/90")
+                    : (confirmActionTarget ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-destructive text-white hover:bg-destructive/90")
                 }`}
               >
                 {deletingTypeId === confirmDeleteType ? (
@@ -708,6 +692,26 @@ export function ItemTypeManager() {
             </div>
           </div>
         </Modal>
+      )}
+      {confirmDeleteType && (
+        <CommonDialog
+          isOpen={!!confirmDeleteType}
+          type="warning"
+          title={confirmActionTarget ? "Xác nhận kích hoạt" : "Xác nhận vô hiệu hóa"}
+          message={
+            <>
+              Bạn có chắc chắn muốn {confirmActionTarget ? "kích hoạt" : "vô hiệu hóa"} loại vật phẩm{" "}
+              <strong className="font-bold text-foreground">
+                {types.find((type) => type.itemTypeId === confirmDeleteType)?.itemTypeName || confirmDeleteType}
+              </strong>{" "}
+              không?
+            </>
+          }
+          onClose={handleCancelDeleteType}
+          onConfirm={handleConfirmDeleteType}
+          confirmLabel={confirmActionTarget ? "Kích hoạt" : "Vô hiệu hóa"}
+          isLoading={deletingTypeId === confirmDeleteType}
+        />
       )}
     </div>
   );

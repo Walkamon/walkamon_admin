@@ -61,7 +61,7 @@
     @apply absolute left-4 top-1/2 -translate-y-1/2 text-[#9A8F82];
 }
 
-.form-input {
+.login-form-input {
     @apply w-full pl-12 pr-4 py-3.5 bg-[#FFF8F0] border border-[#E5DCCF] rounded-2xl transition-all;
     @apply focus:outline-none focus:border-[#76A084] focus:ring-4 focus:ring-[#76A084]/10;
     @apply disabled:opacity-70 disabled:cursor-not-allowed;

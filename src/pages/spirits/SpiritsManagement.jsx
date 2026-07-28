@@ -15,6 +15,8 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
+import { Button } from "../../components/common/button.jsx";
+import "../missions/css/missionsManagement.css";
 import {
   getAdminPets,
   getAdminPetDetail,
@@ -25,10 +27,12 @@ import { Table, TableEmpty } from "../../components/common/table";
 import CommonDialog from "../../components/common/CommonDialog";
 
 import "./css/spiritsManagement.css";
+import "../../styles/managementStats.css";
 
 export function SpiritsManagement() {
   const [pets, setPets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // State cho Modal chi tiết
   const [selectedPetId, setSelectedPetId] = useState(null);
@@ -53,14 +57,17 @@ export function SpiritsManagement() {
 
   const fetchPets = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
+    if (showLoading) setLoadError(false);
     const res = await getAdminPets();
     if (res && res.success) {
       setPets(res.data || []);
     } else {
+      setPets([]);
+      setLoadError(true);
       setDialogConfig({
         isOpen: true,
         type: "error",
-        message: res?.message || "Không thể tải danh sách Tinh Linh.",
+        message: "Không thể tải dữ liệu. Vui lòng thử lại sau.",
       });
     }
     if (showLoading) setIsLoading(false);
@@ -251,8 +258,8 @@ export function SpiritsManagement() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center gap-2 bg-card">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="spirits-management-wrapper spirits-loading-state management-loading-state">
+        <Loader2 className="management-loading-spinner" />
         <span className="text-foreground">Đang tải dữ liệu Tinh Linh...</span>
       </div>
     );
@@ -268,33 +275,29 @@ export function SpiritsManagement() {
       </div>
 
       {/* THỐNG KÊ */}
-      <div className="spirits-section-card">
-        <h2 className="spirits-section-title">Thống Kê Chỉ Số</h2>
-        <div className="stats-grid">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.id} className="stat-item">
-                <div className="stat-item-header">
-                  <div className="stat-icon-wrapper">
-                    <Icon className={`w-5 h-5 ${stat.iconColor}`} />
-                  </div>
-                  <div className={`stat-badge ${stat.badgeColor}`}>Chỉ số</div>
-                </div>
-                <p className="stat-label">{stat.label}</p>
-                <p className="stat-value">{stat.value.toLocaleString()}</p>
+      <div className="management-stats-grid">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.id} className="management-stat-card">
+              <div className="management-stat-content">
+                <p className="management-stat-label">{stat.label}</p>
+                <p className="management-stat-value">{stat.value.toLocaleString()}</p>
               </div>
-            );
-          })}
-        </div>
+              <div className="management-stat-icon">
+                <Icon className="w-5 h-5" />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* BẢNG DỮ LIỆU CHÍNH */}
-      <div className="spirits-section-card">
-        <h2 className="spirits-section-title">Danh sách Tinh Linh</h2>
-        <Table>
+      <div className="spirits-section-card mission-table-container spirits-list-card">
+        <div className="mission-table-responsive">
+        <Table className="mission-table" containerClassName="spirits-table-wrapper">
           <thead>
-            <tr className="spirits-table-header">
+            <tr>
               <th className="w-[30%] text-left">ID</th>
               <th className="w-[22%] text-left">Tên Tinh Linh</th>
               <th className="w-[12%] text-center">Sinh Mệnh Lực</th>
@@ -305,41 +308,46 @@ export function SpiritsManagement() {
           </thead>
           <tbody>
             {pets.length === 0 ? (
-              <TableEmpty colSpan={6} message="Không có Tinh Linh nào." />
+              <TableEmpty colSpan={6} message={loadError ? "Không thể tải danh sách Tinh Linh." : "Không có Tinh Linh nào."} />
             ) : (
               pets.map((pet) => (
                 <tr
                   key={pet.petId}
-                  className="spirits-table-row cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer"
                   onClick={() => handleViewDetail(pet.petId)}
                   title="Nhấn để xem chi tiết"
                 >
-                  <td className="cell-id">{pet.petId}</td>
-                  <td className="cell-name">{pet.petName}</td>
-                  <td className="cell-center">
+                  <td className="align-middle">
+                    <span className="mission-item-id">{pet.petId}</span>
+                  </td>
+                  <td className="align-middle">
+                    <span className="mission-item-title">{pet.petName}</span>
+                  </td>
+                  <td className="align-middle text-center">
                     <span className="status-tag tag-success">
                       {pet.lifeForce}
                     </span>
                   </td>
-                  <td className="cell-center">
+                  <td className="align-middle text-center">
                     <span className="status-tag tag-warning">{pet.energy}</span>
                   </td>
-                  <td className="cell-center">
+                  <td className="align-middle text-center">
                     <span className="status-tag tag-danger">{pet.bond}</span>
                   </td>
-                  <td className="cell-center text-exp">{pet.exp}</td>
+                  <td className="align-middle text-center text-exp">{pet.exp}</td>
                 </tr>
               ))
             )}
           </tbody>
         </Table>
+        </div>
       </div>
 
       {/* MODAL CHI TIẾT TINH LINH */}
       {selectedPetId && (
         <div className="spirit-modal-overlay" onClick={handleCloseModal}>
           <div
-            className="spirit-modal-container"
+            className={`spirit-modal-container${isEditing ? " is-editing" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -375,14 +383,16 @@ export function SpiritsManagement() {
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <>
-                    <button
+                    <Button
+                      variant="secondary"
                       className="spirit-btn spirit-btn-outline"
                       onClick={handleCancelEdit}
                       disabled={isSaving}
                     >
                       <XCircle className="w-4 h-4" /> Hủy
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
                       className="spirit-btn spirit-btn-primary"
                       onClick={handleSaveEdit}
                       disabled={isSaving}
@@ -393,28 +403,31 @@ export function SpiritsManagement() {
                         <Save className="w-4 h-4" />
                       )}
                       Lưu thay đổi
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   !isDetailLoading && (
-                    <button
+                    <Button
+                      variant="primary"
                       className="spirit-btn spirit-btn-primary"
                       onClick={handleEnableEdit}
                     >
                       <Edit2 className="w-4 h-4" /> Cập nhật
-                    </button>
+                    </Button>
                   )
                 )}
 
                 <div className="w-px h-6 bg-border mx-2"></div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="btn-back"
                   onClick={handleCloseModal}
                   title="Đóng"
                   disabled={isSaving}
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             </div>
 

@@ -1,0 +1,93 @@
+.pvp-checkbox {
+  appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background-color: var(--card);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Header save actions should keep their natural width instead of inheriting form-button sizing. */
+#root .noti-header > div:last-child .management-btn-primary {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  padding: 0.625rem 1rem !important;
+  white-space: nowrap;
+}
+
+.pvp-checkbox:hover {
+  border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 6%, var(--card));
+}
+
+.pvp-checkbox:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.pvp-checkbox:checked::after {
+  content: "";
+  width: 0.3rem;
+  height: 0.55rem;
+  border: solid var(--primary-foreground);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.pvp-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.pvp-checkbox:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pvp-money-input.form-input {
+  width: 100%;
+  max-width: 12rem;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  border-radius: 0.625rem;
+  background-color: color-mix(in srgb, var(--primary) 7%, var(--card)) !important;
+  color: var(--foreground);
+  font-weight: 600;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.pvp-money-input.form-input:hover {
+  background-color: color-mix(in srgb, var(--primary) 11%, var(--card)) !important;
+}
+
+.pvp-money-input.form-input:focus {
+  background-color: var(--card) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.pvp-table-input.form-input {
+  max-width: 100%;
+  border: none;
+  border-radius: 0.625rem;
+  background-color: color-mix(in srgb, var(--primary) 7%, var(--card)) !important;
+  color: var(--foreground);
+  text-align: left;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pvp-table-input.form-input:hover {
+  background-color: color-mix(in srgb, var(--primary) 11%, var(--card)) !important;
+}
+
+.pvp-table-input.form-input:focus {
+  background-color: var(--card) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}

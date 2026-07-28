@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Button } from "../../../../components/common/button.jsx";
 import authApi from "../../../../api/authApi";
 import "../css/login.css"; // Nhớ import đúng đường dẫn file CSS vừa tạo nhé ông
 
@@ -143,7 +144,7 @@ export function LoginPage() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="form-input"
+                                    className="login-form-input"
                                     placeholder="admin@walkamon.com"
                                     required
                                     disabled={isLoading}
@@ -162,7 +163,7 @@ export function LoginPage() {
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="form-input"
+                                    className="login-form-input"
                                     placeholder="••••••••"
                                     required
                                     disabled={isLoading}
@@ -184,7 +185,7 @@ export function LoginPage() {
                         </div>
 
                         {/* Submit Button */}
-                        <button type="submit" disabled={isLoading} className="submit-btn">
+                        <Button type="submit" variant="primary" disabled={isLoading} className="submit-btn">
                             {isLoading ? (
                                 <>
                                     <Loader2 size={22} className="animate-spin" />
@@ -196,7 +197,7 @@ export function LoginPage() {
                                     <ArrowRight size={22} strokeWidth={2.5} />
                                 </>
                             )}
-                        </button>
+                        </Button>
                     </form>
                 </div>
 

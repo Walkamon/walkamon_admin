@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Footprints, TrendingUp, Users } from "lucide-react";
+import { Activity, Footprints, Loader2, TrendingUp, Users } from "lucide-react";
 import {
   Cell,
   Legend,
@@ -9,6 +9,9 @@ import {
   Tooltip,
 } from "recharts";
 import dashboardApi from "../../../api/dashboardApi";
+import CommonDialog from "../../../components/common/CommonDialog.jsx";
+import "../../../styles/managementStats.css";
+import "../css/dashboard.css";
 
 const COLORS = ["#76A084", "#8ECAE6", "#E59A73", "#C5B8A8"];
 
@@ -28,10 +31,20 @@ const interactionNames = {
   Tap: "Vuốt ve",
 };
 
+const getInteractionName = (interactionType) => {
+  const rawType = String(interactionType ?? "").trim();
+  const matchedType = Object.keys(interactionNames).find(
+    (type) => type.toLowerCase() === rawType.toLowerCase(),
+  );
+
+  return (matchedType && interactionNames[matchedType]) || rawType || "-";
+};
+
 export function Dashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -39,11 +52,10 @@ export function Dashboard() {
       setError("");
       const data = await dashboardApi.getDashboard();
       setDashboard(data);
-    } catch (requestError) {
-      setError(
-        requestError?.response?.data?.message ||
-          "Không thể tải dữ liệu tổng quan. Vui lòng thử lại.",
-      );
+    } catch {
+      const message = "Không thể tải dữ liệu. Vui lòng thử lại sau.";
+      setError(message);
+      setShowErrorDialog(true);
     } finally {
       setLoading(false);
     }
@@ -55,10 +67,9 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground">
-          Đang tải dữ liệu tổng quan...
-        </div>
+      <div className="management-loading-state min-h-[20rem]">
+        <Loader2 className="management-loading-spinner" />
+        Đang tải dữ liệu...
       </div>
     );
   }
@@ -66,15 +77,15 @@ export function Dashboard() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-card border border-border rounded-2xl p-8 text-center">
-          <p className="text-[#DC6B6B] mb-4">{error}</p>
-          <button
-            type="button"
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-            onClick={fetchDashboard}
-          >
-            Thử lại
-          </button>
+        <CommonDialog
+          isOpen={showErrorDialog}
+          type="error"
+          title="Có lỗi xảy ra"
+          message={error}
+          onClose={() => setShowErrorDialog(false)}
+        />
+        <div className="bg-card border border-border rounded-2xl p-8 text-center management-error-state">
+          <p className="text-muted-foreground mb-4">Không có dữ liệu tổng quan.</p>
         </div>
       </div>
     );
@@ -101,9 +112,7 @@ export function Dashboard() {
 
   const interactionData = (dashboard?.petInteractions ?? []).map(
     (interaction) => ({
-      name:
-        interactionNames[interaction.interactionType] ||
-        interaction.interactionType,
+      name: getInteractionName(interaction.interactionType),
       value: interaction.totalCount,
       percentage: interaction.percentage,
     }),
@@ -120,7 +129,7 @@ export function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="management-stats-grid dashboard-stats-grid">
         {overviewData.map((item) => {
           const Icon = item.icon;
           const growth = Number(dashboard?.userGrowthPercentage) || 0;
@@ -128,15 +137,13 @@ export function Dashboard() {
           return (
             <div
               key={item.label}
-              className="bg-card border border-border rounded-2xl p-6"
+              className="management-stat-card"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="rounded-xl bg-muted p-3">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
+              <div className="management-stat-content">
+                <p className="management-stat-label">{item.label}</p>
+                <p className="management-stat-value">{item.value}</p>
                 {item.change && (
-                  <span
-                    className={`text-sm font-medium ${
+                  <span className={`management-stat-change ${
                       growth >= 0 ? "text-[#76A084]" : "text-[#DC6B6B]"
                     }`}
                   >
@@ -144,46 +151,51 @@ export function Dashboard() {
                   </span>
                 )}
               </div>
-              <p className="text-4xl font-bold mb-2 text-foreground">
-                {item.value}
-              </p>
-              <p className="text-sm text-muted-foreground">{item.label}</p>
+              <div className="management-stat-icon">
+                <Icon className="h-5 w-5" />
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-6">
-        <h2 className="font-semibold text-lg mb-6 text-foreground">
+      <div className="dashboard-secondary-stats">
+        <h2 className="font-semibold text-lg text-foreground">
           Thống kê bước chân hôm nay
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-muted p-6 rounded-xl">
-            <p className="text-3xl font-bold mb-2 text-foreground">
-              {formatNumber(dashboard?.averageStepsPerDay)}
-            </p>
-            <p className="text-sm text-foreground font-medium">
-              Bước chân trung bình/ngày
-            </p>
+        <div className="management-stats-grid dashboard-stats-grid">
+          <div className="management-stat-card">
+            <div className="management-stat-content">
+              <p className="management-stat-label">Bước chân trung bình/ngày</p>
+              <p className="management-stat-value">
+                {formatNumber(dashboard?.averageStepsPerDay)}
+              </p>
+            </div>
+            <div className="management-stat-icon">
+              <Footprints className="h-5 w-5" />
+            </div>
           </div>
-          <div className="bg-muted p-6 rounded-xl">
-            <p className="text-3xl font-bold mb-2 text-foreground">
-              {formatNumber(dashboard?.walkingUsersToday)}
-            </p>
-            <p className="text-sm text-foreground font-medium">
-              Người đi bộ hôm nay
-            </p>
+          <div className="management-stat-card">
+            <div className="management-stat-content">
+              <p className="management-stat-label">Người đi bộ hôm nay</p>
+              <p className="management-stat-value">
+                {formatNumber(dashboard?.walkingUsersToday)}
+              </p>
+            </div>
+            <div className="management-stat-icon">
+              <Users className="h-5 w-5" />
+            </div>
           </div>
-          <div className="bg-muted p-6 rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-6 w-6 text-primary" />
-              <p className="text-3xl font-bold text-foreground">
+          <div className="management-stat-card">
+            <div className="management-stat-content">
+              <p className="management-stat-label">So với hôm qua</p>
+              <p className="management-stat-value">
                 {formatPercentage(dashboard?.compareWithYesterday)}
               </p>
             </div>
-            <p className="text-sm text-foreground font-medium">
-              So với hôm qua
-            </p>
+            <div className="management-stat-icon">
+              <TrendingUp className="h-5 w-5" />
+            </div>
           </div>
         </div>
       </div>

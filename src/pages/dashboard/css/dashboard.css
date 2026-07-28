@@ -42,3 +42,24 @@
     @apply flex items-center justify-center gap-2 w-full bg-red-500 text-white py-3.5 rounded-2xl font-semibold text-base transition-all shadow-md;
     @apply hover:bg-red-600 hover:shadow-lg active:scale-[0.985];
 }
+
+.dashboard-secondary-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.dashboard-secondary-stats .management-stats-grid {
+    width: 100%;
+    max-width: none;
+    margin-bottom: 0;
+}
+
+.dashboard-stats-grid {
+    width: 100%;
+    max-width: none;
+}
+
+.dashboard-stats-grid .management-stat-card {
+    min-height: 7.25rem;
+}

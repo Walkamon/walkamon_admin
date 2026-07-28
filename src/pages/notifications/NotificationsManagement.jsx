@@ -9,6 +9,8 @@ import { Pagination } from "../../components/common/pagination";
 import { SearchFilter } from "../../components/common/SearchFilter";
 import { Table, TableEmpty } from "../../components/common/table";
 import CommonDialog from "../../components/common/CommonDialog";
+import "../missions/css/missionsManagement.css";
+import "../pvp/css/pvpAdmin.css";
 
 import "./css/notifications.css";
 
@@ -50,6 +52,24 @@ const typeOptions = [
   { id: "friend_accepted", label: "Chấp nhận kết bạn" },
   { id: "friend_removed", label: "Hủy kết bạn" },
 ];
+
+const formatNotificationDateTime = (value) => {
+  if (!value) return "---";
+
+  let rawValue = String(value).trim().replace(" ", "T");
+  if (!rawValue) return "---";
+
+  // JavaScript Date does not accept timestamp fractions longer than milliseconds.
+  rawValue = rawValue.replace(/\.(\d{3})\d+/, ".$1");
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(rawValue);
+  const date = new Date(hasTimezone ? rawValue : `${rawValue}Z`);
+
+  if (Number.isNaN(date.getTime())) return "---";
+
+  return date.toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+};
 
 const emptyForm = {
   typeCode: "server_announcement",
@@ -94,10 +114,12 @@ export function NotificationsManagement() {
     title: "",
     message: "",
   });
+  const [loadError, setLoadError] = useState(false);
 
   const fetchNotifications = async (page) => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const res = await notificationApi.getNotifications(page, pageSize);
       if (res.success) {
         setNotifications(res.data.notifications);
@@ -107,14 +129,18 @@ export function NotificationsManagement() {
         triggerDialog(
           "error",
           "Lỗi dữ liệu",
-          res.message || "Không thể tải danh sách thông báo.",
+          "Không thể tải dữ liệu. Vui lòng thử lại sau.",
         );
       }
     } catch (error) {
+      setNotifications([]);
+      setTotalCount(0);
+      setTotalPages(1);
+      setLoadError(true);
       triggerDialog(
         "error",
-        "Lỗi kết nối",
-        "Hệ thống gặp sự cố khi đồng bộ danh sách.",
+        "Lỗi dữ liệu",
+        "Không thể tải dữ liệu. Vui lòng thử lại sau.",
       );
     } finally {
       setIsLoading(false);
@@ -482,26 +508,17 @@ export function NotificationsManagement() {
         </Button>
       </div>
 
-      <div className="noti-card">
+      <div className="noti-card mission-table-container">
         <div className="noti-toolbar">
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              flexWrap: "wrap",
-              width: "100%",
-              maxWidth: "640px",
-            }}
-          >
-            <div style={{ flex: "1 1 250px" }}>
-              <SearchFilter
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm tiêu đề thông báo..."
-                className="noti-search-filter"
-              />
-            </div>
-            <div style={{ width: "200px" }}>
+          <div className="mission-toolbar-search">
+            <SearchFilter
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm kiếm tiêu đề thông báo..."
+            />
+          </div>
+          <div className="noti-filter-group">
+            <div>
               <CustomSelect
                 value={filterStatus}
                 onChange={(val) => setFilterStatus(val)}
@@ -512,38 +529,38 @@ export function NotificationsManagement() {
           </div>
         </div>
 
-        <Table>
-          <colgroup>
-            <col className="col-id" />
-            <col className="col-title" />
-            <col className="col-target" />
-            <col className="col-status" />
-            <col className="col-time" />
-            <col className="col-actions" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="noti-th">Mã định danh</th>
-              <th className="noti-th">Tiêu đề</th>
-              <th className="noti-th">Đối tượng đích</th>
-              <th className="noti-th">Trạng thái</th>
-              <th className="noti-th">Thời gian gửi</th>
-              <th className="noti-th" style={{ textAlign: "center" }}>
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="mission-table-responsive notification-table-responsive">
+          <Table className="mission-table">
+            <colgroup>
+              <col className="col-id" />
+              <col className="col-title" />
+              <col className="col-target" />
+              <col className="col-status" />
+              <col className="col-time" />
+              <col className="col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tiêu đề</th>
+                <th>Đối tượng đích</th>
+                <th>Trạng thái</th>
+                <th>Thời gian gửi</th>
+                <th style={{ textAlign: "center" }}>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
             {isLoading && notifications.length === 0 ? (
               <tr>
-                <td colSpan={6} className="noti-table-loading">
+                <td colSpan={6} className="management-loading-cell">
+                  <Loader2 className="management-loading-spinner" />
                   Đang tải dữ liệu thông báo...
                 </td>
               </tr>
             ) : filteredNotifications.length === 0 ? (
               <TableEmpty
                 colSpan={6}
-                message="Không tìm thấy dữ liệu thông báo nào phù hợp."
+                message={loadError ? "Không thể tải danh sách thông báo." : "Không tìm thấy dữ liệu thông báo nào phù hợp."}
               />
             ) : (
               filteredNotifications.map((notif) => (
@@ -574,15 +591,9 @@ export function NotificationsManagement() {
                     </span>
                   </td>
                   <td className="noti-td noti-td-time">
-                    {notif.sendTime
-                      ? new Date(
-                          notif.sendTime.endsWith("Z")
-                            ? notif.sendTime
-                            : notif.sendTime + "Z",
-                        ).toLocaleString("vi-VN", {
-                          timeZone: "Asia/Ho_Chi_Minh",
-                        })
-                      : "---"}
+                    {formatNotificationDateTime(
+                      notif.sentAt || notif.sendTime || notif.scheduleTime,
+                    )}
                   </td>
                   <td className="noti-td-actions">
                     <div className="action-btn-group">
@@ -594,7 +605,7 @@ export function NotificationsManagement() {
                           e.stopPropagation(); // Ngăn sự kiện click bọt khí lên thẻ <tr>
                           openEditModal(notif);
                         }}
-                        className="btn-edit-action"
+                        className="mission-table-pill-btn edit"
                         style={{
                           opacity: notif.statusCode === "sent" ? 0.5 : 1,
                           cursor:
@@ -607,13 +618,13 @@ export function NotificationsManagement() {
                       </Button>
 
                       <Button
-                        variant="destructive"
+                        variant="default"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation(); // Ngăn sự kiện click bọt khí lên thẻ <tr>
                           handleDelete(notif.notificationId);
                         }}
-                        className="btn-delete-action"
+                        className="mission-table-pill-btn disable"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Xóa
                       </Button>
@@ -622,31 +633,21 @@ export function NotificationsManagement() {
                 </tr>
               ))
             )}
-          </tbody>
-        </Table>
+            </tbody>
+          </Table>
+        </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "16px",
-            marginTop: "16px",
-          }}
-        >
-          <div className="noti-counter">
-            Hiển thị <span>{filteredNotifications.length}</span> trên tổng số{" "}
-            {totalCount}
-          </div>
+        <div className="mission-footer">
+          <span>
+            Hiển thị <span className="font-medium text-foreground">{filteredNotifications.length}</span> trên tổng số{" "}
+            <span className="font-medium text-foreground">{totalCount}</span>
+          </span>
           {totalPages > 1 && (
-            <div className="pagination-wrapper" style={{ marginTop: 0 }}>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onChange={(page) => setCurrentPage(page)}
-              />
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onChange={(page) => setCurrentPage(page)}
+            />
           )}
         </div>
       </div>
@@ -670,9 +671,10 @@ export function NotificationsManagement() {
             <div className="modal-body detail-modal-body">
               {/* CỘT TRÁI - Giao diện phẳng, không hộp */}
               <div className="detail-col-left">
+                <h3 className="detail-main-section-title">THÔNG TIN THÔNG BÁO</h3>
                 <div className="detail-info-row">
                   <span className="detail-section-title">
-                    Mã định danh (ID)
+                    ID
                   </span>
                   <span className="detail-id-badge">
                     {detailData.notificationId}
@@ -719,7 +721,7 @@ export function NotificationsManagement() {
                   <div className="detail-meta-item">
                     <span className="detail-meta-label">Trạng thái</span>
                     <span
-                      className={`detail-meta-value ${detailData.statusCode === "sent" ? "text-success" : detailData.statusCode === "failed" ? "text-danger" : "text-warning"}`}
+                      className={`detail-meta-value detail-status-badge ${detailData.statusCode === "sent" ? "detail-status-success" : detailData.statusCode === "failed" ? "detail-status-danger" : "detail-status-warning"}`}
                     >
                       {getStatusLabel(detailData.statusCode)}
                     </span>
@@ -795,11 +797,6 @@ export function NotificationsManagement() {
               </div>
             </div>
 
-            <div className="modal-footer detail-modal-footer">
-              <Button variant="secondary" onClick={() => setDetailData(null)}>
-                Đóng
-              </Button>
-            </div>
           </div>
         </div>
       )}
@@ -821,7 +818,7 @@ export function NotificationsManagement() {
 
             <form onSubmit={handleSaveForm}>
               <div className="modal-body">
-                <div className="form-grid">
+                <div className="form-grid notification-form-section">
                   <div className="form-group">
                     <label className="form-label">Loại thông báo</label>
                     <CustomSelect
@@ -976,7 +973,7 @@ export function NotificationsManagement() {
                   </div>
                 </div>
 
-                <div className="form-grid" style={{ alignItems: "flex-start" }}>
+                <div className="form-grid notification-schedule-section" style={{ alignItems: "flex-start" }}>
                   {!editId && (
                     <div
                       className="form-group"
@@ -990,11 +987,7 @@ export function NotificationsManagement() {
                       <input
                         type="checkbox"
                         id="sendNowCheckbox"
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          accentColor: "var(--primary)",
-                        }}
+                        className="pvp-checkbox"
                         checked={formData.sendNow}
                         onChange={(e) =>
                           setFormData({
@@ -1033,15 +1026,16 @@ export function NotificationsManagement() {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              <div className="modal-footer management-form-actions">
                 <Button
                   variant="secondary"
+                  className="management-btn-secondary"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isLoading}
                 >
                   Hủy
                 </Button>
-                <Button variant="primary" type="submit" disabled={isLoading}>
+                <Button variant="primary" type="submit" className="management-btn-primary" disabled={isLoading}>
                   {isLoading ? (
                     <span
                       style={{
