@@ -60,7 +60,6 @@ function UserAvatarSection({ user }) {
 export function PlayerDetailModal({ user, open, onClose }) {
     if (!open || !user) return null;
 
-    const pet = user.pet || user.spirit || null;
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -116,61 +115,7 @@ export function PlayerDetailModal({ user, open, onClose }) {
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    {/* KHỐI 3: THÔNG TIN TINH LINH */}
-                    <div className="player-detail-section">
-                        <h3 className="player-detail-section-title text-sm font-semibold text-muted-foreground mb-3">
-                            Thông tin Tinh Linh
-                        </h3>
-                        {pet ? (
-                            <div className="p-5 border border-primary/20 bg-primary/5 rounded-2xl relative overflow-hidden">
-                                <div className="absolute top-3 right-4 bg-primary/10 text-primary text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">
-                                    Đồng hành
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    <div className="col-span-2 bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Tên Tinh Linh</p>
-                                        <p className="font-bold text-base text-primary">{pet.name}</p>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Cấp độ (LV)</p>
-                                        <p className="font-bold text-base text-foreground">Lv.{pet.level}</p>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Thuộc hệ</p>
-                                        <span className="inline-block mt-0.5 px-2 py-0.5 bg-warning/10 text-warning rounded text-xs font-semibold">
-                                            {pet.element}
-                                        </span>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Sinh Mệnh Lực</p>
-                                        <p className="font-bold text-sm text-danger mt-0.5">
-                                            {pet.vitality?.toLocaleString()}%
-                                        </p>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Giai đoạn</p>
-                                        <p className="font-semibold text-sm text-foreground">{pet.evolutionStage}</p>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Năng lượng</p>
-                                        <p className="font-semibold text-sm text-success">{pet.energy} / 100</p>
-                                    </div>
-                                    <div className="bg-card/60 p-3 rounded-xl border border-border/60">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Độ Gắn Kết</p>
-                                        <p className="font-semibold text-sm text-accent">{pet.bond}%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="p-6 bg-muted/40 rounded-xl border border-dashed border-border text-center">
-                                <p className="text-sm text-muted-foreground italic">
-                                    Người chơi này hiện tại chưa sở hữu Tinh Linh nào.
-                                </p>
-                            </div>
-                        )}
-                    </div>
+                    </div>                    
                 </div>
             </div>
         </div>
