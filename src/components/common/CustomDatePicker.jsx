@@ -31,7 +31,7 @@ export default function CustomDatePicker({
         timeFormat="HH:mm"
         timeIntervals={15}
         timeCaption="Giờ"
-        dateFormat="dd/MM/yyyy HH:mm"
+        dateFormat="HH:mm:ss dd/MM/yyyy"
         placeholderText={placeholder}
         portalId="datepicker-portal"
         // CÙNG NHAU TỰ CUSTOM LẠI HEADER ĐỂ CHỐNG LỆCH MŨI TÊN

@@ -25,6 +25,7 @@ import CustomDatePicker from "../../../components/common/CustomDatePicker";
 import "../css/challengesManagement.css";
 import "../../../styles/managementStats.css";
 import "../../missions/css/missionsManagement.css";
+import { formatDateTime } from "../../../utils/dateTime.js";
 
 const translateChallengeError = (key, message) => {
   if (key === "Title") return "Vui lòng nhập tên thử thách.";
@@ -868,9 +869,7 @@ export default function ChallengesManagementPage() {
                     </span>
                     <p className="text-sm text-foreground">
                       {detailChallenge.startAt
-                        ? new Date(detailChallenge.startAt).toLocaleString(
-                            "vi-VN",
-                          )
+                        ? formatDateTime(detailChallenge.startAt, "N/A")
                         : "N/A"}
                     </p>
                   </div>
@@ -880,9 +879,7 @@ export default function ChallengesManagementPage() {
                     </span>
                     <p className="text-sm text-foreground">
                       {detailChallenge.endAt
-                        ? new Date(detailChallenge.endAt).toLocaleString(
-                            "vi-VN",
-                          )
+                        ? formatDateTime(detailChallenge.endAt, "N/A")
                         : "N/A"}
                     </p>
                   </div>

@@ -13,6 +13,7 @@ import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import CustomSelect from "../../../components/common/CustomSelect.jsx";
 import "../css/viewReportList.css";
 import "../../missions/css/missionsManagement.css";
+import { formatDateTime } from "../../../utils/dateTime.js";
 
 function Modal({ open, onClose, title, children }) {
 	if (!open) return null;
@@ -248,7 +249,7 @@ export default function ReportListPage() {
 									<td className="py-4 px-4 text-sm">#{(report.feedbackId || report.id || '').toString().slice(0,6)}</td>
 									<td className="py-4 px-4"><p className="font-medium">{report.userId || report.reporterId || report.reporterName || 'Người dùng'}</p></td>
 									<td className="py-4 px-4 text-sm">{report.feedbackTypeCode || report.reason || report.content}</td>
-									<td className="py-4 px-4 text-xs text-muted-foreground">{(report.createdAt || report.date || '').replace ? (report.createdAt || report.date || '').replace('T',' ').substring(0,16) : (report.createdAt || report.date || '')}</td>
+									<td className="py-4 px-4 text-xs text-muted-foreground">{formatDateTime(report.createdAt || report.date, "-")}</td>
 									<td className="py-4 px-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(report.statusCode || report.status)} report-badge`}>{statusLabel(report.statusCode || report.status)}</span></td>
 									<td className="py-4 px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
 										<ReportActionButtons onReply={() => {
@@ -311,7 +312,7 @@ export default function ReportListPage() {
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 report-detail-time-grid">
 							<div className="report-detail-time-card">
 								<p className="text-xs text-muted-foreground mb-1">Thời gian</p>
-								<p className="text-sm">{(detailReport.createdAt || detailReport.date || '').replace ? (detailReport.createdAt || detailReport.date || '').replace('T',' ').substring(0,16) : (detailReport.createdAt || detailReport.date || '') || '-'}</p>
+								<p className="text-sm">{formatDateTime(detailReport.createdAt || detailReport.date, "-")}</p>
 							</div>
 							
 						</div>

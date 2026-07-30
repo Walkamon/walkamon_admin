@@ -17,6 +17,7 @@ import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import CustomSelect from "../../../components/common/CustomSelect.jsx";
 import "../css/user-actions.css";
 import "../../missions/css/missionsManagement.css";
+import { formatDateTime } from "../../../utils/dateTime.js";
 
 // ─── Hàm tiện ích ───────────────────────────────────────────────────────────
 
@@ -49,8 +50,7 @@ function isActive(user) {
 }
 
 function formatDate(dateStr) {
-    if (!dateStr) return "-";
-    return dateStr.replace("T", " ").substring(0, 16);
+    return formatDateTime(dateStr, "-");
 }
 
 const STATUS_OPTIONS = [
