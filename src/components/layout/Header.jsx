@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatDateTime } from '../../utils/dateTime.js';
 
 export function Header() {
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -12,12 +13,7 @@ export function Header() {
         navigate("/auth/login"); // Đẩy về trang đăng nhập
     };
 
-    const today = new Date().toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    const today = formatDateTime(new Date());
 
     return (
         <header className="h-16 bg-card border-b border-border fixed top-0 right-0 left-64 z-10 transition-colors duration-200">

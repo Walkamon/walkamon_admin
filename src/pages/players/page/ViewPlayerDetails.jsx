@@ -1,10 +1,10 @@
 import { X, User } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/common/button.jsx";
+import { formatDateTime } from "../../../utils/dateTime.js";
 
 function formatDate(dateStr) {
-    if (!dateStr) return "-";
-    return dateStr.replace("T", " ").substring(0, 16);
+    return formatDateTime(dateStr, "-");
 }
 
 function formatNullable(value, empty = "Chưa cập nhật") {

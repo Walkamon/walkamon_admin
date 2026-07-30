@@ -9,6 +9,7 @@ import CommonDialog from "../../../components/common/CommonDialog.jsx";
 import { itemTypeApi } from "../../../api/itemTypeApi.js";
 import "../css/itemTypeManagerPage.css";
 import "../../missions/css/missionsManagement.css";
+import { formatDateTime } from "../../../utils/dateTime.js";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -57,17 +58,8 @@ function Modal({ title, onClose, children, variant = "" }) {
 function ItemTypeDetailView({ itemType, onClose }) {
   if (!itemType) return null;
 
-  // Hàm helper để format tách giờ và ngày đẹp như design
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return { time: "00:00:00", date: "N/A" };
-    const d = new Date(dateStr);
-    const time = d.toLocaleTimeString("vi-VN", { hour12: false });
-    const date = d.toLocaleDateString("vi-VN");
-    return { time, date };
-  };
-
-  const createdTime = formatDateTime(itemType.createdAt);
-  const updatedTime = formatDateTime(itemType.updatedAt);
+  const createdTime = formatDateTime(itemType.createdAt, "N/A");
+  const updatedTime = formatDateTime(itemType.updatedAt, "N/A");
 
   return (
     <div className="item-detail-layout">
@@ -101,16 +93,14 @@ function ItemTypeDetailView({ itemType, onClose }) {
         <div className="time-pill-block">
           <span className="detail-label">Ngày tạo</span>
           <div className="time-pill-value">
-            <span className="time-part">{createdTime.time}</span>
-            <span className="date-part">{createdTime.date}</span>
+            <span className="time-part">{createdTime}</span>
           </div>
         </div>
 
         <div className="time-pill-block">
           <span className="detail-label">Lần cập nhật gần nhất</span>
           <div className="time-pill-value">
-            <span className="time-part">{updatedTime.time}</span>
-            <span className="date-part">{updatedTime.date}</span>
+            <span className="time-part">{updatedTime}</span>
           </div>
         </div>
         </div>

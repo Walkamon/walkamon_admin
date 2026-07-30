@@ -22,6 +22,7 @@ import { Pagination } from "../../components/common/pagination.jsx";
 import CustomSelect from "../../components/common/CustomSelect";
 import CustomDatePicker from "../../components/common/CustomDatePicker";
 import CommonDialog from "../../components/common/CommonDialog";
+import { formatDateTime } from "../../utils/dateTime.js";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -1114,19 +1115,7 @@ export default function MissionsManagement() {
                           style={{ color: "#4A5D23" }}
                         >
                           {(() => {
-                            if (!mission.startAt) return "---";
-                            try {
-                              const d = new Date(mission.startAt);
-                              const day = String(d.getDate()).padStart(2, "0");
-                              const month = String(d.getMonth() + 1).padStart(
-                                2,
-                                "0",
-                              );
-                              const year = d.getFullYear();
-                              return `${day}/${month}/${year}`;
-                            } catch (e) {
-                              return "---";
-                            }
+                            return formatDateTime(mission.startAt);
                           })()}
                         </span>
                       </td>
@@ -2379,11 +2368,7 @@ export default function MissionsManagement() {
                       <span
                         style={{ fontWeight: 600, color: "var(--foreground)" }}
                       >
-                        {selectedDetail.startAt
-                          ? new Date(selectedDetail.startAt).toLocaleString(
-                              "vi-VN",
-                            )
-                          : "---"}
+                        {formatDateTime(selectedDetail.startAt)}
                       </span>
                     </div>
 
@@ -2398,11 +2383,7 @@ export default function MissionsManagement() {
                       <span
                         style={{ fontWeight: 600, color: "var(--foreground)" }}
                       >
-                        {selectedDetail.endAt
-                          ? new Date(selectedDetail.endAt).toLocaleString(
-                              "vi-VN",
-                            )
-                          : "---"}
+                        {formatDateTime(selectedDetail.endAt)}
                       </span>
                     </div>
                   </div>

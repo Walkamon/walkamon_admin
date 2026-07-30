@@ -13,6 +13,7 @@ import "../missions/css/missionsManagement.css";
 import "../pvp/css/pvpAdmin.css";
 
 import "./css/notifications.css";
+import { formatDateTime } from "../../utils/dateTime.js";
 
 const audienceOptions = [
   { id: "all_users", label: "Tất cả người dùng" },
@@ -54,21 +55,7 @@ const typeOptions = [
 ];
 
 const formatNotificationDateTime = (value) => {
-  if (!value) return "---";
-
-  let rawValue = String(value).trim().replace(" ", "T");
-  if (!rawValue) return "---";
-
-  // JavaScript Date does not accept timestamp fractions longer than milliseconds.
-  rawValue = rawValue.replace(/\.(\d{3})\d+/, ".$1");
-  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(rawValue);
-  const date = new Date(hasTimezone ? rawValue : `${rawValue}Z`);
-
-  if (Number.isNaN(date.getTime())) return "---";
-
-  return date.toLocaleString("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-  });
+  return formatDateTime(value);
 };
 
 const emptyForm = {
@@ -733,19 +720,13 @@ export function NotificationsManagement() {
                   <div className="detail-time-item">
                     <span className="detail-time-label">Lịch gửi</span>
                     <span className="detail-time-value">
-                      {detailData.scheduleTime
-                        ? new Date(detailData.scheduleTime).toLocaleString(
-                            "vi-VN",
-                          )
-                        : "---"}
+                      {formatDateTime(detailData.scheduleTime)}
                     </span>
                   </div>
                   <div className="detail-time-item">
                     <span className="detail-time-label">Ngày gửi thực tế</span>
                     <span className="detail-time-value">
-                      {detailData.sentAt
-                        ? new Date(detailData.sentAt).toLocaleString("vi-VN")
-                        : "---"}
+                      {formatDateTime(detailData.sentAt)}
                     </span>
                   </div>
                 </div>
