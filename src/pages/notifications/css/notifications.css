@@ -268,6 +268,25 @@
     flex: 1;
 }
 
+/* The form wraps both the scrollable body and the fixed action footer. */
+.notification-form-modal > form {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notification-form-modal > form > .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.notification-form-modal > form > .modal-footer {
+    flex: 0 0 auto;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -376,6 +395,95 @@
     padding: 10px 20px !important;
     font-size: 14px;
     font-weight: 500;
+}
+
+/* Keep the notification list inside its card on narrow screens. The shared
+ * mission table wrapper adds horizontal padding, so it must use border-box
+ * sizing and delegate any table overflow to its inner scroll area. */
+.noti-container,
+.noti-card.mission-table-container {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.noti-header,
+.noti-title-block,
+.noti-toolbar,
+.mission-toolbar-search {
+    min-width: 0;
+}
+
+.noti-header {
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.noti-title-block {
+    overflow-wrap: anywhere;
+}
+
+.notification-table-responsive {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.notification-table-responsive > .overflow-x-auto {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.notification-table-responsive > .overflow-x-auto > .mission-table {
+    width: 100%;
+    min-width: 820px;
+    table-layout: fixed;
+}
+
+.notification-table-responsive .col-id { width: 12%; }
+.notification-table-responsive .col-title { width: 24%; }
+.notification-table-responsive .col-target { width: 15%; }
+.notification-table-responsive .col-status { width: 13%; }
+.notification-table-responsive .col-time { width: 17%; }
+.notification-table-responsive .col-actions { width: 19%; }
+
+.notification-table-responsive .noti-td-title,
+.notification-table-responsive .noti-td-target,
+.notification-table-responsive .noti-td-time {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notification-table-responsive .noti-td-actions,
+.notification-table-responsive .action-btn-group {
+    white-space: nowrap;
+}
+
+.notification-table-responsive .action-btn-group {
+    display: inline-flex;
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+    .noti-container {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .noti-toolbar {
+        padding: 12px;
+    }
+
+    .noti-toolbar .mission-toolbar-search,
+    .noti-filter-group {
+        width: 100%;
+        max-width: none;
+    }
 }
 
 /* ================= MODAL CHI TIẾT (CLEAN & FLAT DESIGN VỚI PASTEL) ================= */

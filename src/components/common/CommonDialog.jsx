@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle, AlertCircle } from "lucide-react";
 
 const CommonDialog = ({
@@ -36,8 +37,15 @@ const CommonDialog = ({
 
   const theme = config[type] || config.error;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity"
+      style={{
+        width: "100vw",
+        height: "100dvh",
+        minHeight: "100vh",
+      }}
+    >
       <div className="bg-card border border-border rounded-xl shadow-2xl w-[90%] max-w-sm p-6 flex flex-col items-center text-center transform transition-all duration-300 scale-100">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors"
@@ -84,7 +92,8 @@ const CommonDialog = ({
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
