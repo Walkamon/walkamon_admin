@@ -90,6 +90,7 @@ export function NotificationsManagement() {
   const [deleteConfirm, setDeleteConfirm] = useState({
     isOpen: false,
     id: null,
+    title: "",
   });
 
   const [isDragging, setIsDragging] = useState(false);
@@ -308,8 +309,12 @@ export function NotificationsManagement() {
     }
   };
 
-  const handleDelete = (id) => {
-    setDeleteConfirm({ isOpen: true, id });
+  const handleDelete = (notification) => {
+    setDeleteConfirm({
+      isOpen: true,
+      id: notification.notificationId,
+      title: notification.title || "",
+    });
   };
 
   const executeDelete = async () => {
@@ -341,7 +346,7 @@ export function NotificationsManagement() {
       );
     } finally {
       setIsLoading(false);
-      setDeleteConfirm({ isOpen: false, id: null });
+      setDeleteConfirm({ isOpen: false, id: null, title: "" });
     }
   };
 
@@ -435,7 +440,14 @@ export function NotificationsManagement() {
         `Thành công`,
         `Thông báo đã được ${editId ? "cập nhật" : "tạo mới"} thành công.`,
       );
-      fetchNotifications(currentPage);
+
+      // New notifications are returned on the first page; wait for the
+      // refreshed list so the table updates without a full page reload.
+      const nextPage = editId ? currentPage : 1;
+      if (!editId && currentPage !== 1) {
+        setCurrentPage(1);
+      }
+      await fetchNotifications(nextPage);
     } catch (error) {
       console.error("Lỗi chi tiết từ hệ thống:", error);
 
@@ -609,7 +621,7 @@ export function NotificationsManagement() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation(); // Ngăn sự kiện click bọt khí lên thẻ <tr>
-                          handleDelete(notif.notificationId);
+                          handleDelete(notif);
                         }}
                         className="mission-table-pill-btn disable"
                       >
@@ -785,7 +797,7 @@ export function NotificationsManagement() {
       {/* ================= MODAL THÊM / SỬA ================= */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content notification-form-modal">
             <div className="modal-header">
               <h2>{editId ? "Cập nhật thông báo" : "Soạn thông báo mới"}</h2>
               <button
@@ -1039,67 +1051,26 @@ export function NotificationsManagement() {
         </div>
       )}
 
-      {/* ================= MODAL XÓA ================= */}
-      {deleteConfirm.isOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: "400px" }}>
-            <div className="modal-header">
-              <h2>Xác nhận xóa</h2>
-              <button
-                onClick={() => setDeleteConfirm({ isOpen: false, id: null })}
-                className="modal-close-btn"
-                disabled={isLoading}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "var(--foreground)",
-                  margin: 0,
-                  lineHeight: 1.5,
-                }}
-              >
-                Bạn có chắc chắn muốn xóa thông báo này không? Hành động này sẽ
-                xóa dữ liệu vĩnh viễn và không thể hoàn tác.
-              </p>
-            </div>
-
-            <div className="modal-footer">
-              <Button
-                variant="secondary"
-                onClick={() => setDeleteConfirm({ isOpen: false, id: null })}
-                disabled={isLoading}
-              >
-                Hủy
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={executeDelete}
-                disabled={isLoading}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Đang xóa...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4 " /> Xóa ngay
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CommonDialog
+        isOpen={deleteConfirm.isOpen}
+        type="warning"
+        title="Xác nhận xóa"
+        message={
+          <>
+            Bạn có chắc chắn muốn xóa thông báo{" "}
+            <strong className="font-bold text-foreground">
+              {deleteConfirm.title || "này"}
+            </strong>{" "}
+            không? Hành động này không thể hoàn tác.
+          </>
+        }
+        onClose={() =>
+          setDeleteConfirm({ isOpen: false, id: null, title: "" })
+        }
+        onConfirm={executeDelete}
+        confirmLabel="Xóa"
+        isLoading={isLoading}
+      />
 
       <CommonDialog
         isOpen={dialogState.isOpen}
