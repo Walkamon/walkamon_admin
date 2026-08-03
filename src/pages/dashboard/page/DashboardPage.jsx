@@ -91,24 +91,29 @@ export function Dashboard() {
     );
   }
 
-  const overviewData = [
-    {
-      label: "Tổng người dùng",
-      value: formatNumber(dashboard?.totalUsers),
-      change: formatPercentage(dashboard?.userGrowthPercentage, true),
-      icon: Users,
-    },
-    {
-      label: "Người chơi hoạt động hôm nay",
-      value: formatNumber(dashboard?.activeUsers),
-      icon: Activity,
-    },
-    {
-      label: "Tổng bước chân",
-      value: formatNumber(dashboard?.totalSteps),
-      icon: Footprints,
-    },
-  ];
+    const overviewData = [
+  {
+    label: "Tổng người dùng",
+    value: formatNumber(dashboard?.totalUsers),
+    change: formatPercentage(dashboard?.userGrowthPercentage, true),
+    icon: Users,
+  },
+  {
+    label: "Người dùng đăng ký hôm nay",
+    value: formatNumber(dashboard?.newUsersToday),
+    icon: Activity,
+  },
+  {
+    label: "Người dùng đăng ký tháng này",
+    value: formatNumber(dashboard?.newUsersThisMonth),
+    icon: TrendingUp,
+  },
+  {
+    label: "Tổng bước chân",
+    value: formatNumber(dashboard?.totalSteps),
+    icon: Footprints,
+  },
+];
 
   const interactionData = (dashboard?.petInteractions ?? []).map(
     (interaction) => ({
@@ -128,36 +133,184 @@ export function Dashboard() {
           Dữ liệu mới nhất từ hệ thống Walkamon
         </p>
       </div>
+          <div className="dashboard-secondary-stats">
+              <h2 className="font-semibold text-lg text-foreground">
+                  Thống kê người dùng
+              </h2>
 
-      <div className="management-stats-grid dashboard-stats-grid">
-        {overviewData.map((item) => {
-          const Icon = item.icon;
-          const growth = Number(dashboard?.userGrowthPercentage) || 0;
+              <div className="management-stats-grid dashboard-stats-grid">
 
-          return (
-            <div
-              key={item.label}
-              className="management-stat-card"
-            >
-              <div className="management-stat-content">
-                <p className="management-stat-label">{item.label}</p>
-                <p className="management-stat-value">{item.value}</p>
-                {item.change && (
-                  <span className={`management-stat-change ${
-                      growth >= 0 ? "text-[#76A084]" : "text-[#DC6B6B]"
-                    }`}
-                  >
-                    {item.change} so với tháng trước
-                  </span>
-                )}
+                  <div className="management-stat-card">
+                      <div className="management-stat-content">
+                          <p className="management-stat-label">
+                              Tổng người dùng
+                          </p>
+
+                          <p className="management-stat-value">
+                              {formatNumber(dashboard?.totalUsers)}
+                          </p>
+
+                          <span className="management-stat-change">
+                              Toàn hệ thống
+                          </span>
+                      </div>
+
+                      <div className="management-stat-icon">
+                          <Users className="h-5 w-5" />
+                      </div>
+                  </div>
+
+                  <div className="management-stat-card">
+                      <div className="management-stat-content">
+                          <p className="management-stat-label">
+                              Đăng ký hôm nay
+                          </p>
+
+                          <p className="management-stat-value">
+                              {formatNumber(dashboard?.newUsersToday)}
+                          </p>
+
+                          <span className="management-stat-change">
+                              Người dùng mới
+                          </span>
+                      </div>
+
+                      <div className="management-stat-icon">
+                          <Activity className="h-5 w-5" />
+                      </div>
+                  </div>
+
+                  <div className="management-stat-card">
+                      <div className="management-stat-content">
+                          <p className="management-stat-label">
+                              Đăng ký tháng này
+                          </p>
+
+                          <p className="management-stat-value">
+                              {formatNumber(dashboard?.newUsersThisMonth)}
+                          </p>
+
+                          <span className="management-stat-change">
+                              Trong tháng hiện tại
+                          </span>
+                      </div>
+
+                      <div className="management-stat-icon">
+                          <TrendingUp className="h-5 w-5" />
+                      </div>
+                  </div>
+
+                  <div className="management-stat-card">
+                      <div className="management-stat-content">
+                          <p className="management-stat-label">
+                              Tăng trưởng
+                          </p>
+
+                          <p className="management-stat-value">
+                              {formatPercentage(dashboard?.userGrowthPercentage)}
+                          </p>
+
+                          <span
+                              className={
+                                  dashboard?.userGrowthPercentage >= 0
+                                      ? "text-[#76A084]"
+                                      : "text-[#DC6B6B]"
+                              }
+                          >
+                              So với tháng trước
+                          </span>
+                      </div>
+
+                      <div className="management-stat-icon">
+                          <Users className="h-5 w-5" />
+                      </div>
+                  </div>
+
               </div>
-              <div className="management-stat-icon">
-                <Icon className="h-5 w-5" />
+          </div>
+          <div className="management-stats-grid dashboard-stats-grid">
+
+              <div className="management-stat-card">
+                  <div className="management-stat-content">
+                      <p className="management-stat-label">
+                          Bước chân hôm nay
+                      </p>
+
+                      <p className="management-stat-value">
+                          {formatNumber(dashboard?.stepsToday)}
+                      </p>
+                  </div>
+
+                  <div className="management-stat-icon">
+                      <Footprints className="h-5 w-5" />
+                  </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+
+              <div className="management-stat-card">
+                  <div className="management-stat-content">
+                      <p className="management-stat-label">
+                          Bước chân trung bình/ngày
+                      </p>
+
+                      <p className="management-stat-value">
+                          {formatNumber(dashboard?.averageStepsPerDay)}
+                      </p>
+                  </div>
+
+                  <div className="management-stat-icon">
+                      <Footprints className="h-5 w-5" />
+                  </div>
+              </div>
+
+              <div className="management-stat-card">
+                  <div className="management-stat-content">
+                      <p className="management-stat-label">
+                          Trung bình mỗi người
+                      </p>
+
+                      <p className="management-stat-value">
+                          {formatNumber(dashboard?.averageStepsPerUser)}
+                      </p>
+                  </div>
+
+                  <div className="management-stat-icon">
+                      <Users className="h-5 w-5" />
+                  </div>
+              </div>
+
+              <div className="management-stat-card">
+                  <div className="management-stat-content">
+                      <p className="management-stat-label">
+                          Người đi bộ hôm nay
+                      </p>
+
+                      <p className="management-stat-value">
+                          {formatNumber(dashboard?.walkingUsersToday)}
+                      </p>
+                  </div>
+
+                  <div className="management-stat-icon">
+                      <Users className="h-5 w-5" />
+                  </div>
+              </div>
+
+              <div className="management-stat-card">
+                  <div className="management-stat-content">
+                      <p className="management-stat-label">
+                          So với hôm qua
+                      </p>
+
+                      <p className="management-stat-value">
+                          {formatPercentage(dashboard?.compareWithYesterday)}
+                      </p>
+                  </div>
+
+                  <div className="management-stat-icon">
+                      <TrendingUp className="h-5 w-5" />
+                  </div>
+              </div>
+
+          </div>
 
       <div className="dashboard-secondary-stats">
         <h2 className="font-semibold text-lg text-foreground">
@@ -199,7 +352,63 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+      <div className="dashboard-secondary-stats">
+  <h2 className="font-semibold text-lg text-foreground">
+    Thống kê Tinh Linh
+  </h2>
 
+  <div className="management-stats-grid dashboard-stats-grid">
+
+    <div className="management-stat-card">
+      <div className="management-stat-content">
+        <p className="management-stat-label">
+          Tổng Tinh Linh
+        </p>
+
+        <p className="management-stat-value">
+          {formatNumber(dashboard?.totalPets)}
+        </p>
+      </div>
+
+      <div className="management-stat-icon">
+        🐾
+      </div>
+    </div>
+
+    <div className="management-stat-card">
+      <div className="management-stat-content">
+        <p className="management-stat-label">
+          Level trung bình
+        </p>
+
+        <p className="management-stat-value">
+          {dashboard?.averagePetLevel ?? 0}
+        </p>
+      </div>
+
+      <div className="management-stat-icon">
+        ⭐
+      </div>
+    </div>
+
+    <div className="management-stat-card">
+      <div className="management-stat-content">
+        <p className="management-stat-label">
+          Level cao nhất
+        </p>
+
+        <p className="management-stat-value">
+          {dashboard?.highestPetLevel}
+        </p>
+      </div>
+
+      <div className="management-stat-icon">
+        👑
+      </div>
+    </div>
+
+  </div>
+</div>
       <div className="bg-card border border-border rounded-xl p-6">
         <h2 className="font-medium mb-4">Hoạt động chăm sóc Tinh Linh</h2>
         {interactionData.length > 0 ? (
