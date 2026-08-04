@@ -26,6 +26,12 @@ import "../../../styles/managementStats.css";
 
 const ITEMS_PER_PAGE = 5;
 
+const EFFECT_TYPE_OPTIONS = [
+  { value: "life_force", label: "Sinh Mệnh Lực" },
+  { value: "energy", label: "Năng Lượng" },
+  { value: "bond", label: "Độ Gắn Kết" },
+];
+
 // --- HÀM TỰ ĐỘNG DỊCH THÔNG BÁO LỖI ---
 const translateErrorItem = (englishMsg) => {
   if (!englishMsg) return "Lỗi không xác định.";
@@ -55,6 +61,9 @@ const translateEffectCode = (effectCode) => {
     pvpspeedup: "Tăng tốc độ PvP",
     debuff: "Hiệu ứng bất lợi",
     pvpspeeddown: "Giảm tốc độ PvP",
+    lifeforce: "Sinh Mệnh Lực",
+    energy: "Năng Lượng",
+    bond: "Độ Gắn Kết",
   };
 
   return translations[normalized] || code || "-";
@@ -335,26 +344,19 @@ function ItemForm({ dynamicTypes, onSubmit, onClose }) {
       <div className="form-row-grid">
         <div className="form-group">
           <label>Mã hiệu ứng</label>
-          <input
-            type="text"
-            maxLength={30}
+          <CustomSelect
+            valueKey="value"
+            options={EFFECT_TYPE_OPTIONS}
             value={form.effectTypeCode}
-            onChange={(e) => {
-              // Tu dong viet hoa va xoa khoang trang
-              const formattedValue = e.target.value
-                .toUpperCase()
-                .replace(/\s/g, "");
-              setForm({ ...form, effectTypeCode: formattedValue });
+            onChange={(val) => {
+              setForm({ ...form, effectTypeCode: val });
               if (errors.effectTypeCode)
                 setErrors({ ...errors, effectTypeCode: null });
             }}
-            placeholder="Ví dụ: HP..."
+            placeholder="Chọn mã hiệu ứng"
+            className="w-full"
             disabled={isLoading}
-            className={
-              errors.effectTypeCode
-                ? "border-destructive focus:ring-destructive/20"
-                : ""
-            }
+            hasError={!!errors.effectTypeCode}
           />
           {errors.effectTypeCode && (
             <span className="text-sm text-destructive mt-1.5 block font-medium">
@@ -641,25 +643,19 @@ function EditItemForm({ item, dynamicTypes, onSubmit, onClose }) {
       <div className="form-row-grid">
         <div className="form-group">
           <label>Mã hiệu ứng</label>
-          <input
-            type="text"
-            maxLength={30}
+          <CustomSelect
+            valueKey="value"
+            options={EFFECT_TYPE_OPTIONS}
             value={form.effectTypeCode}
-            onChange={(e) => {
-              setForm({
-                ...form,
-                effectTypeCode: e.target.value.toUpperCase().replace(/\s/g, ""),
-              });
+            onChange={(val) => {
+              setForm({ ...form, effectTypeCode: val });
               if (errors.effectTypeCode)
                 setErrors({ ...errors, effectTypeCode: null });
             }}
-            placeholder="Ví dụ: HP..."
+            placeholder="Chọn mã hiệu ứng"
+            className="w-full"
             disabled={isLoading}
-            className={
-              errors.effectTypeCode
-                ? "border-destructive focus:ring-destructive/20"
-                : ""
-            }
+            hasError={!!errors.effectTypeCode}
           />
           {errors.effectTypeCode && (
             <span className="text-sm text-destructive mt-1.5 block font-medium">
