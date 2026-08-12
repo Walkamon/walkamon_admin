@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://walkamon.azurewebsites.net';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.walkamon.xyz';
 
 const axiosClient = axios.create({
     baseURL: BASE_URL,

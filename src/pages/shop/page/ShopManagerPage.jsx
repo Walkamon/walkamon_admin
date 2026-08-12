@@ -28,7 +28,7 @@ import "../../../styles/managementStats.css";
 
 const ITEMS_PER_PAGE = 5;
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://walkamon.azurewebsites.net";
+  import.meta.env.VITE_API_BASE_URL || "https://api.walkamon.xyz";
 
 const normalizeId = (id) => String(id ?? "").toLowerCase().trim();
 
